@@ -170,6 +170,6 @@ button:active {
 @media (max-width: 600px) {
   .container {
     margin: 20px;
-    padding: 26px;
+    padding: 25px;
   }
 }
