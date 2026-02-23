@@ -1,4 +1,3 @@
-const fetch = require("node-fetch");
 
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
