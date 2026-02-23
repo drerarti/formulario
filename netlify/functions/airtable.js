@@ -70,10 +70,41 @@ if (method === "GET") {
   // =====================
   // POST RESERVA
   // =====================
-  if (method === "POST") {
+// =====================
+// POST RESERVA PROFESIONAL
+// =====================
+if (method === "POST") {
+  try {
     const body = JSON.parse(event.body);
 
-    const response = await fetch(
+    if (!body.unidad_record_id) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "UNIDAD_REQUERIDA" }),
+      };
+    }
+
+    // 1️⃣ Verificar disponibilidad actual
+    const checkResponse = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+        },
+      }
+    );
+
+    const unidadData = await checkResponse.json();
+
+    if (unidadData.fields.estado_unidad !== "Disponible") {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "UNIDAD_NO_DISPONIBLE" }),
+      };
+    }
+
+    // 2️⃣ Crear RESERVA
+    const reservaResponse = await fetch(
       `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
       {
         method: "POST",
@@ -83,23 +114,63 @@ if (method === "GET") {
         },
         body: JSON.stringify({
           fields: {
-            unidad: [body.unidad_id],
-            cliente: body.cliente,
-            agente: body.agente,
+            unidad: [body.unidad_record_id],
+            cliente_contact_id: body.contact_id || "",
             estado_reserva: "Activa",
+            tipo_venta: body.tipo_venta || "Contado",
+            descuento_solicitado: Number(body.descuento_solicitado || 0),
           },
         }),
       }
     );
 
-    const data = await response.json();
+    const reservaData = await reservaResponse.json();
+
+    if (reservaData.error) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "ERROR_CREANDO_RESERVA",
+          detail: reservaData.error,
+        }),
+      };
+    }
+
+    // 3️⃣ Actualizar UNIDAD → Reservado
+    await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            estado_unidad: "Reservado",
+          },
+        }),
+      }
+    );
 
     return {
       statusCode: 200,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ok: true,
+        reserva_id: reservaData.id,
+      }),
+    };
+
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "SERVER_ERROR",
+        detail: error.message,
+      }),
     };
   }
-
+}
   return {
     statusCode: 405,
     body: "Method not allowed",
