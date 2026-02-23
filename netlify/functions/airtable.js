@@ -4,11 +4,10 @@ const BASE_ID = process.env.AIRTABLE_BASE;
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
-
-  // =====================
-  // GET UNIDADES
-  // =====================
- if (method === "GET") {
+// =====================
+// GET UNIDADES (CON PAGINACIÓN)
+// =====================
+if (method === "GET") {
   const { project, manzana } = event.queryStringParameters || {};
 
   let formula = `{estado_unidad} = "Disponible"`;
@@ -21,27 +20,40 @@ exports.handler = async (event) => {
     formula += ` AND {Manzana} = "${manzana}"`;
   }
 
-  const url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
+  let allRecords = [];
+  let offset = null;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-    },
-  });
+  do {
+    let url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
 
-  const data = await response.json();
+    if (offset) {
+      url += `&offset=${offset}`;
+    }
 
-  if (data.error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: "AIRTABLE_ERROR",
-        detail: data.error
-      }),
-    };
-  }
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+      },
+    });
 
-  const results = (data.records || []).map((r) => ({
+    const data = await response.json();
+
+    if (data.error) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "AIRTABLE_ERROR",
+          detail: data.error
+        }),
+      };
+    }
+
+    allRecords = allRecords.concat(data.records);
+    offset = data.offset;
+
+  } while (offset);
+
+  const results = allRecords.map((r) => ({
     id: r.id,
     unidad_id: r.fields.unidad_id,
     proyecto: r.fields.proyecto,
