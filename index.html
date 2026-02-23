@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserva de Unidad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <main class="container">
+
+    <header class="form-header">
+      <h1>Reserva de Unidad</h1>
+      <p>Selecciona el proyecto y la unidad disponible</p>
+    </header>
+
+    <form id="reservaForm" enctype="multipart/form-data">
+
+      <!-- IDs que vienen desde GHL -->
+      <input type="hidden" id="contact_id" name="contact_id">
+      <input type="hidden" id="opportunity_id" name="opportunity_id">
+
+      <!-- Cliente -->
+      <div class="form-group">
+        <label for="cliente_nombre">Nombre del Cliente</label>
+        <input type="text" id="cliente_nombre" name="cliente_nombre" required>
+      </div>
+
+      <!-- Proyecto -->
+      <div class="form-group">
+        <label for="proyecto">Proyecto</label>
+        <select id="proyecto" required>
+          <option value="">Cargando proyectos...</option>
+        </select>
+      </div>
+
+      <!-- Manzana -->
+      <div class="form-group">
+        <label for="manzana">Manzana</label>
+        <select id="manzana" disabled required>
+          <option value="">Selecciona proyecto primero</option>
+        </select>
+      </div>
+
+      <!-- Unidad -->
+      <div class="form-group">
+        <label for="unidad">Unidad Disponible</label>
+        <select id="unidad" name="unidad_record_id" disabled required>
+          <option value="">Selecciona manzana primero</option>
+        </select>
+      </div>
+
+      <!-- Precio dinámico -->
+      <div class="form-group price-box hidden" id="priceBox">
+        <label>Precio Lista</label>
+        <div id="precioDisplay" class="price-display">S/ 0.00</div>
+      </div>
+
+      <!-- Tipo de Venta -->
+      <div class="form-group">
+        <label for="tipo_venta">Tipo de Venta</label>
+        <select id="tipo_venta" name="tipo_venta" required>
+          <option value="">Selecciona...</option>
+          <option value="Contado">Contado</option>
+          <option value="Financiado">Financiado</option>
+        </select>
+      </div>
+
+      <!-- Archivos -->
+      <div class="form-group file-group">
+        <label for="dni_front">DNI - Frente</label>
+        <input type="file" id="dni_front" name="dni_front" accept="image/*,application/pdf" required>
+      </div>
+
+      <div class="form-group file-group">
+        <label for="dni_back">DNI - Reverso</label>
+        <input type="file" id="dni_back" name="dni_back" accept="image/*,application/pdf" required>
+      </div>
+
+      <div class="form-group file-group">
+        <label for="voucher">Voucher de Pago</label>
+        <input type="file" id="voucher" name="voucher" accept="image/*,application/pdf" required>
+      </div>
+
+      <!-- Descuento -->
+      <div class="form-group">
+        <label for="descuento">Descuento Solicitado (opcional)</label>
+        <input type="number" id="descuento" name="descuento_solicitado" min="0">
+      </div>
+
+      <div class="form-group">
+        <label for="motivo_descuento">Motivo de Descuento (opcional)</label>
+        <input type="text" id="motivo_descuento" name="motivo_descuento">
+      </div>
+
+      <!-- Botón -->
+      <button type="submit" id="btnSubmit">Enviar Reserva</button>
+
+    </form>
+
+    <div id="alertBox" class="alert hidden"></div>
+
+  </main>
+
+  <script src="main.js"></script>
+
+</body>
+</html>

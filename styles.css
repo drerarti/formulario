@@ -1,0 +1,175 @@
+/* ===============================
+   RESET BÁSICO
+=============================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #f4f7fa, #e9eef3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* ===============================
+   CONTENEDOR PRINCIPAL
+=============================== */
+
+.container {
+  background: #ffffff;
+  width: 100%;
+  max-width: 520px;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+  transition: 0.3s ease;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.form-header h1 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.form-header p {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ===============================
+   FORM GROUP
+=============================== */
+
+.form-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-size: 13px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #374151;
+}
+
+input,
+select {
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  transition: 0.2s ease;
+  background-color: #ffffff;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+/* ===============================
+   ARCHIVOS
+=============================== */
+
+.file-group input[type="file"] {
+  padding: 8px;
+}
+
+/* ===============================
+   PRECIO
+=============================== */
+
+.price-box {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.price-display {
+  font-size: 18px;
+  font-weight: 700;
+  color: #047857;
+}
+
+/* ===============================
+   BOTÓN
+=============================== */
+
+button {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* ===============================
+   ALERTAS
+=============================== */
+
+.alert {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.alert.error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.alert.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ===============================
+   RESPONSIVE
+=============================== */
+
+@media (max-width: 600px) {
+  .container {
+    margin: 20px;
+    padding: 25px;
+  }
+}
