@@ -29,7 +29,14 @@ exports.handler = async (event) => {
       },
     });
 
-    const data = await response.json();
+const data = await response.json();
+
+if (!data.records) {
+  return {
+    statusCode: 500,
+    body: JSON.stringify(data),
+  };
+}
 
     const results = data.records.map((r) => ({
       id: r.id,
