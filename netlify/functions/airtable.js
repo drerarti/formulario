@@ -8,49 +8,52 @@ exports.handler = async (event) => {
   // =====================
   // GET UNIDADES
   // =====================
-  if (method === "GET") {
-    const { project, manzana } = event.queryStringParameters || {};
+ if (method === "GET") {
+  const { project, manzana } = event.queryStringParameters || {};
 
-    let formula = `{estado_unidad} = "Disponible"`;
+  let formula = `{estado_unidad} = "Disponible"`;
 
-    if (project) {
-      formula += ` AND {proyecto} = "${project}"`;
-    }
+  if (project) {
+    formula += ` AND {proyecto} = "${project}"`;
+  }
 
-    if (manzana) {
-      formula += ` AND {Manzana} = "${manzana}"`;
-    }
+  if (manzana) {
+    formula += ` AND {Manzana} = "${manzana}"`;
+  }
 
-    const url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
+  const url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-      },
-    });
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+    },
+  });
 
-const data = await response.json();
+  const data = await response.json();
 
-if (!data.records) {
-  return {
-    statusCode: 500,
-    body: JSON.stringify(data),
-  };
-}
-
-    const results = data.records.map((r) => ({
-      id: r.id,
-      unidad_id: r.fields.unidad_id,
-      proyecto: r.fields.proyecto,
-      manzana: r.fields.Manzana,
-      precio: r.fields.precio_lista || 0,
-    }));
-
+  if (data.error) {
     return {
-      statusCode: 200,
-      body: JSON.stringify(results),
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "AIRTABLE_ERROR",
+        detail: data.error
+      }),
     };
   }
+
+  const results = (data.records || []).map((r) => ({
+    id: r.id,
+    unidad_id: r.fields.unidad_id,
+    proyecto: r.fields.proyecto,
+    manzana: r.fields.Manzana,
+    precio: r.fields.precio_lista || 0,
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(results),
+  };
+}
 
   // =====================
   // POST RESERVA
