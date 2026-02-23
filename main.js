@@ -2,8 +2,7 @@
 // CONFIGURACIÓN
 // ===============================
 
-const BASE_ENDPOINT = "https://hook.us2.make.com/zaa725n4fjwmvtrqnknwwbdunbbu5yrr";
-const RESERVA_ENDPOINT = "https://hook.us2.make.com/zaa725n4fjwmvtrqnknwwbdunbbu5yrr";
+const ENDPOINT = "https://ayllureserva.netlify.app/.netlify/functions/airtable";
 
 // ===============================
 // ELEMENTOS DOM
@@ -19,6 +18,12 @@ const alertBox = document.getElementById("alertBox");
 
 const contactInput = document.getElementById("contact_id");
 const opportunityInput = document.getElementById("opportunity_id");
+
+// ===============================
+// ESTADO GLOBAL
+// ===============================
+
+let todasLasUnidades = [];
 
 // ===============================
 // UTILIDADES
@@ -42,7 +47,7 @@ function formatCurrency(value) {
 }
 
 // ===============================
-// OBTENER PARAMS DE URL (GHL)
+// PARAMS GHL
 // ===============================
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -50,121 +55,116 @@ contactInput.value = urlParams.get("contact") || "";
 opportunityInput.value = urlParams.get("opportunity") || "";
 
 // ===============================
-// CARGAR PROYECTOS
+// CARGAR TODAS LAS UNIDADES
 // ===============================
 
-async function loadProjects() {
+async function loadData() {
   try {
-    const res = await fetch(BASE_ENDPOINT);
+    const res = await fetch(ENDPOINT);
     const data = await res.json();
 
-    proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
+    todasLasUnidades = data;
 
-    const proyectosUnicos = [...new Set(data.map(p => p.proyecto))];
-
-    proyectosUnicos.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = p;
-      proyectoSelect.appendChild(opt);
-    });
+    cargarProyectos();
 
   } catch (error) {
-    showAlert("Error cargando proyectos. Verifica conexión con Make.");
-    console.error("Error loadProjects:", error);
+    showAlert("Error conectando con el servidor.");
+    console.error(error);
   }
 }
 
 // ===============================
-// CAMBIO DE PROYECTO
+// PROYECTOS
 // ===============================
 
-proyectoSelect.addEventListener("change", async () => {
+function cargarProyectos() {
+  proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
+
+  const proyectos = [...new Set(todasLasUnidades.map(u => u.proyecto))];
+
+  proyectos.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    proyectoSelect.appendChild(opt);
+  });
+}
+
+// ===============================
+// CAMBIO PROYECTO
+// ===============================
+
+proyectoSelect.addEventListener("change", () => {
 
   manzanaSelect.disabled = false;
   unidadSelect.disabled = true;
   priceBox.classList.add("hidden");
 
-  manzanaSelect.innerHTML = '<option value="">Cargando...</option>';
+  manzanaSelect.innerHTML = '<option value="">Selecciona manzana</option>';
 
-  try {
-    const res = await fetch(`${BASE_ENDPOINT}?project=${proyectoSelect.value}`);
-    const data = await res.json();
+  const filtradas = todasLasUnidades.filter(
+    u => u.proyecto === proyectoSelect.value
+  );
 
-    manzanaSelect.innerHTML = '<option value="">Selecciona manzana</option>';
+  const manzanas = [...new Set(filtradas.map(u => u.manzana))];
 
-    const manzanasUnicas = [...new Set(data.map(m => m.Manzana))];
-
-    manzanasUnicas.forEach(m => {
-      const opt = document.createElement("option");
-      opt.value = m;
-      opt.textContent = m;
-      manzanaSelect.appendChild(opt);
-    });
-
-  } catch (error) {
-    showAlert("Error cargando manzanas.");
-    console.error("Error proyecto change:", error);
-  }
+  manzanas.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    manzanaSelect.appendChild(opt);
+  });
 
 });
 
 // ===============================
-// CAMBIO DE MANZANA
+// CAMBIO MANZANA
 // ===============================
 
-manzanaSelect.addEventListener("change", async () => {
+manzanaSelect.addEventListener("change", () => {
 
   unidadSelect.disabled = false;
   priceBox.classList.add("hidden");
 
-  unidadSelect.innerHTML = '<option value="">Cargando...</option>';
+  unidadSelect.innerHTML = '<option value="">Selecciona unidad</option>';
 
-  try {
-    const res = await fetch(
-      `${BASE_ENDPOINT}?project=${proyectoSelect.value}&manzana=${manzanaSelect.value}`
-    );
+  const filtradas = todasLasUnidades.filter(
+    u =>
+      u.proyecto === proyectoSelect.value &&
+      u.manzana === manzanaSelect.value
+  );
 
-    const data = await res.json();
-
-    unidadSelect.innerHTML = '<option value="">Selecciona unidad</option>';
-
-    data.forEach(u => {
-      const opt = document.createElement("option");
-      opt.value = u.id;
-      opt.dataset.precio = u.precio || 0;
-      opt.textContent = `${u.codigo}`;
-      unidadSelect.appendChild(opt);
-    });
-
-  } catch (error) {
-    showAlert("Error cargando unidades.");
-    console.error("Error manzana change:", error);
-  }
+  filtradas.forEach(u => {
+    const opt = document.createElement("option");
+    opt.value = u.id;
+    opt.dataset.precio = u.precio || 0;
+    opt.textContent = u.unidad_id;
+    unidadSelect.appendChild(opt);
+  });
 
 });
 
 // ===============================
-// CAMBIO DE UNIDAD
+// CAMBIO UNIDAD
 // ===============================
 
 unidadSelect.addEventListener("change", () => {
 
-  const selectedOption = unidadSelect.options[unidadSelect.selectedIndex];
+  const selected = unidadSelect.options[unidadSelect.selectedIndex];
 
-  if (!selectedOption.value) {
+  if (!selected.value) {
     priceBox.classList.add("hidden");
     return;
   }
 
-  const precio = parseFloat(selectedOption.dataset.precio || 0);
+  const precio = parseFloat(selected.dataset.precio || 0);
   precioDisplay.textContent = formatCurrency(precio);
   priceBox.classList.remove("hidden");
 
 });
 
 // ===============================
-// ENVÍO DE FORMULARIO
+// ENVÍO FORMULARIO
 // ===============================
 
 form.addEventListener("submit", async (e) => {
@@ -176,8 +176,6 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  const formData = new FormData(form);
-
   const payload = {
     contact_id: contactInput.value,
     opportunity_id: opportunityInput.value,
@@ -188,12 +186,13 @@ form.addEventListener("submit", async (e) => {
     descuento_solicitado: document.getElementById("descuento").value || 0
   };
 
-  formData.append("payload", JSON.stringify(payload));
-
   try {
-    const res = await fetch(RESERVA_ENDPOINT, {
+    const res = await fetch(ENDPOINT, {
       method: "POST",
-      body: formData
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
     const result = await res.json();
@@ -207,8 +206,8 @@ form.addEventListener("submit", async (e) => {
     }
 
   } catch (error) {
-    showAlert("Error enviando la reserva.");
-    console.error("Submit error:", error);
+    showAlert("Error enviando reserva.");
+    console.error(error);
   }
 
 });
@@ -217,4 +216,4 @@ form.addEventListener("submit", async (e) => {
 // INICIALIZAR
 // ===============================
 
-loadProjects();
+loadData();
