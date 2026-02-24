@@ -1,110 +1,63 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reserva de Unidad</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+<form id="reservaForm">
 
-  <main class="container">
+  <!-- DATOS CLIENTE -->
+  <div class="form-group">
+    <label for="cliente_actual">Nombre del Cliente</label>
+    <input type="text" id="cliente_actual" required>
+  </div>
 
-    <header class="form-header">
-      <h1>Reserva de Unidad</h1>
-      <p>Selecciona el proyecto y la unidad disponible</p>
-    </header>
+  <div class="form-group">
+    <label for="dni_cliente">DNI del Cliente</label>
+    <input type="text" id="dni_cliente" required inputmode="numeric" pattern="[0-9]*">
+  </div>
 
-    <form id="reservaForm">
+  <div class="form-group">
+    <label for="telefono_cliente">Teléfono</label>
+    <input type="text" id="telefono_cliente" required inputmode="numeric" pattern="[0-9]*">
+  </div>
 
-      <!-- DATOS CLIENTE -->
-      <div class="form-group">
-        <label for="cliente_actual">Nombre del Cliente</label>
-        <input type="text" id="cliente_actual" required>
-      </div>
+  <div class="form-group">
+    <label for="agente">Agente</label>
+    <input type="text" id="agente" required>
+  </div>
 
-      <div class="form-group">
-        <label for="dni_cliente">DNI del Cliente</label>
-        <input type="text" id="dni_cliente" required>
-      </div>
+  <!-- PROYECTO -->
+  <div class="form-group">
+    <label for="proyecto">Proyecto</label>
+    <select id="proyecto" required>
+      <option value="">Cargando proyectos...</option>
+    </select>
+  </div>
 
-      <div class="form-group">
-        <label for="telefono_cliente">Teléfono</label>
-        <input type="text" id="telefono_cliente" required>
-      </div>
+  <!-- MANZANA -->
+  <div class="form-group">
+    <label for="manzana">Manzana</label>
+    <select id="manzana" disabled required>
+      <option value="">Selecciona proyecto primero</option>
+    </select>
+  </div>
 
-      <div class="form-group">
-        <label for="agente">Agente</label>
-        <input type="text" id="agente" required>
-      </div>
+  <!-- UNIDAD -->
+  <div class="form-group">
+    <label for="unidad">Unidad Disponible</label>
+    <select id="unidad" disabled required>
+      <option value="">Selecciona manzana primero</option>
+    </select>
+  </div>
 
-      <!-- PROYECTO -->
-      <div class="form-group">
-        <label for="proyecto">Proyecto</label>
-        <select id="proyecto" required>
-          <option value="">Cargando proyectos...</option>
-        </select>
-      </div>
+  <!-- PRECIO -->
+  <div class="form-group price-box hidden" id="priceBox">
+    <label>Precio Lista</label>
+    <div id="precioDisplay" class="price-display">S/ 0.00</div>
+  </div>
 
-      <!-- MANZANA -->
-      <div class="form-group">
-        <label for="manzana">Manzana</label>
-        <select id="manzana" disabled required>
-          <option value="">Selecciona proyecto primero</option>
-        </select>
-      </div>
+  <!-- MONTO RESERVA -->
+  <div class="form-group">
+    <label for="monto_reserva">Monto Pagado por Reserva</label>
+    <input type="number" id="monto_reserva" min="0" required>
+  </div>
 
-      <!-- UNIDAD -->
-      <div class="form-group">
-        <label for="unidad">Unidad Disponible</label>
-        <select id="unidad" disabled required>
-          <option value="">Selecciona manzana primero</option>
-        </select>
-      </div>
+  <!-- BOTÓN -->
+  <button type="submit" id="btnSubmit">Enviar Reserva</button>
 
-      <!-- PRECIO -->
-      <div class="form-group price-box hidden" id="priceBox">
-        <label>Precio Lista</label>
-        <div id="precioDisplay" class="price-display">S/ 0.00</div>
-      </div>
-
-      <!-- TIPO VENTA -->
-      <div class="form-group">
-        <label for="tipo_venta">Tipo de Venta</label>
-        <select id="tipo_venta" required>
-          <option value="">Selecciona...</option>
-          <option value="contado">contado</option>
-          <option value="financiamiento">financiamiento</option>
-        </select>
-      </div>
-
-      <!-- MONTO RESERVA -->
-      <div class="form-group">
-        <label for="monto_reserva">Monto Pagado por Reserva</label>
-        <input type="number" id="monto_reserva" min="0" required>
-      </div>
-
-      <!-- DESCUENTO -->
-      <div class="form-group">
-        <label for="descuento">Descuento Solicitado (opcional)</label>
-        <input type="number" id="descuento" min="0">
-      </div>
-
-      <div class="form-group">
-        <label for="motivo_descuento">Motivo del Descuento (opcional)</label>
-        <textarea id="motivo_descuento"></textarea>
-      </div>
-
-      <!-- BOTÓN -->
-      <button type="submit" id="btnSubmit">Enviar Reserva</button>
-
-    </form>
-
-    <div id="alertBox" class="alert hidden"></div>
-
-  </main>
-
-  <script src="main.js"></script>
-
-</body>
-</html>
+</form>

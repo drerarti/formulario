@@ -1,6 +1,40 @@
+async function logEvent(BASE, TOKEN, data) {
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/AUTOMATION_LOGS`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        fields: {
+          modulo: data.modulo,
+          evento: data.evento,
+          referencia_id: data.referencia_id || "",
+          detalle: data.detalle || "",
+          fecha: new Date().toISOString().split("T")[0]
+        }
+      })
+    });
+  } catch (e) {
+    console.error("LOG_ERROR:", e.message);
+  }
+}
+
 exports.handler = async (event) => {
+
+  const BASE = process.env.AIRTABLE_BASE;
+  const TOKEN = process.env.AIRTABLE_TOKEN;
+
   try {
     const fetch = global.fetch;
+
+    if (!BASE || !TOKEN) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "FALTAN_VARIABLES_DE_ENTORNO" })
+      };
+    }
 
     const reserva_id = event.queryStringParameters?.reserva_id;
     const penalidadParam = event.queryStringParameters?.penalidad;
@@ -21,9 +55,6 @@ exports.handler = async (event) => {
       };
     }
 
-    const BASE = process.env.AIRTABLE_BASE;
-    const TOKEN = process.env.AIRTABLE_TOKEN;
-
     const headers = {
       Authorization: `Bearer ${TOKEN}`,
       "Content-Type": "application/json"
@@ -36,6 +67,13 @@ exports.handler = async (event) => {
     );
 
     if (!reservaRes.ok) {
+      await logEvent(BASE, TOKEN, {
+        modulo: "CANCELAR_RESERVA",
+        evento: "RESERVA_NO_ENCONTRADA",
+        referencia_id: reserva_id,
+        detalle: ""
+      });
+
       return {
         statusCode: 404,
         body: JSON.stringify({ error: "RESERVA_NO_ENCONTRADA" })
@@ -63,7 +101,6 @@ exports.handler = async (event) => {
 
     const devolucion = montoReserva - penalidad;
     const fechaHoy = new Date().toISOString();
-
     const unidadId = reserva.unidad?.[0];
 
     // 2️⃣ Registrar penalidad (Ingreso)
@@ -136,6 +173,13 @@ exports.handler = async (event) => {
       );
     }
 
+    await logEvent(BASE, TOKEN, {
+      modulo: "CANCELAR_RESERVA",
+      evento: "RESERVA_CANCELADA",
+      referencia_id: reserva_id,
+      detalle: `Penalidad: ${penalidad}, Devolución: ${devolucion}`
+    });
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -146,6 +190,14 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
+
+    await logEvent(process.env.AIRTABLE_BASE, process.env.AIRTABLE_TOKEN, {
+      modulo: "CANCELAR_RESERVA",
+      evento: "ERROR",
+      referencia_id: event.queryStringParameters?.reserva_id || "",
+      detalle: error.message
+    });
+
     return {
       statusCode: 500,
       body: JSON.stringify({

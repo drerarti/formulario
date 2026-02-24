@@ -1,6 +1,27 @@
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
-
+async function logEvent(BASE, TOKEN, data) {
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/AUTOMATION_LOGS`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        fields: {
+          modulo: data.modulo,
+          evento: data.evento,
+          referencia_id: data.referencia_id || "",
+          detalle: data.detalle || "",
+          fecha: new Date().toISOString().split("T")[0]
+        }
+      })
+    });
+  } catch (e) {
+    console.error("LOG_ERROR:", e.message);
+  }
+}
 exports.handler = async (event) => {
   const method = event.httpMethod;
 
@@ -143,9 +164,6 @@ exports.handler = async (event) => {
               dni_cliente: body.dni_cliente || "",
               telefono_cliente: body.telefono_cliente || "",
               agente: body.agente || "",
-              tipo_venta: (body.tipo_venta || "contado").toLowerCase().replace(/"/g, ""),
-              descuento_solicitado: Number(body.descuento_solicitado || 0),
-              motivo_descuento: body.motivo_descuento || "",
               monto_reserva: Number(body.monto_reserva || 0),
               estado_reserva: "Activa",
               fecha_inicio: fechaInicio,
@@ -197,24 +215,38 @@ exports.handler = async (event) => {
           }),
         };
       }
+await logEvent(BASE_ID, AIRTABLE_TOKEN, {
+  modulo: "CREAR_RESERVA",
+  evento: "RESERVA_CREADA",
+  referencia_id: reservaData.id,
+  detalle: `Unidad: ${body.unidad_record_id}`
+});
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          ok: true,
-          reserva_id: reservaData.id,
-        }),
-      };
+return {
+  statusCode: 200,
+  body: JSON.stringify({
+    ok: true,
+    reserva_id: reservaData.id,
+  }),
+};
 
-    } catch (error) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: "SERVER_ERROR",
-          detail: error.message,
-        }),
-      };
-    }
+} catch (error) {
+
+  await logEvent(BASE_ID, AIRTABLE_TOKEN, {
+    modulo: "CREAR_RESERVA",
+    evento: "ERROR",
+    referencia_id: "",
+    detalle: error.message
+  });
+
+  return {
+    statusCode: 500,
+    body: JSON.stringify({
+      error: "SERVER_ERROR",
+      detail: error.message,
+    }),
+  };
+}
   }
 
   return {

@@ -1,6 +1,39 @@
+async function logEvent(BASE, TOKEN, data) {
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/AUTOMATION_LOGS`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        fields: {
+          modulo: data.modulo,
+          evento: data.evento,
+          referencia_id: data.referencia_id || "",
+          detalle: data.detalle || "",
+          fecha: new Date().toISOString().split("T")[0]
+        }
+      })
+    });
+  } catch (e) {
+    console.error("LOG_ERROR:", e.message);
+  }
+}
+
 exports.handler = async (event) => {
+  const BASE = process.env.AIRTABLE_BASE;
+  const TOKEN = process.env.AIRTABLE_TOKEN;
+
   try {
     const fetch = global.fetch;
+
+    if (!BASE || !TOKEN) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "FALTAN_VARIABLES_DE_ENTORNO" })
+      };
+    }
 
     const venta_id = event.queryStringParameters?.venta_id;
     const penalidadParam = event.queryStringParameters?.penalidad;
@@ -21,9 +54,6 @@ exports.handler = async (event) => {
       };
     }
 
-    const BASE = process.env.AIRTABLE_BASE;
-    const TOKEN = process.env.AIRTABLE_TOKEN;
-
     const headers = {
       Authorization: `Bearer ${TOKEN}`,
       "Content-Type": "application/json"
@@ -36,6 +66,13 @@ exports.handler = async (event) => {
     );
 
     if (!ventaRes.ok) {
+      await logEvent(BASE, TOKEN, {
+        modulo: "CANCELAR_VENTA",
+        evento: "VENTA_NO_ENCONTRADA",
+        referencia_id: venta_id,
+        detalle: ""
+      });
+
       return {
         statusCode: 404,
         body: JSON.stringify({ error: "VENTA_NO_ENCONTRADA" })
@@ -62,11 +99,25 @@ exports.handler = async (event) => {
       };
     }
 
-    // 2️⃣ Obtener reserva para monto_reserva
+    await logEvent(BASE, TOKEN, {
+      modulo: "CANCELAR_VENTA",
+      evento: "VENTA_ENCONTRADA",
+      referencia_id: venta_id,
+      detalle: `Tipo: ${venta.tipo_venta}`
+    });
+
+    // 2️⃣ Obtener reserva
     const reservaRes = await fetch(
       `https://api.airtable.com/v0/${BASE}/RESERVAS/${reservaId}`,
       { headers }
     );
+
+    if (!reservaRes.ok) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "ERROR_OBTENIENDO_RESERVA" })
+      };
+    }
 
     const reservaData = await reservaRes.json();
     const montoReserva = Number(reservaData.fields.monto_reserva || 0);
@@ -127,7 +178,43 @@ exports.handler = async (event) => {
       );
     }
 
-    // 5️⃣ Cambiar estado venta
+    // 5️⃣ Anular cuotas si financiamiento
+    if (venta.tipo_venta === "financiamiento") {
+
+      const formula = encodeURIComponent(`{venta} = "${venta_id}"`);
+
+      const cuotasRes = await fetch(
+        `https://api.airtable.com/v0/${BASE}/CUOTAS?filterByFormula=${formula}`,
+        { headers }
+      );
+
+      const cuotasData = await cuotasRes.json();
+
+      if (cuotasData.records && cuotasData.records.length > 0) {
+
+        for (const cuota of cuotasData.records) {
+          await fetch(
+            `https://api.airtable.com/v0/${BASE}/CUOTAS/${cuota.id}`,
+            {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({
+                fields: { estado_cuota: "Anulada" }
+              })
+            }
+          );
+        }
+
+        await logEvent(BASE, TOKEN, {
+          modulo: "CANCELAR_VENTA",
+          evento: "CUOTAS_ANULADAS",
+          referencia_id: venta_id,
+          detalle: `Cantidad: ${cuotasData.records.length}`
+        });
+      }
+    }
+
+    // 6️⃣ Cambiar estado venta
     await fetch(
       `https://api.airtable.com/v0/${BASE}/VENTAS/${venta_id}`,
       {
@@ -139,7 +226,7 @@ exports.handler = async (event) => {
       }
     );
 
-    // 6️⃣ Liberar unidad
+    // 7️⃣ Liberar unidad
     if (unidadId) {
       await fetch(
         `https://api.airtable.com/v0/${BASE}/UNIDADES/${unidadId}`,
@@ -153,6 +240,13 @@ exports.handler = async (event) => {
       );
     }
 
+    await logEvent(BASE, TOKEN, {
+      modulo: "CANCELAR_VENTA",
+      evento: "VENTA_CANCELADA",
+      referencia_id: venta_id,
+      detalle: `Penalidad: ${penalidad}, Devolución: ${devolucion}`
+    });
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -163,6 +257,14 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
+
+    await logEvent(process.env.AIRTABLE_BASE, process.env.AIRTABLE_TOKEN, {
+      modulo: "CANCELAR_VENTA",
+      evento: "ERROR",
+      referencia_id: event.queryStringParameters?.venta_id || "",
+      detalle: error.message
+    });
+
     return {
       statusCode: 500,
       body: JSON.stringify({

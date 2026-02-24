@@ -6,7 +6,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 body {
@@ -28,7 +28,6 @@ body {
   padding: 35px;
   border-radius: 16px;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-  transition: 0.3s ease;
 }
 
 .form-header {
@@ -65,7 +64,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   padding: 11px 12px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
@@ -74,8 +74,15 @@ select {
   background-color: #ffffff;
 }
 
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: #9ca3af;
+}
+
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: #10b981;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
@@ -84,14 +91,6 @@ select:focus {
 select:disabled {
   background-color: #f3f4f6;
   cursor: not-allowed;
-}
-
-/* ===============================
-   ARCHIVOS
-=============================== */
-
-.file-group input[type="file"] {
-  padding: 8px;
 }
 
 /* ===============================
@@ -135,6 +134,13 @@ button:hover {
 
 button:active {
   transform: translateY(0);
+}
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* ===============================
