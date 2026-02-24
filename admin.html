@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrativo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Panel Administrativo</h1>
+
+  <!-- LOGIN SIMPLE -->
+  <div id="loginBox">
+    <input type="password" id="adminPassword" placeholder="Contraseña administrativa">
+    <button id="loginBtn" class="btn-primary">Ingresar</button>
+  </div>
+
+  <!-- PANEL -->
+  <div id="adminPanel" class="hidden">
+
+    <h2>Reservas en Solicitud</h2>
+
+    <div id="reservasContainer"></div>
+
+  </div>
+
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>
