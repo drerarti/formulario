@@ -1,5 +1,4 @@
 const { google } = require("googleapis");
-const busboy = require("busboy");
 
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
@@ -39,16 +38,20 @@ async function createFolder(drive, name, parentId) {
 }
 
 // ===============================
-// SUBIR ARCHIVO
+// SUBIR ARCHIVO BASE64
 // ===============================
-async function uploadFile(drive, name, buffer, mimeType, parentId) {
+async function uploadBase64File(drive, fileData, parentId) {
+  if (!fileData) return;
+
+  const buffer = Buffer.from(fileData.base64, "base64");
+
   await drive.files.create({
     requestBody: {
-      name,
+      name: fileData.filename,
       parents: [parentId]
     },
     media: {
-      mimeType,
+      mimeType: fileData.mimeType,
       body: buffer
     }
   });
@@ -106,152 +109,109 @@ exports.handler = async (event) => {
   }
 
   // ================================
-  // POST (RESERVA CON DRIVE)
+  // POST CREAR RESERVA
   // ================================
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
   }
 
-  return new Promise((resolve) => {
+  try {
 
-    const bb = busboy({
-      headers: event.headers
-    });
+    const body = JSON.parse(event.body);
+    const drive = getDrive();
 
-    const fields = {};
-    const files = [];
+    // 1️⃣ Crear carpeta de unidad
+    const unidadFolder = await createFolder(
+      drive,
+      body.unidad_record_id,
+      GOOGLE_DRIVE_ROOT_ID
+    );
 
-    bb.on("field", (name, val) => {
-      fields[name] = val;
-    });
+    // 2️⃣ Crear 01_RESERVAS
+    const reservasFolder = await createFolder(
+      drive,
+      "01_RESERVAS",
+      unidadFolder
+    );
 
-    bb.on("file", (name, file, info) => {
-      const { filename, mimeType } = info;
-      const buffers = [];
+    // 3️⃣ Crear carpeta específica de reserva
+    const reservaFolder = await createFolder(
+      drive,
+      `RES-${Date.now()}`,
+      reservasFolder
+    );
 
-      file.on("data", (data) => {
-        buffers.push(data);
-      });
+    // 4️⃣ Subir archivos
+    await uploadBase64File(drive, body.files.dni_frontal, reservaFolder);
+    await uploadBase64File(drive, body.files.dni_reverso, reservaFolder);
+    await uploadBase64File(drive, body.files.voucher_reserva, reservaFolder);
+    await uploadBase64File(drive, body.files.documento_adicional, reservaFolder);
 
-      file.on("end", () => {
-        files.push({
-          filename,
-          mimeType,
-          buffer: Buffer.concat(buffers)
-        });
-      });
-    });
+    const hoy = new Date().toISOString().split("T")[0];
 
-    bb.on("finish", async () => {
-      try {
-
-        const drive = getDrive();
-
-        // 1️⃣ Crear carpeta por unidad (dinámico)
-        const unidadFolder = await createFolder(
-          drive,
-          fields.unidad_record_id,
-          GOOGLE_DRIVE_ROOT_ID
-        );
-
-        // 2️⃣ Crear carpeta 01_RESERVAS
-        const reservasFolder = await createFolder(
-          drive,
-          "01_RESERVAS",
-          unidadFolder
-        );
-
-        // 3️⃣ Crear carpeta específica de reserva
-        const reservaFolder = await createFolder(
-          drive,
-          `RES-${Date.now()}`,
-          reservasFolder
-        );
-
-        // 4️⃣ Subir archivos
-        for (const file of files) {
-          await uploadFile(
-            drive,
-            file.filename,
-            file.buffer,
-            file.mimeType,
-            reservaFolder
-          );
-        }
-
-        const hoy = new Date().toISOString().split("T")[0];
-
-        // 5️⃣ Crear reserva en Airtable
-        const reservaRes = await fetch(
-          `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              fields: {
-                unidad: [fields.unidad_record_id],
-                cliente: fields.cliente_actual,
-                dni_cliente: fields.dni_cliente,
-                telefono_cliente: fields.telefono_cliente,
-                agente: fields.agente,
-                monto_reserva: Number(fields.monto_reserva || 0),
-                descuento_solicitado: Number(fields.descuento_solicitado || 0),
-                motivo_descuento: fields.motivo_descuento,
-                estado_reserva: "Solicitud",
-                fecha_inicio: hoy,
-                carpeta_drive_id: reservaFolder
-              }
-            })
+    // 5️⃣ Crear reserva en Airtable
+    const reservaRes = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fields: {
+            unidad: [body.unidad_record_id],
+            cliente: body.cliente_actual,
+            dni_cliente: body.dni_cliente,
+            telefono_cliente: body.telefono_cliente,
+            agente: body.agente,
+            monto_reserva: Number(body.monto_reserva || 0),
+            descuento_solicitado: Number(body.descuento_solicitado || 0),
+            motivo_descuento: body.motivo_descuento,
+            estado_reserva: "Solicitud",
+            fecha_inicio: hoy,
+            carpeta_drive_id: reservaFolder
           }
-        );
-
-        if (!reservaRes.ok) {
-          const errText = await reservaRes.text();
-          throw new Error(errText);
-        }
-
-        // 6️⃣ Marcar unidad como Reservado
-        await fetch(
-          `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${fields.unidad_record_id}`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              fields: {
-                estado_unidad: "Reservado",
-                fecha_reserva: hoy
-              }
-            })
-          }
-        );
-
-        resolve({
-          statusCode: 200,
-          body: JSON.stringify({ success: true })
-        });
-
-      } catch (error) {
-        console.error(error);
-        resolve({
-          statusCode: 500,
-          body: JSON.stringify({
-            error: "SERVER_ERROR",
-            detail: error.message
-          })
-        });
+        })
       }
-    });
+    );
 
-    const bodyBuffer = event.isBase64Encoded
-      ? Buffer.from(event.body, "base64")
-      : Buffer.from(event.body);
+    if (!reservaRes.ok) {
+      const text = await reservaRes.text();
+      throw new Error(text);
+    }
 
-    bb.end(bodyBuffer);
-  });
+    // 6️⃣ Marcar unidad como Reservado
+    await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fields: {
+            estado_unidad: "Reservado",
+            fecha_reserva: hoy
+          }
+        })
+      }
+    );
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true })
+    };
+
+  } catch (error) {
+    console.error(error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "SERVER_ERROR",
+        detail: error.message
+      })
+    };
+  }
 };

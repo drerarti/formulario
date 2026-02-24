@@ -2,7 +2,7 @@
 // CONFIGURACIÓN
 // ===============================
 
-const ENDPOINT = "https://ayllureserva.netlify.app/.netlify/functions/airtable";
+const ENDPOINT = "/.netlify/functions/airtable";
 
 // ===============================
 // ELEMENTOS DOM
@@ -15,10 +15,6 @@ const unidadSelect = document.getElementById("unidad");
 const priceBox = document.getElementById("priceBox");
 const precioDisplay = document.getElementById("precioDisplay");
 const alertBox = document.getElementById("alertBox");
-
-// ===============================
-// ESTADO GLOBAL
-// ===============================
 
 let todasLasUnidades = [];
 
@@ -43,37 +39,32 @@ function formatCurrency(value) {
   }).format(value || 0);
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
+}
+
 // ===============================
 // CARGAR UNIDADES
 // ===============================
 
 async function loadData() {
-  try {
-    const res = await fetch(ENDPOINT);
-    const data = await res.json();
-
-    if (!Array.isArray(data)) {
-      throw new Error("Formato inválido de respuesta");
-    }
-
-    todasLasUnidades = data;
-    cargarProyectos();
-
-  } catch (error) {
-    showAlert("Error conectando con el servidor.");
-    console.error(error);
-  }
+  const res = await fetch(ENDPOINT);
+  const data = await res.json();
+  todasLasUnidades = data;
+  cargarProyectos();
 }
-
-// ===============================
-// CARGAR PROYECTOS
-// ===============================
 
 function cargarProyectos() {
   proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
-
   const proyectos = [...new Set(todasLasUnidades.map(u => u.proyecto).filter(Boolean))];
-
   proyectos.forEach(p => {
     const opt = document.createElement("option");
     opt.value = p;
@@ -82,12 +73,7 @@ function cargarProyectos() {
   });
 }
 
-// ===============================
-// CAMBIO PROYECTO
-// ===============================
-
 proyectoSelect.addEventListener("change", () => {
-
   manzanaSelect.disabled = false;
   unidadSelect.disabled = true;
   priceBox.classList.add("hidden");
@@ -106,15 +92,9 @@ proyectoSelect.addEventListener("change", () => {
     opt.textContent = m;
     manzanaSelect.appendChild(opt);
   });
-
 });
 
-// ===============================
-// CAMBIO MANZANA
-// ===============================
-
 manzanaSelect.addEventListener("change", () => {
-
   unidadSelect.disabled = false;
   priceBox.classList.add("hidden");
 
@@ -133,91 +113,82 @@ manzanaSelect.addEventListener("change", () => {
     opt.textContent = u.unidad_id;
     unidadSelect.appendChild(opt);
   });
-
 });
 
-// ===============================
-// CAMBIO UNIDAD
-// ===============================
-
 unidadSelect.addEventListener("change", () => {
-
   const selected = unidadSelect.options[unidadSelect.selectedIndex];
-
   if (!selected.value) {
     priceBox.classList.add("hidden");
     return;
   }
-
   const precio = parseFloat(selected.dataset.precio || 0);
   precioDisplay.textContent = formatCurrency(precio);
   priceBox.classList.remove("hidden");
-
 });
 
 // ===============================
-// ENVÍO FORMULARIO (AHORA CON ARCHIVOS)
+// ENVÍO FORMULARIO
 // ===============================
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   hideAlert();
 
-  if (!unidadSelect.value) {
-    showAlert("Debes seleccionar una unidad.");
-    return;
-  }
-
-  // Validación básica archivos
-  if (!document.getElementById("dni_frontal").files[0] ||
-      !document.getElementById("dni_reverso").files[0] ||
-      !document.getElementById("voucher_reserva").files[0]) {
-    showAlert("Debes adjuntar todos los documentos obligatorios.");
-    return;
-  }
-
-  const formData = new FormData();
-
-  formData.append("unidad_record_id", unidadSelect.value);
-  formData.append("cliente_actual", document.getElementById("cliente_actual").value);
-  formData.append("dni_cliente", document.getElementById("dni_cliente").value);
-  formData.append("telefono_cliente", document.getElementById("telefono_cliente").value);
-  formData.append("agente", document.getElementById("agente").value);
-  formData.append("descuento_solicitado", document.getElementById("descuento").value || 0);
-  formData.append("motivo_descuento", document.getElementById("motivo_descuento").value || "");
-  formData.append("monto_reserva", document.getElementById("monto_reserva").value || 0);
-
-  formData.append("dni_frontal", document.getElementById("dni_frontal").files[0]);
-  formData.append("dni_reverso", document.getElementById("dni_reverso").files[0]);
-  formData.append("voucher_reserva", document.getElementById("voucher_reserva").files[0]);
-
-  const docAdicional = document.getElementById("documento_adicional").files[0];
-  if (docAdicional) {
-    formData.append("documento_adicional", docAdicional);
-  }
-
   try {
+
+    const dniFrontal = document.getElementById("dni_frontal").files[0];
+    const dniReverso = document.getElementById("dni_reverso").files[0];
+    const voucher = document.getElementById("voucher_reserva").files[0];
+    const docAdicional = document.getElementById("documento_adicional").files[0];
+
+    const payload = {
+      unidad_record_id: unidadSelect.value,
+      cliente_actual: document.getElementById("cliente_actual").value,
+      dni_cliente: document.getElementById("dni_cliente").value,
+      telefono_cliente: document.getElementById("telefono_cliente").value,
+      agente: document.getElementById("agente").value,
+      monto_reserva: document.getElementById("monto_reserva").value || 0,
+      descuento_solicitado: document.getElementById("descuento").value || 0,
+      motivo_descuento: document.getElementById("motivo_descuento").value || "",
+      files: {
+        dni_frontal: dniFrontal ? {
+          filename: dniFrontal.name,
+          mimeType: dniFrontal.type,
+          base64: await fileToBase64(dniFrontal)
+        } : null,
+        dni_reverso: dniReverso ? {
+          filename: dniReverso.name,
+          mimeType: dniReverso.type,
+          base64: await fileToBase64(dniReverso)
+        } : null,
+        voucher_reserva: voucher ? {
+          filename: voucher.name,
+          mimeType: voucher.type,
+          base64: await fileToBase64(voucher)
+        } : null,
+        documento_adicional: docAdicional ? {
+          filename: docAdicional.name,
+          mimeType: docAdicional.type,
+          base64: await fileToBase64(docAdicional)
+        } : null
+      }
+    };
 
     const res = await fetch(ENDPOINT, {
       method: "POST",
-      body: formData
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
 
     const result = await res.json();
 
     if (result.success) {
-
-      showAlert("Reserva enviada correctamente. Pendiente de validación administrativa.", "success");
-
+      showAlert("Reserva enviada correctamente.", "success");
       form.reset();
       priceBox.classList.add("hidden");
-
       await loadData();
-
     } else {
-
       showAlert(result.error || "Error creando reserva.");
-
     }
 
   } catch (error) {
@@ -225,9 +196,5 @@ form.addEventListener("submit", async (e) => {
     console.error(error);
   }
 });
-
-// ===============================
-// INICIALIZAR
-// ===============================
 
 loadData();
