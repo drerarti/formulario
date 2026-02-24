@@ -1,6 +1,7 @@
 exports.handler = async (event) => {
   try {
     const fetch = global.fetch;
+
     const reserva_id = event.queryStringParameters?.reserva_id;
 
     if (!reserva_id) {
@@ -13,7 +14,16 @@ exports.handler = async (event) => {
     const BASE = process.env.AIRTABLE_BASE;
     const TOKEN = process.env.AIRTABLE_TOKEN;
 
-    // 1️⃣ Obtener reserva
+    if (!BASE || !TOKEN) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "FALTAN_VARIABLES_DE_ENTORNO" })
+      };
+    }
+
+    // =========================
+    // 1️⃣ OBTENER RESERVA
+    // =========================
     const reservaRes = await fetch(
       `https://api.airtable.com/v0/${BASE}/RESERVAS/${reserva_id}`,
       {
@@ -21,16 +31,22 @@ exports.handler = async (event) => {
       }
     );
 
-    const reservaData = await reservaRes.json();
-
-    if (!reservaData.fields) {
+    if (!reservaRes.ok) {
       return {
         statusCode: 404,
         body: JSON.stringify({ error: "RESERVA_NO_ENCONTRADA" })
       };
     }
 
+    const reservaData = await reservaRes.json();
     const reserva = reservaData.fields;
+
+    if (!reserva) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "RESERVA_SIN_DATOS" })
+      };
+    }
 
     if (reserva.estado_reserva !== "Activa") {
       return {
@@ -39,7 +55,20 @@ exports.handler = async (event) => {
       };
     }
 
-    // 2️⃣ Crear venta
+    if (!reserva.unidad || !reserva.unidad[0]) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "RESERVA_SIN_UNIDAD" })
+      };
+    }
+
+    // =========================
+    // 2️⃣ CREAR VENTA
+    // =========================
+
+    // Si fecha_venta es SOLO fecha:
+    const fechaHoy = new Date().toISOString().split("T")[0];
+
     const ventaRes = await fetch(
       `https://api.airtable.com/v0/${BASE}/VENTAS`,
       {
@@ -51,11 +80,11 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           fields: {
             unidad: reserva.unidad,
-            cliente: reserva.cliente,
-            agente: reserva.agente,
-            tipo_venta: reserva.tipo_venta,
+            cliente: reserva.cliente || "",
+            agente: reserva.agente || "",
+            tipo_venta: reserva.tipo_venta || "Contado",
             estado_venta: "Activa",
-            fecha_venta: new Date().toISOString()
+            fecha_venta: fechaHoy
           }
         })
       }
@@ -63,15 +92,20 @@ exports.handler = async (event) => {
 
     const ventaData = await ventaRes.json();
 
-    if (!ventaData.id) {
+    if (!ventaRes.ok || !ventaData.id) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "ERROR_CREANDO_VENTA", detail: ventaData })
+        body: JSON.stringify({
+          error: "ERROR_CREANDO_VENTA",
+          detail: ventaData
+        })
       };
     }
 
-    // 3️⃣ Cambiar unidad a Vendido
-    await fetch(
+    // =========================
+    // 3️⃣ CAMBIAR UNIDAD A VENDIDO
+    // =========================
+    const unidadRes = await fetch(
       `https://api.airtable.com/v0/${BASE}/UNIDADES/${reserva.unidad[0]}`,
       {
         method: "PATCH",
@@ -87,8 +121,17 @@ exports.handler = async (event) => {
       }
     );
 
-    // 4️⃣ Cambiar reserva a Confirmada
-    await fetch(
+    if (!unidadRes.ok) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "ERROR_ACTUALIZANDO_UNIDAD" })
+      };
+    }
+
+    // =========================
+    // 4️⃣ CAMBIAR RESERVA A CONFIRMADA
+    // =========================
+    const reservaUpdateRes = await fetch(
       `https://api.airtable.com/v0/${BASE}/RESERVAS/${reserva_id}`,
       {
         method: "PATCH",
@@ -104,15 +147,31 @@ exports.handler = async (event) => {
       }
     );
 
+    if (!reservaUpdateRes.ok) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "ERROR_ACTUALIZANDO_RESERVA" })
+      };
+    }
+
+    // =========================
+    // ✅ TODO CORRECTO
+    // =========================
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        venta_id: ventaData.id
+      })
     };
 
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "ERROR_GENERAL", detail: error.message })
+      body: JSON.stringify({
+        error: "ERROR_GENERAL",
+        detail: error.message
+      })
     };
   }
 };
