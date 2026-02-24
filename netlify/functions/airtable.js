@@ -59,16 +59,66 @@ async function uploadFile(drive, name, buffer, mimeType, parentId) {
 // ===============================
 exports.handler = async (event) => {
 
+  // ================================
+  // GET UNIDADES DISPONIBLES
+  // ================================
+  if (event.httpMethod === "GET") {
+    try {
+
+      const formula = `{estado_unidad}="Disponible"`;
+      let allRecords = [];
+      let offset = null;
+
+      do {
+        let url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
+        if (offset) url += `&offset=${offset}`;
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${AIRTABLE_TOKEN}`
+          }
+        });
+
+        const data = await response.json();
+
+        allRecords = allRecords.concat(data.records);
+        offset = data.offset;
+
+      } while (offset);
+
+      const results = allRecords.map(r => ({
+        id: r.id,
+        unidad_id: r.fields.unidad_id,
+        proyecto: r.fields.proyecto,
+        manzana: r.fields.Manzana,
+        precio: r.fields.precio_lista || 0
+      }));
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify(results)
+      };
+
+    } catch (error) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: error.message })
+      };
+    }
+  }
+
+  // ================================
+  // POST (RESERVA CON DRIVE)
+  // ================================
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
   }
 
   const busboy = Busboy({ headers: event.headers });
-
   const fields = {};
   const files = [];
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
 
     busboy.on("field", (name, val) => {
       fields[name] = val;
@@ -94,7 +144,7 @@ exports.handler = async (event) => {
 
         const drive = getDrive();
 
-        // 1️⃣ Crear estructura por unidad
+        // 1️⃣ Crear carpeta por unidad
         const unidadFolder = await createFolder(
           drive,
           fields.unidad_record_id,
@@ -153,7 +203,12 @@ exports.handler = async (event) => {
           }
         );
 
-        // 4️⃣ Marcar unidad reservada
+        if (!reservaRes.ok) {
+          const err = await reservaRes.text();
+          throw new Error(err);
+        }
+
+        // 4️⃣ Marcar unidad como Reservado
         await fetch(
           `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${fields.unidad_record_id}`,
           {
@@ -180,11 +235,19 @@ exports.handler = async (event) => {
         console.error(error);
         resolve({
           statusCode: 500,
-          body: JSON.stringify({ error: "SERVER_ERROR", detail: error.message })
+          body: JSON.stringify({
+            error: "SERVER_ERROR",
+            detail: error.message
+          })
         });
       }
     });
 
-    busboy.end(Buffer.from(event.body, event.isBase64Encoded ? "base64" : "binary"));
+    busboy.end(
+      Buffer.from(
+        event.body,
+        event.isBase64Encoded ? "base64" : "binary"
+      )
+    );
   });
 };
