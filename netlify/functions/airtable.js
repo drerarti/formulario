@@ -143,7 +143,7 @@ exports.handler = async (event) => {
               dni_cliente: body.dni_cliente || "",
               telefono_cliente: body.telefono_cliente || "",
               agente: body.agente || "",
-              tipo_venta: body.tipo_venta || "Contado",
+              tipo_venta: (body.tipo_venta || "contado").toLowerCase().replace(/"/g, ""),
               descuento_solicitado: Number(body.descuento_solicitado || 0),
               motivo_descuento: body.motivo_descuento || "",
               monto_reserva: Number(body.monto_reserva || 0),
