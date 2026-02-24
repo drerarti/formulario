@@ -27,7 +27,7 @@ exports.handler = async (event) => {
         id: r.id,
         cliente: r.fields.cliente,
         monto: r.fields.monto_reserva || 0,
-        unidad: r.fields.unidad_id || "",
+        unidad: r.fields.unidad_codigo ? r.fields.unidad_codigo[0] : "",
         unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null
       }));
 
@@ -159,65 +159,123 @@ exports.handler = async (event) => {
   // =========================================
   // POST CREAR RESERVA
   // =========================================
-  if (event.httpMethod === "POST") {
+if (event.httpMethod === "POST") {
 
-    try {
+  try {
 
-      const body = JSON.parse(event.body);
-      const hoy = new Date().toISOString().split("T")[0];
+    const body = JSON.parse(event.body);
+    const hoy = new Date().toISOString().split("T")[0];
 
-      const reservaRes = await fetch(
-        `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            fields: {
-              unidad: [body.unidad_record_id],
-              cliente: body.cliente_actual,
-              dni_cliente: body.dni_cliente,
-              telefono_cliente: body.telefono_cliente,
-              agente: body.agente,
-              monto_reserva: Number(body.monto_reserva || 0),
-              descuento_solicitado: Number(body.descuento_solicitado || 0),
-              motivo_descuento: body.motivo_descuento,
-              estado_reserva: "Solicitud",
-              fecha_inicio: hoy
-            }
-          })
-        }
-      );
+    // ================================
+    // 1️⃣ VALIDAR ESTADO DE UNIDAD
+    // ================================
 
-      const reservaData = await reservaRes.json();
+    const unidadCheck = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      { headers }
+    );
 
-      await fetch(
-        `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
-        {
-          method: "PATCH",
-          headers,
-          body: JSON.stringify({
-            fields: {
-              estado_unidad: "Reservado"
-            }
-          })
-        }
-      );
+    const unidadData = await unidadCheck.json();
 
+    if (!unidadData.fields || unidadData.fields.estado_unidad !== "Disponible") {
       return {
-        statusCode: 200,
+        statusCode: 400,
         body: JSON.stringify({
-          success: true,
-          reserva_id: reservaData.id
+          error: "La unidad ya no está disponible. Actualiza la página."
         })
       };
+    }
 
-    } catch (error) {
+    // ================================
+    // 2️⃣ VALIDAR QUE NO EXISTA RESERVA ACTIVA
+    // ================================
+
+    const formula = `
+      AND(
+        FIND("${body.unidad_record_id}", ARRAYJOIN({unidad})) > 0,
+        OR(
+          {estado_reserva}="Solicitud",
+          {estado_reserva}="Confirmada"
+        )
+      )
+    `;
+
+    const reservaCheckUrl = `https://api.airtable.com/v0/${BASE_ID}/RESERVAS?filterByFormula=${encodeURIComponent(formula)}`;
+
+    const reservaCheck = await fetch(reservaCheckUrl, { headers });
+    const reservaCheckData = await reservaCheck.json();
+
+    if (reservaCheckData.records.length > 0) {
       return {
-        statusCode: 500,
-        body: JSON.stringify({ error: error.message })
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "Ya existe una reserva activa para esta unidad."
+        })
       };
     }
+
+    // ================================
+    // 3️⃣ CREAR RESERVA
+    // ================================
+
+    const reservaRes = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            unidad: [body.unidad_record_id],
+            cliente: body.cliente_actual,
+            dni_cliente: body.dni_cliente,
+            telefono_cliente: body.telefono_cliente,
+            agente: body.agente,
+            monto_reserva: Number(body.monto_reserva || 0),
+            descuento_solicitado: Number(body.descuento_solicitado || 0),
+            motivo_descuento: body.motivo_descuento,
+            estado_reserva: "Solicitud",
+            fecha_inicio: hoy
+          }
+        })
+      }
+    );
+
+    const reservaData = await reservaRes.json();
+
+    // ================================
+    // 4️⃣ BLOQUEAR UNIDAD
+    // ================================
+
+    await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            estado_unidad: "Reservado"
+          }
+        })
+      }
+    );
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        reserva_id: reservaData.id
+      })
+    };
+
+  } catch (error) {
+
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
+
   }
+}
 
   return { statusCode: 405, body: "Method not allowed" };
 };
