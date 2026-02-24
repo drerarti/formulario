@@ -1,8 +1,4 @@
 {
   "name": "ayllu-reservas",
-  "version": "1.0.0",
-  "dependencies": {
-    "googleapis": "^128.0.0",
-    "busboy": "^1.6.0"
-  }
+  "version": "1.0.0"
 }

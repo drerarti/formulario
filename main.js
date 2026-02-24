@@ -1,12 +1,4 @@
-// ===============================
-// CONFIGURACIÓN
-// ===============================
-
 const ENDPOINT = "/.netlify/functions/airtable";
-
-// ===============================
-// ELEMENTOS DOM
-// ===============================
 
 const form = document.getElementById("reservaForm");
 const proyectoSelect = document.getElementById("proyecto");
@@ -17,10 +9,6 @@ const precioDisplay = document.getElementById("precioDisplay");
 const alertBox = document.getElementById("alertBox");
 
 let todasLasUnidades = [];
-
-// ===============================
-// UTILIDADES
-// ===============================
 
 function showAlert(message, type = "error") {
   alertBox.textContent = message;
@@ -39,22 +27,9 @@ function formatCurrency(value) {
   }).format(value || 0);
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const base64 = reader.result.split(",")[1];
-      resolve(base64);
-    };
-    reader.onerror = error => reject(error);
-  });
-}
-
 // ===============================
 // CARGAR UNIDADES
 // ===============================
-
 async function loadData() {
   const res = await fetch(ENDPOINT);
   const data = await res.json();
@@ -65,6 +40,7 @@ async function loadData() {
 function cargarProyectos() {
   proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
   const proyectos = [...new Set(todasLasUnidades.map(u => u.proyecto).filter(Boolean))];
+
   proyectos.forEach(p => {
     const opt = document.createElement("option");
     opt.value = p;
@@ -129,17 +105,11 @@ unidadSelect.addEventListener("change", () => {
 // ===============================
 // ENVÍO FORMULARIO
 // ===============================
-
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   hideAlert();
 
   try {
-
-    const dniFrontal = document.getElementById("dni_frontal").files[0];
-    const dniReverso = document.getElementById("dni_reverso").files[0];
-    const voucher = document.getElementById("voucher_reserva").files[0];
-    const docAdicional = document.getElementById("documento_adicional").files[0];
 
     const payload = {
       unidad_record_id: unidadSelect.value,
@@ -149,29 +119,7 @@ form.addEventListener("submit", async (e) => {
       agente: document.getElementById("agente").value,
       monto_reserva: document.getElementById("monto_reserva").value || 0,
       descuento_solicitado: document.getElementById("descuento").value || 0,
-      motivo_descuento: document.getElementById("motivo_descuento").value || "",
-      files: {
-        dni_frontal: dniFrontal ? {
-          filename: dniFrontal.name,
-          mimeType: dniFrontal.type,
-          base64: await fileToBase64(dniFrontal)
-        } : null,
-        dni_reverso: dniReverso ? {
-          filename: dniReverso.name,
-          mimeType: dniReverso.type,
-          base64: await fileToBase64(dniReverso)
-        } : null,
-        voucher_reserva: voucher ? {
-          filename: voucher.name,
-          mimeType: voucher.type,
-          base64: await fileToBase64(voucher)
-        } : null,
-        documento_adicional: docAdicional ? {
-          filename: docAdicional.name,
-          mimeType: docAdicional.type,
-          base64: await fileToBase64(docAdicional)
-        } : null
-      }
+      motivo_descuento: document.getElementById("motivo_descuento").value || ""
     };
 
     const res = await fetch(ENDPOINT, {
@@ -183,10 +131,16 @@ form.addEventListener("submit", async (e) => {
     const result = await res.json();
 
     if (result.success) {
-      showAlert("Reserva enviada correctamente.", "success");
+
+      showAlert("Reserva creada correctamente.", "success");
+
+      // AQUÍ puedes redirigir al Google Form
+      console.log("ID Reserva:", result.reserva_id);
+
       form.reset();
       priceBox.classList.add("hidden");
       await loadData();
+
     } else {
       showAlert(result.error || "Error creando reserva.");
     }

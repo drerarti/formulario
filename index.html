@@ -16,183 +16,27 @@
     </header>
 
     <!-- IMPORTANTE: enctype agregado -->
-    <form id="reservaForm" enctype="multipart/form-data" novalidate>
+<form id="reservaForm">
 
-      <!-- ============================= -->
-      <!-- DATOS CLIENTE -->
-      <!-- ============================= -->
-      <section>
-        <h2 class="section-title">Datos del Cliente</h2>
+  <!-- Datos cliente -->
+  <input type="text" id="cliente_actual" required>
+  <input type="text" id="dni_cliente" required>
+  <input type="text" id="telefono_cliente" required>
+  <input type="text" id="agente" required>
 
-        <div class="form-group">
-          <label for="cliente_actual">Nombre Completo</label>
-          <input 
-            type="text" 
-            id="cliente_actual" 
-            required 
-            minlength="3"
-            placeholder="Ej. Juan Pérez"
-          />
-        </div>
+  <!-- Selección proyecto -->
+  <select id="proyecto"></select>
+  <select id="manzana" disabled></select>
+  <select id="unidad" disabled></select>
 
-        <div class="form-group">
-          <label for="dni_cliente">DNI</label>
-          <input 
-            type="text" 
-            id="dni_cliente" 
-            required 
-            pattern="[0-9]{8}" 
-            maxlength="8"
-            placeholder="8 dígitos"
-          />
-        </div>
+  <!-- Información financiera -->
+  <input type="text" id="monto_reserva" required>
+  <input type="text" id="descuento">
+  <textarea id="motivo_descuento"></textarea>
 
-        <div class="form-group">
-          <label for="telefono_cliente">Teléfono</label>
-          <input 
-            type="tel" 
-            id="telefono_cliente" 
-            required 
-            pattern="[0-9]{9}"
-            maxlength="9"
-            placeholder="9 dígitos"
-          />
-        </div>
+  <button type="submit">Crear Reserva</button>
 
-        <div class="form-group">
-          <label for="agente">Agente</label>
-          <input 
-            type="text" 
-            id="agente" 
-            required 
-            minlength="3"
-            placeholder="Nombre del agente"
-          />
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- UBICACIÓN -->
-      <!-- ============================= -->
-      <section>
-        <h2 class="section-title">Ubicación</h2>
-
-        <div class="form-group">
-          <label for="proyecto">Proyecto</label>
-          <select id="proyecto" required>
-            <option value="">Cargando proyectos...</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="manzana">Manzana</label>
-          <select id="manzana" disabled required>
-            <option value="">Selecciona proyecto primero</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="unidad">Unidad Disponible</label>
-          <select id="unidad" disabled required>
-            <option value="">Selecciona manzana primero</option>
-          </select>
-        </div>
-
-        <div class="form-group price-box hidden" id="priceBox">
-          <label>Precio Lista</label>
-          <div id="precioDisplay" class="price-display">S/ 0.00</div>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- INFORMACIÓN FINANCIERA -->
-      <!-- ============================= -->
-      <section>
-        <h2 class="section-title">Información Financiera</h2>
-
-        <div class="form-group">
-          <label for="monto_reserva">Monto Pagado por Reserva</label>
-          <input 
-  type="text"
-  inputmode="decimal"
-  id="monto_reserva"
-  required
-  placeholder="Ej. 1000"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="descuento">Descuento Solicitado (opcional)</label>
-          <input 
-  type="text"
-  inputmode="decimal"
-  id="descuento"
-  placeholder="0"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="motivo_descuento">Motivo del Descuento (opcional)</label>
-          <textarea 
-            id="motivo_descuento"
-            rows="3"
-            placeholder="Explicación del descuento solicitado"
-          ></textarea>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- DOCUMENTOS -->
-      <!-- ============================= -->
-      <section>
-        <h2 class="section-title">Documentos Obligatorios</h2>
-
-        <div class="form-group">
-          <label for="dni_frontal">DNI (Frontal)</label>
-          <input 
-            type="file" 
-            id="dni_frontal" 
-            accept="image/*"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="dni_reverso">DNI (Reverso)</label>
-          <input 
-            type="file" 
-            id="dni_reverso" 
-            accept="image/*"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="voucher_reserva">Voucher de Reserva</label>
-          <input 
-            type="file" 
-            id="voucher_reserva" 
-            accept="image/*,application/pdf"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="documento_adicional">Documento adicional (opcional)</label>
-          <input 
-            type="file" 
-            id="documento_adicional" 
-            accept="image/*,application/pdf"
-          />
-        </div>
-      </section>
-
-      <!-- BOTÓN -->
-      <button type="submit" id="btnSubmit">
-        Enviar Reserva
-      </button>
-
-    </form>
+</form>
 
     <div id="alertBox" class="alert hidden"></div>
 

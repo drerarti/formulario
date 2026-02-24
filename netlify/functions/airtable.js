@@ -1,61 +1,7 @@
-const { google } = require("googleapis");
+const fetch = global.fetch;
 
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
-const GOOGLE_CLIENT_EMAIL = process.env.GOOGLE_CLIENT_EMAIL;
-const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY;
-const GOOGLE_DRIVE_ROOT_ID = process.env.GOOGLE_DRIVE_ROOT_ID;
-
-const fetch = global.fetch;
-
-// ===============================
-// AUTH GOOGLE
-// ===============================
-function getDrive() {
-  const auth = new google.auth.JWT(
-    GOOGLE_CLIENT_EMAIL,
-    null,
-    GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    ["https://www.googleapis.com/auth/drive"]
-  );
-
-  return google.drive({ version: "v3", auth });
-}
-
-// ===============================
-// CREAR CARPETA
-// ===============================
-async function createFolder(drive, name, parentId) {
-  const res = await drive.files.create({
-    requestBody: {
-      name,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [parentId]
-    },
-    fields: "id"
-  });
-  return res.data.id;
-}
-
-// ===============================
-// SUBIR ARCHIVO BASE64
-// ===============================
-async function uploadBase64File(drive, fileData, parentId) {
-  if (!fileData) return;
-
-  const buffer = Buffer.from(fileData.base64, "base64");
-
-  await drive.files.create({
-    requestBody: {
-      name: fileData.filename,
-      parents: [parentId]
-    },
-    media: {
-      mimeType: fileData.mimeType,
-      body: buffer
-    }
-  });
-}
 
 // ===============================
 // HANDLER
@@ -118,38 +64,9 @@ exports.handler = async (event) => {
   try {
 
     const body = JSON.parse(event.body);
-    const drive = getDrive();
-
-    // 1️⃣ Crear carpeta de unidad
-    const unidadFolder = await createFolder(
-      drive,
-      body.unidad_record_id,
-      GOOGLE_DRIVE_ROOT_ID
-    );
-
-    // 2️⃣ Crear 01_RESERVAS
-    const reservasFolder = await createFolder(
-      drive,
-      "01_RESERVAS",
-      unidadFolder
-    );
-
-    // 3️⃣ Crear carpeta específica de reserva
-    const reservaFolder = await createFolder(
-      drive,
-      `RES-${Date.now()}`,
-      reservasFolder
-    );
-
-    // 4️⃣ Subir archivos
-    await uploadBase64File(drive, body.files.dni_frontal, reservaFolder);
-    await uploadBase64File(drive, body.files.dni_reverso, reservaFolder);
-    await uploadBase64File(drive, body.files.voucher_reserva, reservaFolder);
-    await uploadBase64File(drive, body.files.documento_adicional, reservaFolder);
-
     const hoy = new Date().toISOString().split("T")[0];
 
-    // 5️⃣ Crear reserva en Airtable
+    // 1️⃣ Crear reserva
     const reservaRes = await fetch(
       `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
       {
@@ -169,8 +86,7 @@ exports.handler = async (event) => {
             descuento_solicitado: Number(body.descuento_solicitado || 0),
             motivo_descuento: body.motivo_descuento,
             estado_reserva: "Solicitud",
-            fecha_inicio: hoy,
-            carpeta_drive_id: reservaFolder
+            fecha_inicio: hoy
           }
         })
       }
@@ -181,7 +97,9 @@ exports.handler = async (event) => {
       throw new Error(text);
     }
 
-    // 6️⃣ Marcar unidad como Reservado
+    const reservaData = await reservaRes.json();
+
+    // 2️⃣ Marcar unidad como Reservado
     await fetch(
       `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
       {
@@ -201,7 +119,10 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        reserva_id: reservaData.id
+      })
     };
 
   } catch (error) {

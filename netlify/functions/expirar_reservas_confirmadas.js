@@ -1,4 +1,4 @@
-exports.handler = async () => { ... }
+
 const fetch = global.fetch;
 
 async function logEvent(BASE, TOKEN, data) {
