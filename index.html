@@ -1,63 +1,153 @@
-<form id="reservaForm">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reserva de Unidad</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
 
-  <!-- DATOS CLIENTE -->
-  <div class="form-group">
-    <label for="cliente_actual">Nombre del Cliente</label>
-    <input type="text" id="cliente_actual" required>
-  </div>
+  <main class="container">
 
-  <div class="form-group">
-    <label for="dni_cliente">DNI del Cliente</label>
-    <input type="text" id="dni_cliente" required inputmode="numeric" pattern="[0-9]*">
-  </div>
+    <header class="form-header">
+      <h1>Reserva de Unidad</h1>
+      <p>Selecciona el proyecto y la unidad disponible</p>
+    </header>
 
-  <div class="form-group">
-    <label for="telefono_cliente">Teléfono</label>
-    <input type="text" id="telefono_cliente" required inputmode="numeric" pattern="[0-9]*">
-  </div>
+    <form id="reservaForm" novalidate>
 
-  <div class="form-group">
-    <label for="agente">Agente</label>
-    <input type="text" id="agente" required>
-  </div>
+      <!-- DATOS CLIENTE -->
+      <section>
+        <h2 class="section-title">Datos del Cliente</h2>
 
-  <!-- PROYECTO -->
-  <div class="form-group">
-    <label for="proyecto">Proyecto</label>
-    <select id="proyecto" required>
-      <option value="">Cargando proyectos...</option>
-    </select>
-  </div>
+        <div class="form-group">
+          <label for="cliente_actual">Nombre Completo</label>
+          <input 
+            type="text" 
+            id="cliente_actual" 
+            required 
+            minlength="3"
+            placeholder="Ej. Juan Pérez"
+          />
+        </div>
 
-  <!-- MANZANA -->
-  <div class="form-group">
-    <label for="manzana">Manzana</label>
-    <select id="manzana" disabled required>
-      <option value="">Selecciona proyecto primero</option>
-    </select>
-  </div>
+        <div class="form-group">
+          <label for="dni_cliente">DNI</label>
+          <input 
+            type="text" 
+            id="dni_cliente" 
+            required 
+            pattern="[0-9]{8}" 
+            maxlength="8"
+            placeholder="8 dígitos"
+          />
+        </div>
 
-  <!-- UNIDAD -->
-  <div class="form-group">
-    <label for="unidad">Unidad Disponible</label>
-    <select id="unidad" disabled required>
-      <option value="">Selecciona manzana primero</option>
-    </select>
-  </div>
+        <div class="form-group">
+          <label for="telefono_cliente">Teléfono</label>
+          <input 
+            type="tel" 
+            id="telefono_cliente" 
+            required 
+            pattern="[0-9]{9}"
+            maxlength="9"
+            placeholder="9 dígitos"
+          />
+        </div>
 
-  <!-- PRECIO -->
-  <div class="form-group price-box hidden" id="priceBox">
-    <label>Precio Lista</label>
-    <div id="precioDisplay" class="price-display">S/ 0.00</div>
-  </div>
+        <div class="form-group">
+          <label for="agente">Agente</label>
+          <input 
+            type="text" 
+            id="agente" 
+            required 
+            minlength="3"
+            placeholder="Nombre del agente"
+          />
+        </div>
+      </section>
 
-  <!-- MONTO RESERVA -->
-  <div class="form-group">
-    <label for="monto_reserva">Monto Pagado por Reserva</label>
-    <input type="number" id="monto_reserva" min="0" required>
-  </div>
+      <!-- UBICACIÓN -->
+      <section>
+        <h2 class="section-title">Ubicación</h2>
 
-  <!-- BOTÓN -->
-  <button type="submit" id="btnSubmit">Enviar Reserva</button>
+        <div class="form-group">
+          <label for="proyecto">Proyecto</label>
+          <select id="proyecto" required>
+            <option value="">Cargando proyectos...</option>
+          </select>
+        </div>
 
-</form>
+        <div class="form-group">
+          <label for="manzana">Manzana</label>
+          <select id="manzana" disabled required>
+            <option value="">Selecciona proyecto primero</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="unidad">Unidad Disponible</label>
+          <select id="unidad" disabled required>
+            <option value="">Selecciona manzana primero</option>
+          </select>
+        </div>
+
+        <div class="form-group price-box hidden" id="priceBox">
+          <label>Precio Lista</label>
+          <div id="precioDisplay" class="price-display">S/ 0.00</div>
+        </div>
+      </section>
+
+      <!-- DATOS FINANCIEROS -->
+      <section>
+        <h2 class="section-title">Información Financiera</h2>
+
+        <div class="form-group">
+          <label for="monto_reserva">Monto Pagado por Reserva</label>
+          <input 
+            type="number" 
+            id="monto_reserva" 
+            min="0" 
+            step="0.01"
+            required 
+            placeholder="Ej. 1000"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="descuento">Descuento Solicitado (opcional)</label>
+          <input 
+            type="number" 
+            id="descuento" 
+            min="0"
+            step="0.01"
+            placeholder="0"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="motivo_descuento">Motivo del Descuento (opcional)</label>
+          <textarea 
+            id="motivo_descuento"
+            rows="3"
+            placeholder="Explicación del descuento solicitado"
+          ></textarea>
+        </div>
+      </section>
+
+      <!-- BOTÓN -->
+      <button type="submit" id="btnSubmit">
+        Enviar Reserva
+      </button>
+
+    </form>
+
+    <div id="alertBox" class="alert hidden"></div>
+
+  </main>
+
+  <script src="main.js"></script>
+
+</body>
+</html>
