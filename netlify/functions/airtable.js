@@ -114,11 +114,14 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: "Method not allowed" };
   }
 
-  const busboy = Busboy({ headers: event.headers });
-  const fields = {};
-  const files = [];
-
   return new Promise((resolve) => {
+
+    const busboy = new Busboy({
+      headers: event.headers
+    });
+
+    const fields = {};
+    const files = [];
 
     busboy.on("field", (name, val) => {
       fields[name] = val;
@@ -128,10 +131,12 @@ exports.handler = async (event) => {
       const { filename, mimeType } = info;
       const buffers = [];
 
-      file.on("data", data => buffers.push(data));
+      file.on("data", (data) => {
+        buffers.push(data);
+      });
+
       file.on("end", () => {
         files.push({
-          fieldName: name,
           filename,
           mimeType,
           buffer: Buffer.concat(buffers)
@@ -144,26 +149,28 @@ exports.handler = async (event) => {
 
         const drive = getDrive();
 
-        // 1️⃣ Crear carpeta por unidad
+        // 1️⃣ Crear carpeta de unidad
         const unidadFolder = await createFolder(
           drive,
           fields.unidad_record_id,
           GOOGLE_DRIVE_ROOT_ID
         );
 
+        // 2️⃣ Crear 01_RESERVAS
         const reservasFolder = await createFolder(
           drive,
           "01_RESERVAS",
           unidadFolder
         );
 
+        // 3️⃣ Crear carpeta específica de reserva
         const reservaFolder = await createFolder(
           drive,
           `RES-${Date.now()}`,
           reservasFolder
         );
 
-        // 2️⃣ Subir archivos
+        // 4️⃣ Subir archivos
         for (const file of files) {
           await uploadFile(
             drive,
@@ -176,7 +183,7 @@ exports.handler = async (event) => {
 
         const hoy = new Date().toISOString().split("T")[0];
 
-        // 3️⃣ Crear reserva en Airtable
+        // 5️⃣ Crear reserva en Airtable
         const reservaRes = await fetch(
           `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
           {
@@ -204,11 +211,11 @@ exports.handler = async (event) => {
         );
 
         if (!reservaRes.ok) {
-          const err = await reservaRes.text();
-          throw new Error(err);
+          const text = await reservaRes.text();
+          throw new Error(text);
         }
 
-        // 4️⃣ Marcar unidad como Reservado
+        // 6️⃣ Marcar unidad como Reservado
         await fetch(
           `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${fields.unidad_record_id}`,
           {
@@ -243,11 +250,10 @@ exports.handler = async (event) => {
       }
     });
 
-    busboy.end(
-      Buffer.from(
-        event.body,
-        event.isBase64Encoded ? "base64" : "binary"
-      )
-    );
+    const bodyBuffer = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64")
+      : Buffer.from(event.body);
+
+    busboy.end(bodyBuffer);
   });
 };
