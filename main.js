@@ -47,14 +47,6 @@ function formatCurrency(value) {
 }
 
 // ===============================
-// PARAMS GHL
-// ===============================
-
-const urlParams = new URLSearchParams(window.location.search);
-contactInput.value = urlParams.get("contact") || "";
-opportunityInput.value = urlParams.get("opportunity") || "";
-
-// ===============================
 // CARGAR TODAS LAS UNIDADES
 // ===============================
 
@@ -162,10 +154,6 @@ unidadSelect.addEventListener("change", () => {
   priceBox.classList.remove("hidden");
 
 });
-
-// ===============================
-// ENVÍO FORMULARIO
-// ===============================
 
 // ===============================
 // ENVÍO FORMULARIO
