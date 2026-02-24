@@ -91,7 +91,7 @@ exports.handler = async (event) => {
         id: r.id,
         unidad_id: r.fields.unidad_id,
         proyecto: r.fields.proyecto,
-        manzana: r.fields.manzana,
+        manzana: r.fields.Manzana,
         precio: r.fields.precio_lista || 0
       }));
 
