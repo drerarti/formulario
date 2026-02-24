@@ -17,19 +17,32 @@ exports.handler = async (event) => {
 
     try {
 
-      const formula = `{estado_reserva}="Solicitud"`;
+      const formula = `
+  OR(
+    {estado_reserva}="Solicitud",
+    {estado_reserva}="Confirmada"
+  )
+`;
       const url = `https://api.airtable.com/v0/${BASE_ID}/RESERVAS?filterByFormula=${encodeURIComponent(formula)}`;
 
       const response = await fetch(url, { headers });
       const data = await response.json();
 
-      const result = data.records.map(r => ({
-        id: r.id,
-        cliente: r.fields.cliente,
-        monto: r.fields.monto_reserva || 0,
-        unidad: r.fields.unidad_codigo ? r.fields.unidad_codigo[0] : "",
-        unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null
-      }));
+const result = data.records.map(r => ({
+  id: r.id,
+  estado: r.fields.estado_reserva,
+  cliente: r.fields.cliente,
+  monto_reserva: r.fields.monto_reserva || 0,
+  unidad: r.fields.unidad_codigo ? r.fields.unidad_codigo[0] : "",
+  unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null,
+  precio_lista: r.fields.precio_lista_unidad ? r.fields.precio_lista_unidad[0] : 0,
+  precio_final: r.fields.precio_final || "",
+  tipo_venta: r.fields.tipo_venta || "",
+  numero_cuotas: r.fields.numero_cuotas || "",
+  monto_inicial: r.fields.monto_inicial || "",
+  fecha_inicio_pagos: r.fields.fecha_inicio_pagos || "",
+  observaciones: r.fields.observaciones_negociacion || ""
+}));
 
       return {
         statusCode: 200,
@@ -88,7 +101,28 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body);
       const hoy = new Date();
       const hoyISO = hoy.toISOString().split("T")[0];
+if (body.action === "negociacion") {
 
+  await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${body.reserva_id}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          precio_final: Number(body.precio_final || 0),
+          tipo_venta: body.tipo_venta,
+          monto_inicial: Number(body.monto_inicial || 0),
+          numero_cuotas: Number(body.numero_cuotas || 0),
+          fecha_inicio_pagos: body.fecha_inicio_pagos || null,
+          observaciones_negociacion: body.observaciones || ""
+        }
+      })
+    }
+  );
+
+  return { statusCode: 200, body: JSON.stringify({ success: true }) };
+}
       // VALIDAR
       if (body.action === "validar") {
 
@@ -240,7 +274,7 @@ if (event.httpMethod === "POST") {
       }
     );
 
-    const reservaData = await reservaRes.json();
+    if (!reservaData.id) throw new Error("Error creando reserva");
 
     // ================================
     // 4️⃣ BLOQUEAR UNIDAD
