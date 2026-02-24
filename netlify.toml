@@ -1,3 +1,5 @@
 [build]
   functions = "netlify/functions"
   publish = "."
+  [functions.expirar]
+  schedule = "0 * * * *"
