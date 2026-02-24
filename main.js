@@ -2,7 +2,7 @@
 // CONFIGURACIÓN
 // ===============================
 
-const ENDPOINT = "/.netlify/functions/airtable";
+const ENDPOINT = "https://ayllureserva.netlify.app/.netlify/functions/airtable";
 
 // ===============================
 // ELEMENTOS DOM
@@ -44,18 +44,19 @@ function formatCurrency(value) {
 }
 
 // ===============================
-// CARGAR DATOS
+// CARGAR UNIDADES
 // ===============================
 
 async function loadData() {
   try {
     const res = await fetch(ENDPOINT);
-
-    if (!res.ok) throw new Error("Error servidor");
-
     const data = await res.json();
-    todasLasUnidades = data;
 
+    if (!Array.isArray(data)) {
+      throw new Error("Formato inválido de respuesta");
+    }
+
+    todasLasUnidades = data;
     cargarProyectos();
 
   } catch (error) {
@@ -65,13 +66,13 @@ async function loadData() {
 }
 
 // ===============================
-// PROYECTOS
+// CARGAR PROYECTOS
 // ===============================
 
 function cargarProyectos() {
   proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
 
-  const proyectos = [...new Set(todasLasUnidades.map(u => u.proyecto))];
+  const proyectos = [...new Set(todasLasUnidades.map(u => u.proyecto).filter(Boolean))];
 
   proyectos.forEach(p => {
     const opt = document.createElement("option");
@@ -82,7 +83,7 @@ function cargarProyectos() {
 }
 
 // ===============================
-// EVENTOS
+// CAMBIO PROYECTO
 // ===============================
 
 proyectoSelect.addEventListener("change", () => {
@@ -92,13 +93,12 @@ proyectoSelect.addEventListener("change", () => {
   priceBox.classList.add("hidden");
 
   manzanaSelect.innerHTML = '<option value="">Selecciona manzana</option>';
-  unidadSelect.innerHTML = '<option value="">Selecciona unidad</option>';
 
   const filtradas = todasLasUnidades.filter(
     u => u.proyecto === proyectoSelect.value
   );
 
-  const manzanas = [...new Set(filtradas.map(u => u.manzana))];
+  const manzanas = [...new Set(filtradas.map(u => u.manzana).filter(Boolean))];
 
   manzanas.forEach(m => {
     const opt = document.createElement("option");
@@ -108,6 +108,10 @@ proyectoSelect.addEventListener("change", () => {
   });
 
 });
+
+// ===============================
+// CAMBIO MANZANA
+// ===============================
 
 manzanaSelect.addEventListener("change", () => {
 
@@ -132,11 +136,15 @@ manzanaSelect.addEventListener("change", () => {
 
 });
 
+// ===============================
+// CAMBIO UNIDAD
+// ===============================
+
 unidadSelect.addEventListener("change", () => {
 
   const selected = unidadSelect.options[unidadSelect.selectedIndex];
 
-  if (!selected || !selected.value) {
+  if (!selected.value) {
     priceBox.classList.add("hidden");
     return;
   }
@@ -148,7 +156,7 @@ unidadSelect.addEventListener("change", () => {
 });
 
 // ===============================
-// ENVÍO FORMULARIO
+// ENVÍO FORMULARIO (AHORA CON ARCHIVOS)
 // ===============================
 
 form.addEventListener("submit", async (e) => {
@@ -160,40 +168,56 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  const payload = {
-    unidad_record_id: unidadSelect.value,
-    cliente_actual: document.getElementById("cliente_actual")?.value || "",
-    dni_cliente: document.getElementById("dni_cliente")?.value || "",
-    telefono_cliente: document.getElementById("telefono_cliente")?.value || "",
-    agente: document.getElementById("agente")?.value || "",
-    monto_reserva: document.getElementById("monto_reserva")?.value || 0
-  };
+  // Validación básica archivos
+  if (!document.getElementById("dni_frontal").files[0] ||
+      !document.getElementById("dni_reverso").files[0] ||
+      !document.getElementById("voucher_reserva").files[0]) {
+    showAlert("Debes adjuntar todos los documentos obligatorios.");
+    return;
+  }
+
+  const formData = new FormData();
+
+  formData.append("unidad_record_id", unidadSelect.value);
+  formData.append("cliente_actual", document.getElementById("cliente_actual").value);
+  formData.append("dni_cliente", document.getElementById("dni_cliente").value);
+  formData.append("telefono_cliente", document.getElementById("telefono_cliente").value);
+  formData.append("agente", document.getElementById("agente").value);
+  formData.append("descuento_solicitado", document.getElementById("descuento").value || 0);
+  formData.append("motivo_descuento", document.getElementById("motivo_descuento").value || "");
+  formData.append("monto_reserva", document.getElementById("monto_reserva").value || 0);
+
+  formData.append("dni_frontal", document.getElementById("dni_frontal").files[0]);
+  formData.append("dni_reverso", document.getElementById("dni_reverso").files[0]);
+  formData.append("voucher_reserva", document.getElementById("voucher_reserva").files[0]);
+
+  const docAdicional = document.getElementById("documento_adicional").files[0];
+  if (docAdicional) {
+    formData.append("documento_adicional", docAdicional);
+  }
 
   try {
+
     const res = await fetch(ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: formData
     });
 
     const result = await res.json();
 
-    if (result.ok) {
+    if (result.success) {
 
-      showAlert("Reserva creada correctamente.", "success");
+      showAlert("Reserva enviada correctamente. Pendiente de validación administrativa.", "success");
 
       form.reset();
       priceBox.classList.add("hidden");
 
-      manzanaSelect.disabled = true;
-      unidadSelect.disabled = true;
-      manzanaSelect.innerHTML = '<option value="">Selecciona manzana</option>';
-      unidadSelect.innerHTML = '<option value="">Selecciona unidad</option>';
-
       await loadData();
 
     } else {
+
       showAlert(result.error || "Error creando reserva.");
+
     }
 
   } catch (error) {

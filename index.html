@@ -15,9 +15,12 @@
       <p>Selecciona el proyecto y la unidad disponible</p>
     </header>
 
-    <form id="reservaForm" novalidate>
+    <!-- IMPORTANTE: enctype agregado -->
+    <form id="reservaForm" enctype="multipart/form-data" novalidate>
 
+      <!-- ============================= -->
       <!-- DATOS CLIENTE -->
+      <!-- ============================= -->
       <section>
         <h2 class="section-title">Datos del Cliente</h2>
 
@@ -68,7 +71,9 @@
         </div>
       </section>
 
+      <!-- ============================= -->
       <!-- UBICACIÓN -->
+      <!-- ============================= -->
       <section>
         <h2 class="section-title">Ubicación</h2>
 
@@ -99,7 +104,9 @@
         </div>
       </section>
 
-      <!-- DATOS FINANCIEROS -->
+      <!-- ============================= -->
+      <!-- INFORMACIÓN FINANCIERA -->
+      <!-- ============================= -->
       <section>
         <h2 class="section-title">Información Financiera</h2>
 
@@ -133,6 +140,52 @@
             rows="3"
             placeholder="Explicación del descuento solicitado"
           ></textarea>
+        </div>
+      </section>
+
+      <!-- ============================= -->
+      <!-- DOCUMENTOS -->
+      <!-- ============================= -->
+      <section>
+        <h2 class="section-title">Documentos Obligatorios</h2>
+
+        <div class="form-group">
+          <label for="dni_frontal">DNI (Frontal)</label>
+          <input 
+            type="file" 
+            id="dni_frontal" 
+            accept="image/*"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="dni_reverso">DNI (Reverso)</label>
+          <input 
+            type="file" 
+            id="dni_reverso" 
+            accept="image/*"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="voucher_reserva">Voucher de Reserva</label>
+          <input 
+            type="file" 
+            id="voucher_reserva" 
+            accept="image/*,application/pdf"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="documento_adicional">Documento adicional (opcional)</label>
+          <input 
+            type="file" 
+            id="documento_adicional" 
+            accept="image/*,application/pdf"
+          />
         </div>
       </section>
 

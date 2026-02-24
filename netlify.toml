@@ -1,5 +1,9 @@
 [build]
   functions = "netlify/functions"
   publish = "."
-  [functions.expirar]
-  schedule = "0 * * * *"
+[functions]
+  directory = "netlify/functions"
+
+[[scheduled.functions]]
+  name = "expirar_reservas_confirmadas"
+  cron = "0 3 * * *"
