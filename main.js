@@ -132,16 +132,51 @@ form.addEventListener("submit", async (e) => {
 
     if (result.success) {
 
-      showAlert("Reserva creada correctamente.", "success");
+  const reservaId = result.reserva_id;
 
-      // AQUÍ puedes redirigir al Google Form
-      console.log("ID Reserva:", result.reserva_id);
+  alertBox.className = "alert success";
+  alertBox.classList.remove("hidden");
 
-      form.reset();
-      priceBox.classList.add("hidden");
-      await loadData();
+  alertBox.innerHTML = `
+    <strong>Reserva creada correctamente</strong><br><br>
+    Código de reserva:<br>
+    <div style="font-size:18px;font-weight:bold;margin:10px 0;">
+      ${reservaId}
+    </div>
+    <button id="copyBtn" style="
+      padding:10px 16px;
+      border-radius:10px;
+      border:none;
+      background:#2563eb;
+      color:white;
+      cursor:pointer;
+      margin-right:10px;
+    ">Copiar código</button>
 
-    } else {
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLScvACxsdkB-cIoU5w7Zn1L6MWpDsKISX7FELL01mF74Dih44A/viewform"
+       target="_blank"
+       style="
+        padding:10px 16px;
+        border-radius:10px;
+        background:#10b981;
+        color:white;
+        text-decoration:none;
+        display:inline-block;
+       ">
+       Subir documentos
+    </a>
+  `;
+
+  // BOTÓN COPIAR
+  document.getElementById("copyBtn").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(reservaId);
+    document.getElementById("copyBtn").textContent = "Copiado ✓";
+  });
+
+  form.reset();
+  priceBox.classList.add("hidden");
+  await loadData();
+} else {
       showAlert(result.error || "Error creando reserva.");
     }
 
