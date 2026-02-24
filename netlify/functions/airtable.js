@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const Busboy = require("busboy");
+const busboy = require("busboy");
 
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
@@ -64,7 +64,6 @@ exports.handler = async (event) => {
   // ================================
   if (event.httpMethod === "GET") {
     try {
-
       const formula = `{estado_unidad}="Disponible"`;
       let allRecords = [];
       let offset = null;
@@ -80,7 +79,6 @@ exports.handler = async (event) => {
         });
 
         const data = await response.json();
-
         allRecords = allRecords.concat(data.records);
         offset = data.offset;
 
@@ -116,18 +114,18 @@ exports.handler = async (event) => {
 
   return new Promise((resolve) => {
 
-    const busboy = new Busboy({
+    const bb = busboy({
       headers: event.headers
     });
 
     const fields = {};
     const files = [];
 
-    busboy.on("field", (name, val) => {
+    bb.on("field", (name, val) => {
       fields[name] = val;
     });
 
-    busboy.on("file", (name, file, info) => {
+    bb.on("file", (name, file, info) => {
       const { filename, mimeType } = info;
       const buffers = [];
 
@@ -144,19 +142,19 @@ exports.handler = async (event) => {
       });
     });
 
-    busboy.on("finish", async () => {
+    bb.on("finish", async () => {
       try {
 
         const drive = getDrive();
 
-        // 1️⃣ Crear carpeta de unidad
+        // 1️⃣ Crear carpeta por unidad (dinámico)
         const unidadFolder = await createFolder(
           drive,
           fields.unidad_record_id,
           GOOGLE_DRIVE_ROOT_ID
         );
 
-        // 2️⃣ Crear 01_RESERVAS
+        // 2️⃣ Crear carpeta 01_RESERVAS
         const reservasFolder = await createFolder(
           drive,
           "01_RESERVAS",
@@ -211,8 +209,8 @@ exports.handler = async (event) => {
         );
 
         if (!reservaRes.ok) {
-          const text = await reservaRes.text();
-          throw new Error(text);
+          const errText = await reservaRes.text();
+          throw new Error(errText);
         }
 
         // 6️⃣ Marcar unidad como Reservado
@@ -254,6 +252,6 @@ exports.handler = async (event) => {
       ? Buffer.from(event.body, "base64")
       : Buffer.from(event.body);
 
-    busboy.end(bodyBuffer);
+    bb.end(bodyBuffer);
   });
 };
