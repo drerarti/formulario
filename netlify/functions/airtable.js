@@ -66,12 +66,120 @@ if (method === "GET") {
     body: JSON.stringify(results),
   };
 }
+if (method === "POST") {
+  try {
+    const body = JSON.parse(event.body);
 
-  // =====================
-  // POST RESERVA
-  // =====================
-// =====================
-// POST RESERVA PROFESIONAL
+    if (!body.unidad_record_id) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "UNIDAD_REQUERIDA" }),
+      };
+    }
+
+    // 🔎 1. Verificar disponibilidad
+    const checkResponse = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+        },
+      }
+    );
+
+    const unidadData = await checkResponse.json();
+
+    if (unidadData.fields.estado_unidad !== "Disponible") {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "UNIDAD_NO_DISPONIBLE" }),
+      };
+    }
+
+    // 🕒 2. Calcular fechas
+    const ahora = new Date();
+    const vencimiento = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+
+    const fechaInicioISO = ahora.toISOString();
+    const fechaExpiraISO = vencimiento.toISOString();
+
+    // 📝 3. Crear RESERVA
+    const reservaResponse = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/RESERVAS`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            unidad: [body.unidad_record_id],
+            cliente_actual: body.cliente_actual || "",
+            dni_cliente: body.dni_cliente || "",
+            telefono_cliente: body.telefono_cliente || "",
+            agente: body.agente || "",
+            tipo_venta: body.tipo_venta || "Contado",
+            descuento_solicitado: Number(body.descuento_solicitado || 0),
+            motivo_descuento: body.motivo_descuento || "",
+            monto_reserva: Number(body.monto_reserva || 0),
+            estado_reserva: "Activa",
+            fecha_inicio: fechaInicioISO,
+            fecha_expira: fechaExpiraISO,
+          },
+        }),
+      }
+    );
+
+    const reservaData = await reservaResponse.json();
+
+    if (reservaData.error) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "ERROR_CREANDO_RESERVA",
+          detail: reservaData.error,
+        }),
+      };
+    }
+
+    // 🔁 4. Actualizar UNIDAD
+    await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_record_id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            estado_unidad: "Reservado",
+            fecha_reserva: fechaInicioISO,
+            fecha_expira: fechaExpiraISO,
+          },
+        }),
+      }
+    );
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        ok: true,
+        reserva_id: reservaData.id,
+      }),
+    };
+
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "SERVER_ERROR",
+        detail: error.message,
+      }),
+    };
+  }
+}
 // =====================
 if (method === "POST") {
   try {

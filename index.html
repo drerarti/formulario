@@ -15,19 +15,30 @@
       <p>Selecciona el proyecto y la unidad disponible</p>
     </header>
 
-    <form id="reservaForm" enctype="multipart/form-data">
+    <form id="reservaForm">
 
-      <!-- IDs que vienen desde GHL -->
-      <input type="hidden" id="contact_id" name="contact_id">
-      <input type="hidden" id="opportunity_id" name="opportunity_id">
-
-      <!-- Cliente -->
+      <!-- DATOS CLIENTE -->
       <div class="form-group">
-        <label for="cliente_nombre">Nombre del Cliente</label>
-        <input type="text" id="cliente_nombre" name="cliente_nombre" required>
+        <label for="cliente_actual">Nombre del Cliente</label>
+        <input type="text" id="cliente_actual" required>
       </div>
 
-      <!-- Proyecto -->
+      <div class="form-group">
+        <label for="dni_cliente">DNI del Cliente</label>
+        <input type="text" id="dni_cliente" required>
+      </div>
+
+      <div class="form-group">
+        <label for="telefono_cliente">Teléfono</label>
+        <input type="text" id="telefono_cliente" required>
+      </div>
+
+      <div class="form-group">
+        <label for="agente">Agente</label>
+        <input type="text" id="agente" required>
+      </div>
+
+      <!-- PROYECTO -->
       <div class="form-group">
         <label for="proyecto">Proyecto</label>
         <select id="proyecto" required>
@@ -35,7 +46,7 @@
         </select>
       </div>
 
-      <!-- Manzana -->
+      <!-- MANZANA -->
       <div class="form-group">
         <label for="manzana">Manzana</label>
         <select id="manzana" disabled required>
@@ -43,58 +54,48 @@
         </select>
       </div>
 
-      <!-- Unidad -->
+      <!-- UNIDAD -->
       <div class="form-group">
         <label for="unidad">Unidad Disponible</label>
-        <select id="unidad" name="unidad_record_id" disabled required>
+        <select id="unidad" disabled required>
           <option value="">Selecciona manzana primero</option>
         </select>
       </div>
 
-      <!-- Precio dinámico -->
+      <!-- PRECIO -->
       <div class="form-group price-box hidden" id="priceBox">
         <label>Precio Lista</label>
         <div id="precioDisplay" class="price-display">S/ 0.00</div>
       </div>
 
-      <!-- Tipo de Venta -->
+      <!-- TIPO VENTA -->
       <div class="form-group">
         <label for="tipo_venta">Tipo de Venta</label>
-        <select id="tipo_venta" name="tipo_venta" required>
+        <select id="tipo_venta" required>
           <option value="">Selecciona...</option>
           <option value="Contado">Contado</option>
           <option value="Financiado">Financiado</option>
         </select>
       </div>
 
-      <!-- Archivos -->
-      <div class="form-group file-group">
-        <label for="dni_front">DNI - Frente</label>
-        <input type="file" id="dni_front" name="dni_front" accept="image/*,application/pdf" required>
+      <!-- MONTO RESERVA -->
+      <div class="form-group">
+        <label for="monto_reserva">Monto Pagado por Reserva</label>
+        <input type="number" id="monto_reserva" min="0" required>
       </div>
 
-      <div class="form-group file-group">
-        <label for="dni_back">DNI - Reverso</label>
-        <input type="file" id="dni_back" name="dni_back" accept="image/*,application/pdf" required>
-      </div>
-
-      <div class="form-group file-group">
-        <label for="voucher">Voucher de Pago</label>
-        <input type="file" id="voucher" name="voucher" accept="image/*,application/pdf" required>
-      </div>
-
-      <!-- Descuento -->
+      <!-- DESCUENTO -->
       <div class="form-group">
         <label for="descuento">Descuento Solicitado (opcional)</label>
-        <input type="number" id="descuento" name="descuento_solicitado" min="0">
+        <input type="number" id="descuento" min="0">
       </div>
 
       <div class="form-group">
-        <label for="motivo_descuento">Motivo de Descuento (opcional)</label>
-        <input type="text" id="motivo_descuento" name="motivo_descuento">
+        <label for="motivo_descuento">Motivo del Descuento (opcional)</label>
+        <textarea id="motivo_descuento"></textarea>
       </div>
 
-      <!-- Botón -->
+      <!-- BOTÓN -->
       <button type="submit" id="btnSubmit">Enviar Reserva</button>
 
     </form>

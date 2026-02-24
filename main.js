@@ -167,23 +167,29 @@ unidadSelect.addEventListener("change", () => {
 // ENVÍO FORMULARIO
 // ===============================
 
+// ===============================
+// ENVÍO FORMULARIO
+// ===============================
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   hideAlert();
 
-  if (!contactInput.value || !opportunityInput.value) {
-    showAlert("Faltan parámetros de GoHighLevel.");
+  if (!unidadSelect.value) {
+    showAlert("Debes seleccionar una unidad.");
     return;
   }
 
   const payload = {
-    contact_id: contactInput.value,
-    opportunity_id: opportunityInput.value,
     unidad_record_id: unidadSelect.value,
-    proyecto: proyectoSelect.value,
-    manzana: manzanaSelect.value,
+    cliente_actual: document.getElementById("cliente_actual")?.value || "",
+    dni_cliente: document.getElementById("dni_cliente")?.value || "",
+    telefono_cliente: document.getElementById("telefono_cliente")?.value || "",
+    agente: document.getElementById("agente")?.value || "",
     tipo_venta: document.getElementById("tipo_venta").value,
-    descuento_solicitado: document.getElementById("descuento").value || 0
+    descuento_solicitado: document.getElementById("descuento").value || 0,
+    motivo_descuento: document.getElementById("motivo_descuento")?.value || "",
+    monto_reserva: document.getElementById("monto_reserva")?.value || 0
   };
 
   try {
@@ -199,19 +205,22 @@ form.addEventListener("submit", async (e) => {
 
     if (result.ok) {
       showAlert("Reserva creada correctamente.", "success");
+
       form.reset();
       priceBox.classList.add("hidden");
+
+      // Opcional: recargar unidades para actualizar disponibilidad
+      await loadData();
+
     } else {
-      showAlert(result.message || "Error creando reserva.");
+      showAlert(result.error || "Error creando reserva.");
     }
 
   } catch (error) {
     showAlert("Error enviando reserva.");
     console.error(error);
   }
-
 });
-
 // ===============================
 // INICIALIZAR
 // ===============================
