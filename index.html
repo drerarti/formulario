@@ -1,46 +1,59 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Reserva de Unidad</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <main class="container">
+  <div class="container">
+    <h1>Reserva de Unidad</h1>
+    <p class="subtitle">Selecciona el proyecto y la unidad disponible</p>
 
-    <header class="form-header">
-      <h1>Reserva de Unidad</h1>
-      <p>Selecciona el proyecto y la unidad disponible</p>
-    </header>
+    <form id="reservaForm">
 
-    <!-- IMPORTANTE: enctype agregado -->
-<form id="reservaForm">
+      <div class="grid-2">
+        <input type="text" id="cliente_actual" placeholder="Nombre del cliente" required>
+        <input type="text" id="dni_cliente" placeholder="DNI del cliente" required>
+      </div>
 
-  <!-- Datos cliente -->
-  <input type="text" id="cliente_actual" required>
-  <input type="text" id="dni_cliente" required>
-  <input type="text" id="telefono_cliente" required>
-  <input type="text" id="agente" required>
+      <div class="grid-2">
+        <input type="text" id="telefono_cliente" placeholder="Teléfono del cliente" required>
+        <input type="text" id="agente" placeholder="Agente" required>
+      </div>
 
-  <!-- Selección proyecto -->
-  <select id="proyecto"></select>
-  <select id="manzana" disabled></select>
-  <select id="unidad" disabled></select>
+      <div class="grid-3">
+        <select id="proyecto" required>
+          <option value="">Selecciona proyecto</option>
+        </select>
 
-  <!-- Información financiera -->
-  <input type="text" id="monto_reserva" required>
-  <input type="text" id="descuento">
-  <textarea id="motivo_descuento"></textarea>
+        <select id="manzana" disabled required>
+          <option value="">Selecciona manzana</option>
+        </select>
 
-  <button type="submit">Crear Reserva</button>
+        <select id="unidad" disabled required>
+          <option value="">Selecciona unidad</option>
+        </select>
+      </div>
 
-</form>
+      <div id="priceBox" class="price-box hidden">
+        Precio: <span id="precioDisplay"></span>
+      </div>
 
-    <div id="alertBox" class="alert hidden"></div>
+      <div class="grid-2">
+        <input type="text" id="monto_reserva" placeholder="Monto pagado por reserva" required>
+        <input type="text" id="descuento" placeholder="Descuento solicitado (opcional)">
+      </div>
 
-  </main>
+      <textarea id="motivo_descuento" placeholder="Motivo del descuento (opcional)"></textarea>
+
+      <button type="submit" class="btn-primary">Crear Reserva</button>
+
+      <div id="alertBox" class="alert hidden"></div>
+
+    </form>
+  </div>
 
   <script src="main.js"></script>
 
