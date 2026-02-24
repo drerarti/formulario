@@ -139,7 +139,7 @@ exports.handler = async (event) => {
           body: JSON.stringify({
             fields: {
               unidad: [body.unidad_record_id],
-              cliente_actual: body.cliente_actual || "",
+              cliente: body.cliente_actual || "",
               dni_cliente: body.dni_cliente || "",
               telefono_cliente: body.telefono_cliente || "",
               agente: body.agente || "",
