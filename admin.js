@@ -234,7 +234,7 @@ async function loadVentas() {
       <strong>Tipo:</strong> ${v.tipo_venta}<br>
       <strong>Fecha:</strong> ${v.fecha_venta}<br>
       <strong>Estado:</strong> ${v.estado_venta}<br><br>
-      <button>Gestionar</button>
+      <button onclick="verVenta('${v.id}')">Gestionar</button>
     `;
 
     container.appendChild(div);
@@ -260,4 +260,38 @@ function showSection(sectionId, btn) {
 
   if (sectionId === "reservas") loadReservas();
   if (sectionId === "ventas") loadVentas();
+}
+// ===============================
+// VER DETALLE VENTA (MODAL)
+// ===============================
+async function verVenta(id) {
+
+  const res = await fetch(`${ENDPOINT}?venta_id=${id}`);
+  const data = await res.json();
+
+  const cont = document.getElementById("modalVentaContenido");
+
+  cont.innerHTML = `
+    <h3>Detalle de Venta</h3>
+    <hr><br>
+
+    <strong>Cliente:</strong> ${data.cliente}<br>
+    <strong>Unidad:</strong> ${data.unidad}<br>
+    <strong>Agente:</strong> ${data.agente}<br><br>
+
+    <strong>Precio Base:</strong> S/ ${data.precio_base}<br>
+    <strong>Reserva:</strong> S/ ${data.monto_reserva}<br>
+    <strong>Monto Inicial:</strong> S/ ${data.monto_inicial}<br>
+    <strong>Saldo Restante:</strong> S/ ${data.saldo_restante}<br><br>
+
+    <strong>Tipo:</strong> ${data.tipo_venta}<br>
+    <strong>Fecha:</strong> ${data.fecha_venta}<br>
+    <strong>Estado:</strong> ${data.estado_venta}<br>
+  `;
+
+  document.getElementById("ventaModal").classList.remove("hidden");
+}
+
+function cerrarModal() {
+  document.getElementById("ventaModal").classList.add("hidden");
 }

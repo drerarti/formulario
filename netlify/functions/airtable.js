@@ -110,6 +110,52 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.ventas === "1") {
     };
   }
 }
+// =========================================
+// GET DETALLE VENTA
+// =========================================
+if (event.httpMethod === "GET" && event.queryStringParameters?.venta_id) {
+
+  const ventaId = event.queryStringParameters.venta_id;
+
+  const ventaRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/VENTAS/${ventaId}`,
+    { headers }
+  );
+
+  const ventaData = await ventaRes.json();
+
+  if (!ventaData.id) {
+    return {
+      statusCode: 404,
+      body: JSON.stringify({ error: "Venta no encontrada" })
+    };
+  }
+
+  const f = ventaData.fields;
+
+  const precio = f.precio_base || 0;
+  const reserva = f.monto_reserva || 0;
+  const inicial = f.monto_inicial || 0;
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      id: ventaData.id,
+      cliente: f.cliente || "",
+      unidad: Array.isArray(f.unidad_codigo)
+        ? f.unidad_codigo[0]
+        : f.unidad_codigo || "",
+      agente: f.agente || "",
+      precio_base: precio,
+      monto_reserva: reserva,
+      monto_inicial: inicial,
+      saldo_restante: precio - reserva - inicial,
+      tipo_venta: f.tipo_venta || "",
+      fecha_venta: f.fecha_venta || "",
+      estado_venta: f.estado_venta || "Activa"
+    })
+  };
+}
   // =========================================
   // GET UNIDADES DISPONIBLES
   // =========================================
@@ -263,12 +309,13 @@ if (!reservaData.id) throw new Error("Error creando reserva")
 
   const updateReservaData = await updateReserva.json();
 
-  if (!updateReservaData.id) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Venta creada pero no se pudo actualizar reserva." })
-    };
-  }
+ if (!updateReserva.ok) {
+  const errorText = await updateReserva.text();
+  return {
+    statusCode: 500,
+    body: JSON.stringify({ error: "Error actualizando reserva: " + errorText })
+  };
+}
 
   // 4️⃣ Actualizar unidad
   await fetch(
