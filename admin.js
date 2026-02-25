@@ -354,7 +354,12 @@ async function crearCuota(ventaId) {
   const monto = document.getElementById("montoCuota").value;
   const fecha = document.getElementById("fechaCuota").value;
 
-  await fetch(ENDPOINT, {
+  if (!numero || !monto || !fecha) {
+    alert("Completa todos los campos");
+    return;
+  }
+
+  const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -366,6 +371,22 @@ async function crearCuota(ventaId) {
     })
   });
 
+  const data = await res.json();
+
+  if (!data.success) {
+    alert("Error creando cuota");
+    return;
+  }
+
+  // ✅ Limpiar formulario
+  document.getElementById("numCuota").value = "";
+  document.getElementById("montoCuota").value = "";
+  document.getElementById("fechaCuota").value = "";
+
+  // ✅ Ocultar formulario
+  document.getElementById("formCuota").classList.add("hidden");
+
+  // ✅ Recargar cuotas
   cargarCuotas(ventaId);
 }
 function mostrarPago(ventaId, cuotaId) {
@@ -408,4 +429,28 @@ async function registrarPago(ventaId) {
 
   cerrarModal();
   verVenta(ventaId);
+}
+
+async function cargarCuotasVenta(ventaId) {
+
+  const res = await fetch(`${ENDPOINT}?cuotas_venta=${ventaId}`);
+  const cuotas = await res.json();
+
+  const contenedor = document.getElementById("listaCuotas");
+  contenedor.innerHTML = "";
+
+  if (!cuotas.length) {
+    contenedor.innerHTML = "<p>No hay cuotas registradas.</p>";
+    return;
+  }
+
+  cuotas.forEach(c => {
+    contenedor.innerHTML += `
+      <div>
+        Cuota ${c.fields.numero_cuota} - 
+        S/ ${c.fields.monto_programado} - 
+        Vence: ${c.fields.fecha_vencimiento}
+      </div>
+    `;
+  });
 }
