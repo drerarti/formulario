@@ -142,9 +142,9 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.venta_id) {
     body: JSON.stringify({
       id: ventaData.id,
       cliente: f.cliente || "",
-      unidad: Array.isArray(f.unidad_codigo)
-        ? f.unidad_codigo[0]
-        : f.unidad_codigo || "",
+      unidad: Array.isArray(f.unidad)
+        ? f.unidad[0]
+        : f.unidad || "",
       agente: f.agente || "",
       precio_base: precio,
       monto_reserva: reserva,
@@ -154,6 +154,33 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.venta_id) {
       fecha_venta: f.fecha_venta || "",
       estado_venta: f.estado_venta || "Activa"
     })
+  };
+}
+// =========================================
+// GET CUOTAS POR VENTA
+// =========================================
+if (event.httpMethod === "GET" && event.queryStringParameters?.cuotas_venta) {
+
+  const ventaId = event.queryStringParameters.cuotas_venta;
+
+  const formula = `{venta}='${ventaId}'`;
+
+  const url = `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}`;
+
+  const response = await fetch(url, { headers });
+  const data = await response.json();
+
+  const result = data.records.map(r => ({
+    id: r.id,
+    numero: r.fields.numero_cuota || "",
+    monto: r.fields.monto_programado || 0,
+    fecha: r.fields.fecha_vencimiento || "",
+    estado: r.fields.estado_cuota || "Pendiente"
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(result)
   };
 }
   // =========================================
@@ -222,6 +249,7 @@ if (body.action === "negociacion") {
 
   return { statusCode: 200, body: JSON.stringify({ success: true }) };
 }
+
 // =========================================
 // CONVERTIR A VENTA (VERSIÓN SEGURA)
 // =========================================
@@ -402,7 +430,47 @@ if (!reservaData.id) throw new Error("Error creando reserva")
       };
     }
   }
+// =========================================
+// CREAR CUOTA
+// =========================================
+if (event.httpMethod === "POST") {
 
+  const body = JSON.parse(event.body);
+
+  if (body.action === "crear_cuota") {
+
+    const res = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/CUOTAS`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            venta: [body.venta_id],
+            numero_cuota: Number(body.numero),
+            monto_programado: Number(body.monto),
+            fecha_vencimiento: body.fecha,
+            estado_cuota: "Pendiente"
+          }
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (!data.id) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "No se pudo crear cuota" })
+      };
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true })
+    };
+  }
+}
   // =========================================
   // POST CREAR RESERVA
   // =========================================

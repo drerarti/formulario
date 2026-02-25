@@ -287,11 +287,83 @@ async function verVenta(id) {
     <strong>Tipo:</strong> ${data.tipo_venta}<br>
     <strong>Fecha:</strong> ${data.fecha_venta}<br>
     <strong>Estado:</strong> ${data.estado_venta}<br>
+    <br><hr><br>
+<h4>Cuotas</h4>
+<div id="listaCuotas"></div>
+<br>
+<button onclick="mostrarFormularioCuota('${data.id}')">Agregar Cuota</button>
+<div id="formCuota" class="hidden"></div>
   `;
 
-  document.getElementById("ventaModal").classList.remove("hidden");
+document.getElementById("ventaModal").classList.remove("hidden");
+cargarCuotas(id);
 }
-
 function cerrarModal() {
   document.getElementById("ventaModal").classList.add("hidden");
+}
+// ===============================
+// CARGAR CUOTAS
+// ===============================
+async function cargarCuotas(ventaId) {
+
+  const res = await fetch(`${ENDPOINT}?cuotas_venta=${ventaId}`);
+  const cuotas = await res.json();
+
+  const cont = document.getElementById("listaCuotas");
+
+  if (!cuotas.length) {
+    cont.innerHTML = "<em>No hay cuotas registradas.</em>";
+    return;
+  }
+
+  cont.innerHTML = cuotas.map(c => `
+    <div style="margin-bottom:10px; padding:8px; border:1px solid #1e293b; border-radius:8px;">
+      <strong>Cuota ${c.numero}</strong><br>
+      Monto: S/ ${c.monto}<br>
+      Fecha: ${c.fecha}<br>
+      Estado: ${c.estado}
+    </div>
+  `).join("");
+}
+
+// ===============================
+// MOSTRAR FORMULARIO
+// ===============================
+function mostrarFormularioCuota(ventaId) {
+
+  const form = document.getElementById("formCuota");
+
+  form.innerHTML = `
+    <br>
+    <input type="number" id="numCuota" placeholder="Número cuota"><br><br>
+    <input type="number" id="montoCuota" placeholder="Monto"><br><br>
+    <input type="date" id="fechaCuota"><br><br>
+    <button onclick="crearCuota('${ventaId}')">Guardar Cuota</button>
+  `;
+
+  form.classList.remove("hidden");
+}
+
+// ===============================
+// CREAR CUOTA
+// ===============================
+async function crearCuota(ventaId) {
+
+  const numero = document.getElementById("numCuota").value;
+  const monto = document.getElementById("montoCuota").value;
+  const fecha = document.getElementById("fechaCuota").value;
+
+  await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "crear_cuota",
+      venta_id: ventaId,
+      numero,
+      monto,
+      fecha
+    })
+  });
+
+  cargarCuotas(ventaId);
 }
