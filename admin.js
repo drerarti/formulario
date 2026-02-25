@@ -30,9 +30,18 @@ async function loadReservas() {
         <button onclick="rechazar('${r.id}', '${r.unidad_record_id}')">Rechazar</button>
       ` : ""}
 
-      ${r.estado === "Confirmada" ? `
-        <button onclick="mostrarNegociacion('${r.id}')">Negociar</button>
-      ` : ""}
+${r.estado === "Confirmada" ? `
+  <button onclick="mostrarNegociacion('${r.id}')">Negociar</button>
+
+  ${
+    r.tipo_venta && r.precio_final > 0
+      ? `<button onclick="convertirVenta('${r.id}')"
+          style="margin-left:10px;background:#10b981;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
+          Convertir
+        </button>`
+      : ""
+  }
+` : ""}
 
       <div id="neg-${r.id}" style="margin-top:15px;"></div>
     `;
@@ -142,4 +151,49 @@ function showSection(sectionId, btn) {
     if (sectionId === "reservas") {
         loadReservas();
     }
+}
+async function convertirVenta(reservaId) {
+
+  if (!confirm("¿Confirmar conversión a venta?")) return;
+
+  const res = await fetch(ENDPOINT, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "convertir",
+      reserva_id: reservaId
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("Venta creada correctamente");
+    showSection('ventas', document.querySelector('[onclick*="ventas"]'));
+  } else {
+    alert("Error al convertir: " + data.error);
+  }
+}
+async function convertirVenta(reservaId) {
+
+  if (!confirm("¿Confirmar conversión a venta?")) return;
+
+  const res = await fetch(ENDPOINT, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "convertir",
+      reserva_id: reservaId
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("Venta creada correctamente");
+    loadReservas();
+    showSection('ventas', document.querySelector('[onclick*="ventas"]'));
+  } else {
+    alert("Error: " + data.error);
+  }
 }
