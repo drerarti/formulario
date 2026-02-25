@@ -430,27 +430,3 @@ async function registrarPago(ventaId) {
   cerrarModal();
   verVenta(ventaId);
 }
-
-async function cargarCuotasVenta(ventaId) {
-
-  const res = await fetch(`${ENDPOINT}?cuotas_venta=${ventaId}`);
-  const cuotas = await res.json();
-
-  const contenedor = document.getElementById("listaCuotas");
-  contenedor.innerHTML = "";
-
-  if (!cuotas.length) {
-    contenedor.innerHTML = "<p>No hay cuotas registradas.</p>";
-    return;
-  }
-
-  cuotas.forEach(c => {
-    contenedor.innerHTML += `
-      <div>
-        Cuota ${c.fields.numero_cuota} - 
-        S/ ${c.fields.monto_programado} - 
-        Vence: ${c.fields.fecha_vencimiento}
-      </div>
-    `;
-  });
-}
