@@ -1,5 +1,6 @@
 const ENDPOINT = "/.netlify/functions/airtable";
 let ventasChartInstance = null;
+
 function animateValue(element, start, end, duration = 800) {
   let startTime = null;
 
@@ -20,36 +21,11 @@ function animateValue(element, start, end, duration = 800) {
 
   requestAnimationFrame(animation);
 }
-function getEstadoClass(estado) {
-  switch (estado) {
-    case "Confirmada":
-      return "estado-confirmada";
-    case "Solicitud":
-      return "estado-solicitud";
-    case "Rechazada":
-      return "estado-rechazada";
-    case "Convertida":
-      return "estado-convertida";
-    default:
-      return "";
-  }
-}
-function getVentaEstadoClass(estado) {
-  switch (estado) {
-    case "Activa":
-      return "venta-activa";
-    case "Pagada":
-      return "venta-pagada";
-    case "Cancelada":
-      return "venta-cancelada";
-    default:
-      return "";
-  }
-}
+
 const reservasContainer = document.getElementById("reservasContainer");
 
 // ===============================
-// CARGAR RESERVAS
+// CARGAR RESERVAS (VERSIÓN PRO)
 // ===============================
 async function loadReservas() {
 
@@ -65,43 +41,78 @@ async function loadReservas() {
 
     reservasContainer.innerHTML = "";
 
-    reservasContainer.innerHTML += `
-  <div class="reserva-card">
-    
-    <div class="reserva-header">
-      <div class="reserva-cliente">
-        ${r.cliente}
-      </div>
-      <div class="reserva-estado ${getEstadoClass(r.estado_reserva)}">
-        ${r.estado_reserva.toUpperCase()}
-      </div>
-    </div>
+    data.forEach(r => {
 
-    <div class="reserva-body">
-      <div><strong>Unidad:</strong> ${r.unidad_codigo || r.unidad}</div>
-      <div><strong>Agente:</strong> ${r.agente}</div>
-      <div><strong>Reserva:</strong> S/ ${r.reserva_monto}</div>
-      <div><strong>Precio Lista:</strong> S/ ${r.precio_lista}</div>
-    </div>
+      const div = document.createElement("div");
+      div.className = "reserva-card";
 
-    <div class="reserva-actions">
-      ${
-        r.estado_reserva === "Solicitud"
-        ? `
-          <button onclick="validar('${r.id}')">Validar</button>
-          <button onclick="rechazar('${r.id}','${r.unidad_record_id}')">Rechazar</button>
-        `
-        : `
-          <button onclick="mostrarNegociacion('${r.id}')">Negociar</button>
-          <button class="btn-primary" onclick="convertirVenta('${r.id}', this)">Convertir</button>
-        `
-      }
-    </div>
+      div.innerHTML = `
 
-    <div id="neg-${r.id}" class="negociacion-container"></div>
+        <div class="reserva-header-pro">
+          <div class="reserva-cliente-pro">
+            ${r.cliente}
+          </div>
+          <div class="reserva-estado-pro estado-${(r.estado || '').toLowerCase()}">
+            ${r.estado}
+          </div>
+        </div>
 
-  </div>
-`;
+        <div class="reserva-body-pro">
+          <div class="reserva-item">
+            <span>Unidad</span>
+            <strong>${r.unidad}</strong>
+          </div>
+
+          <div class="reserva-item">
+            <span>Agente</span>
+            <strong>${r.agente}</strong>
+          </div>
+
+          <div class="reserva-item">
+            <span>Reserva</span>
+            <strong>S/ ${Number(r.monto_reserva || 0).toLocaleString()}</strong>
+          </div>
+
+          <div class="reserva-item">
+            <span>Precio Lista</span>
+            <strong>S/ ${Number(r.precio_lista || 0).toLocaleString()}</strong>
+          </div>
+        </div>
+
+        <div class="reserva-actions-pro">
+
+          ${r.estado === "Solicitud" ? `
+            <button class="btn-outline" onclick="validar('${r.id}')">
+              Validar
+            </button>
+
+            <button class="btn-danger" onclick="rechazar('${r.id}', '${r.unidad_record_id}')">
+              Rechazar
+            </button>
+          ` : ""}
+
+          ${r.estado === "Confirmada" ? `
+            <button class="btn-outline" onclick="mostrarNegociacion('${r.id}')">
+              Negociar
+            </button>
+
+            ${
+              r.tipo_venta && Number(r.precio_final) > 0
+                ? `<button class="btn-primary" onclick="convertirVenta('${r.id}', this)">
+                    Convertir
+                  </button>`
+                : ""
+            }
+          ` : ""}
+
+        </div>
+
+        <div id="neg-${r.id}" class="negociacion-container-pro"></div>
+
+      `;
+
+      reservasContainer.appendChild(div);
+    });
 
   } catch (error) {
     reservasContainer.innerHTML = "<p>Error inesperado cargando reservas</p>";
@@ -175,36 +186,51 @@ async function rechazar(id, unidadId) {
 function mostrarNegociacion(id) {
 
   const cont = document.getElementById(`neg-${id}`);
-
   if (!cont) return;
 
   cont.innerHTML = `
-    <div style="border:1px solid #ccc;padding:15px;border-radius:10px;margin-top:10px;">
+    <div class="negociacion-card-pro">
       <h4>Negociación</h4>
 
-      <label>Precio Final</label>
-      <input type="number" id="precio_final_${id}">
+      <div class="neg-grid-pro">
 
-      <label>Tipo Venta</label>
-      <select id="tipo_venta_${id}">
-        <option value="">Seleccionar</option>
-        <option value="contado">Contado</option>
-        <option value="financiamiento">Financiamiento</option>
-      </select>
+        <div>
+          <label>Precio Final</label>
+          <input type="number" id="precio_final_${id}">
+        </div>
 
-      <label>Monto Inicial</label>
-      <input type="number" id="monto_inicial_${id}">
+        <div>
+          <label>Tipo Venta</label>
+          <select id="tipo_venta_${id}">
+            <option value="">Seleccionar</option>
+            <option value="contado">Contado</option>
+            <option value="financiamiento">Financiamiento</option>
+          </select>
+        </div>
 
-      <label>N° Cuotas</label>
-      <input type="number" id="numero_cuotas_${id}">
+        <div>
+          <label>Monto Inicial</label>
+          <input type="number" id="monto_inicial_${id}">
+        </div>
 
-      <label>Fecha Inicio Pagos</label>
-      <input type="date" id="fecha_inicio_${id}">
+        <div>
+          <label>N° Cuotas</label>
+          <input type="number" id="numero_cuotas_${id}">
+        </div>
+
+        <div>
+          <label>Fecha Inicio Pagos</label>
+          <input type="date" id="fecha_inicio_${id}">
+        </div>
+
+      </div>
 
       <label>Observaciones</label>
       <textarea id="obs_${id}"></textarea>
 
-      <button onclick="guardarNegociacion('${id}')">Guardar Negociación</button>
+      <button class="btn-primary" onclick="guardarNegociacion('${id}')">
+        Guardar Negociación
+      </button>
     </div>
   `;
 }
@@ -243,7 +269,6 @@ async function guardarNegociacion(id) {
     alert("Error inesperado guardando negociación");
   }
 }
-
 // ===============================
 // CONVERTIR A VENTA
 // ===============================
@@ -288,7 +313,7 @@ async function convertirVenta(reservaId, btn) {
 }
 
 // ===============================
-// CARGAR VENTAS (CON KPIs)
+// CARGAR VENTAS (VERSIÓN PRO)
 // ===============================
 async function loadVentas() {
 
@@ -305,52 +330,87 @@ async function loadVentas() {
     const container = document.getElementById("ventasContainer");
     container.innerHTML = "";
 
+    let totalVendido = 0;
+    let totalPendiente = 0;
+    let ventasActivas = 0;
+
+    ventas.forEach(v => {
+      totalVendido += v.precio_base;
+      totalPendiente += v.saldo_restante;
+      if (v.estado_venta === "Activa") ventasActivas++;
+    });
+
+    const totalCobrado = totalVendido - totalPendiente;
+
+    container.innerHTML = `
+      <div class="kpis-grid">
+        <div class="kpi-card">
+          <h3>Total Vendido</h3>
+          <p>S/ ${totalVendido.toLocaleString()}</p>
+        </div>
+        <div class="kpi-card">
+          <h3>Total Cobrado</h3>
+          <p>S/ ${totalCobrado.toLocaleString()}</p>
+        </div>
+        <div class="kpi-card">
+          <h3>Total Pendiente</h3>
+          <p>S/ ${totalPendiente.toLocaleString()}</p>
+        </div>
+        <div class="kpi-card">
+          <h3>Ventas Activas</h3>
+          <p>${ventasActivas}</p>
+        </div>
+      </div>
+      <hr style="margin:30px 0;">
+    `;
+
     ventas.forEach(v => {
 
-      container.innerHTML += `
-        <div class="venta-card">
+      const div = document.createElement("div");
+      div.className = "venta-card-pro";
 
-          <div class="venta-header">
-            <div class="venta-cliente">${v.cliente}</div>
-            <div class="venta-estado ${getVentaEstadoClass(v.estado_venta)}">
-              ${v.estado_venta.toUpperCase()}
-            </div>
+      div.innerHTML = `
+        <div class="venta-header-pro">
+          <div class="venta-cliente-pro">${v.cliente}</div>
+          <div class="venta-estado-pro estado-${(v.estado_venta || '').toLowerCase()}">
+            ${v.estado_venta}
           </div>
+        </div>
 
-          <div class="venta-body">
-            <div><strong>Unidad:</strong> ${v.unidad_codigo || v.unidad}</div>
-            <div><strong>Agente:</strong> ${v.agente}</div>
-            <div><strong>Tipo:</strong> ${v.tipo_venta}</div>
-            <div><strong>Fecha:</strong> ${v.fecha_venta}</div>
+        <div class="venta-body-pro">
+          <div><span>Unidad</span><strong>${v.unidad}</strong></div>
+          <div><span>Agente</span><strong>${v.agente}</strong></div>
+          <div><span>Tipo</span><strong>${v.tipo_venta}</strong></div>
+          <div><span>Fecha</span><strong>${v.fecha_venta}</strong></div>
+        </div>
+
+        <div class="venta-finanzas-pro">
+          <div>
+            <span>Precio</span>
+            <strong>S/ ${Number(v.precio_base || 0).toLocaleString()}</strong>
           </div>
-
-          <div class="venta-finanzas">
-            <div class="finanza-item">
-              <span>Precio</span>
-              <strong>S/ ${v.precio_base}</strong>
-            </div>
-            <div class="finanza-item">
-              <span>Cobrado</span>
-              <strong class="positivo">
-                S/ ${v.precio_base - v.saldo_restante}
-              </strong>
-            </div>
-            <div class="finanza-item">
-              <span>Pendiente</span>
-              <strong class="pendiente">
-                S/ ${v.saldo_restante}
-              </strong>
-            </div>
+          <div>
+            <span>Cobrado</span>
+            <strong class="positivo">
+              S/ ${(v.precio_base - v.saldo_restante).toLocaleString()}
+            </strong>
           </div>
-
-          <div class="venta-actions">
-            <button class="btn-primary" onclick="verVenta('${v.id}')">
-              Gestionar
-            </button>
+          <div>
+            <span>Pendiente</span>
+            <strong class="pendiente">
+              S/ ${Number(v.saldo_restante || 0).toLocaleString()}
+            </strong>
           </div>
+        </div>
 
+        <div class="venta-actions-pro">
+          <button class="btn-primary" onclick="verVenta('${v.id}')">
+            Gestionar
+          </button>
         </div>
       `;
+
+      container.appendChild(div);
     });
 
   } catch (error) {
@@ -380,8 +440,9 @@ function showSection(sectionId, btn) {
   if (sectionId === "ventas") loadVentas();
   if (sectionId === "dashboard") loadDashboard();
 }
+
 // ===============================
-// VER DETALLE VENTA (MODAL)
+// VER DETALLE VENTA (MODAL PRO)
 // ===============================
 async function verVenta(id) {
 
@@ -398,29 +459,52 @@ async function verVenta(id) {
     const cont = document.getElementById("modalVentaContenido");
     if (!cont) return;
 
+    const porcentajeCobrado =
+      ((data.precio_base - data.saldo_restante) / data.precio_base) * 100;
+
     cont.innerHTML = `
-      <h3>Detalle de Venta</h3>
-      <hr><br>
+      <div class="modal-header-pro">
+        <h3>Detalle de Venta</h3>
+        <div class="venta-estado-pro estado-${(data.estado_venta || '').toLowerCase()}">
+          ${data.estado_venta}
+        </div>
+      </div>
 
-      <strong>Cliente:</strong> ${data.cliente}<br>
-      <strong>Unidad:</strong> ${data.unidad}<br>
-      <strong>Agente:</strong> ${data.agente}<br><br>
+      <div class="modal-body-pro">
 
-      <strong>Precio Base:</strong> S/ ${data.precio_base}<br>
-      <strong>Reserva:</strong> S/ ${data.monto_reserva}<br>
-      <strong>Monto Inicial:</strong> S/ ${data.monto_inicial}<br>
-      <strong>Saldo Restante:</strong> S/ ${data.saldo_restante}<br><br>
+        <div class="modal-section-pro">
+          <div><strong>Cliente:</strong> ${data.cliente}</div>
+          <div><strong>Unidad:</strong> ${data.unidad}</div>
+          <div><strong>Agente:</strong> ${data.agente}</div>
+        </div>
 
-      <strong>Tipo:</strong> ${data.tipo_venta}<br>
-      <strong>Fecha:</strong> ${data.fecha_venta}<br>
-      <strong>Estado:</strong> ${data.estado_venta}<br>
-      <br><hr><br>
+        <div class="modal-finanzas-pro">
+          <div><span>Precio Base</span><strong>S/ ${data.precio_base}</strong></div>
+          <div><span>Reserva</span><strong>S/ ${data.monto_reserva}</strong></div>
+          <div><span>Monto Inicial</span><strong>S/ ${data.monto_inicial}</strong></div>
+          <div><span>Saldo Restante</span><strong>S/ ${data.saldo_restante}</strong></div>
+        </div>
 
-      <h4>Cuotas</h4>
-      <div id="listaCuotas"></div>
-      <br>
-      <button onclick="mostrarFormularioCuota('${data.id}')">Agregar Cuota</button>
-      <div id="formCuota" class="hidden"></div>
+        <div class="barra-progreso-pro">
+          <div class="barra-interna-pro" style="width:${porcentajeCobrado}%"></div>
+        </div>
+
+        <div class="modal-section-pro">
+          <div><strong>Tipo:</strong> ${data.tipo_venta}</div>
+          <div><strong>Fecha:</strong> ${data.fecha_venta}</div>
+        </div>
+
+        <hr>
+
+        <h4>Cuotas</h4>
+        <div id="listaCuotas"></div>
+        <br>
+        <button class="btn-outline" onclick="mostrarFormularioCuota('${data.id}')">
+          Agregar Cuota
+        </button>
+        <div id="formCuota" class="hidden"></div>
+
+      </div>
     `;
 
     document.getElementById("ventaModal").classList.remove("hidden");
@@ -437,11 +521,11 @@ function cerrarModal() {
   const cont = document.getElementById("modalVentaContenido");
 
   if (modal) modal.classList.add("hidden");
-  if (cont) cont.innerHTML = ""; // limpieza real
+  if (cont) cont.innerHTML = "";
 }
 
 // ===============================
-// CARGAR CUOTAS
+// CARGAR CUOTAS (TIMELINE PRO)
 // ===============================
 async function cargarCuotas(ventaId) {
 
@@ -464,12 +548,16 @@ async function cargarCuotas(ventaId) {
     }
 
     cont.innerHTML = cuotas.map(c => `
-      <div style="margin-bottom:10px; padding:8px; border:1px solid #1e293b; border-radius:8px;">
-        <strong>Cuota ${c.numero}</strong><br>
-        Monto: S/ ${c.monto}<br>
-        Fecha: ${c.fecha}<br>
-        Estado: ${c.estado}<br><br>
-        <button onclick="mostrarPago('${ventaId}')">Registrar Pago</button>
+      <div class="cuota-card-pro">
+        <div class="cuota-header-pro">
+          <strong>Cuota ${c.numero}</strong>
+          <span class="estado-${(c.estado || '').toLowerCase()}">${c.estado}</span>
+        </div>
+        <div>Monto: S/ ${c.monto}</div>
+        <div>Fecha: ${c.fecha}</div>
+        <button class="btn-outline" onclick="mostrarPago('${ventaId}')">
+          Registrar Pago
+        </button>
       </div>
     `).join("");
 
@@ -478,146 +566,11 @@ async function cargarCuotas(ventaId) {
     if (cont) cont.innerHTML = "<em>Error inesperado cargando cuotas.</em>";
   }
 }
-
 // ===============================
-// MOSTRAR FORMULARIO CUOTA
+// DASHBOARD PRO
 // ===============================
-function mostrarFormularioCuota(ventaId) {
-
-  const form = document.getElementById("formCuota");
-  if (!form) return;
-
-  form.innerHTML = `
-    <br>
-    <input type="number" id="numCuota" placeholder="Número cuota"><br><br>
-    <input type="number" id="montoCuota" placeholder="Monto"><br><br>
-    <input type="date" id="fechaCuota"><br><br>
-    <button onclick="crearCuota('${ventaId}')">Guardar Cuota</button>
-  `;
-
-  form.classList.remove("hidden");
-}
-
-// ===============================
-// CREAR CUOTA
-// ===============================
-async function crearCuota(ventaId) {
-
-  try {
-
-    const numero = document.getElementById("numCuota")?.value;
-    const monto = document.getElementById("montoCuota")?.value;
-    const fecha = document.getElementById("fechaCuota")?.value;
-
-    if (!numero || !monto || !fecha) {
-      alert("Completa todos los campos");
-      return;
-    }
-
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "crear_cuota",
-        venta_id: ventaId,
-        numero,
-        monto,
-        fecha
-      })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      alert(data.error || "Error creando cuota");
-      return;
-    }
-
-    document.getElementById("numCuota").value = "";
-    document.getElementById("montoCuota").value = "";
-    document.getElementById("fechaCuota").value = "";
-
-    document.getElementById("formCuota").classList.add("hidden");
-
-    await cargarCuotas(ventaId);
-
-  } catch (error) {
-    alert("Error inesperado creando cuota");
-  }
-}
-
-// ===============================
-// MOSTRAR FORMULARIO PAGO
-// ===============================
-function mostrarPago(ventaId) {
-
-  const cont = document.getElementById("formCuota");
-  if (!cont) return;
-
-  cont.innerHTML = `
-    <br>
-    <input type="number" id="montoPago" placeholder="Monto"><br><br>
-    <select id="metodoPago">
-      <option value="Efectivo">Efectivo</option>
-      <option value="Transferencia">Transferencia</option>
-      <option value="Yape">Yape</option>
-      <option value="Otro">Otro</option>
-    </select><br><br>
-    <input type="date" id="fechaPago"><br><br>
-    <button onclick="registrarPago('${ventaId}')">Guardar Pago</button>
-  `;
-
-  cont.classList.remove("hidden");
-}
-
-// ===============================
-// REGISTRAR PAGO
-// ===============================
-async function registrarPago(ventaId) {
-
-  try {
-
-    const monto = document.getElementById("montoPago")?.value;
-    const metodo = document.getElementById("metodoPago")?.value;
-    const fecha = document.getElementById("fechaPago")?.value;
-
-    if (!monto || Number(monto) <= 0) {
-      alert("Monto inválido");
-      return;
-    }
-
-    if (!fecha) {
-      alert("Selecciona fecha de pago");
-      return;
-    }
-
-    const res = await fetch(ENDPOINT, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "registrar_pago",
-        venta_id: ventaId,
-        monto,
-        metodo,
-        fecha_pago: fecha
-      })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      alert(data.error || "Error registrando pago");
-      return;
-    }
-
-    cerrarModal();
-    await verVenta(ventaId);
-
-  } catch (error) {
-    alert("Error inesperado registrando pago");
-  }
-}
 async function loadDashboard() {
+
   try {
 
     const res = await fetch(`${ENDPOINT}?ventas=1`);
@@ -633,28 +586,30 @@ async function loadDashboard() {
     const labels = [];
     const ventasData = [];
     const cobradoData = [];
-ventas.sort((a, b) =>
-  new Date(a.fecha_venta || 0) - new Date(b.fecha_venta || 0)
-);
 
-let acumuladoVentas = 0;
-let acumuladoCobrado = 0;
+    // Orden cronológico
+    ventas.sort((a, b) =>
+      new Date(a.fecha_venta || 0) - new Date(b.fecha_venta || 0)
+    );
 
-ventas.forEach(v => {
+    let acumuladoVentas = 0;
+    let acumuladoCobrado = 0;
 
-  totalVendido += v.precio_base;
-  totalPendiente += v.saldo_restante;
+    ventas.forEach(v => {
 
-  if (v.estado_venta === "Activa") ventasActivas++;
-  if (v.estado_venta === "Pagada") ventasPagadas++;
+      totalVendido += v.precio_base;
+      totalPendiente += v.saldo_restante;
 
-  acumuladoVentas += v.precio_base;
-  acumuladoCobrado += (v.precio_base - v.saldo_restante);
+      if (v.estado_venta === "Activa") ventasActivas++;
+      if (v.estado_venta === "Pagada") ventasPagadas++;
 
-  labels.push(v.fecha_venta);
-  ventasData.push(acumuladoVentas);
-  cobradoData.push(acumuladoCobrado);
-});
+      acumuladoVentas += v.precio_base;
+      acumuladoCobrado += (v.precio_base - v.saldo_restante);
+
+      labels.push(v.fecha_venta);
+      ventasData.push(acumuladoVentas);
+      cobradoData.push(acumuladoCobrado);
+    });
 
     const totalCobrado = totalVendido - totalPendiente;
 
@@ -663,35 +618,59 @@ ventas.forEach(v => {
     kpis.innerHTML = `
       <div class="kpi-card-pro">
         <div class="kpi-title">Total Vendido</div>
-        <div class="kpi-value" id="kpiTotalVendido">S/ ${totalVendido.toLocaleString()}</div>
+        <div class="kpi-value" id="kpiTotalVendido">S/ 0</div>
       </div>
+
       <div class="kpi-card-pro">
         <div class="kpi-title">Total Cobrado</div>
-        <div class="kpi-value" id="kpiTotalCobrado">S/ ${totalCobrado.toLocaleString()}</div>
+        <div class="kpi-value" id="kpiTotalCobrado">S/ 0</div>
       </div>
+
       <div class="kpi-card-pro">
         <div class="kpi-title">Total Pendiente</div>
-        <div class="kpi-value" id="kpiTotalPendiente">S/ ${totalPendiente.toLocaleString()}</div>
+        <div class="kpi-value" id="kpiTotalPendiente">S/ 0</div>
       </div>
+
       <div class="kpi-card-pro">
         <div class="kpi-title">Ventas Activas</div>
-        <div class="kpi-value" id="kpiTotalActivas">${ventasActivas}</div>
+        <div class="kpi-value">${ventasActivas}</div>
       </div>
+
       <div class="kpi-card-pro">
         <div class="kpi-title">Ventas Pagadas</div>
-        <div class="kpi-value" id="kpiTotalPagadas">${ventasPagadas}</div>
+        <div class="kpi-value">${ventasPagadas}</div>
       </div>
     `;
-animateValue(document.getElementById("kpiTotalVendido"), 0, totalVendido);
-animateValue(document.getElementById("kpiTotalCobrado"), 0, totalCobrado);
-animateValue(document.getElementById("kpiTotalPendiente"), 0, totalPendiente);
+
+    // Animaciones suaves
+    animateValue(
+      document.getElementById("kpiTotalVendido"),
+      0,
+      totalVendido
+    );
+
+    animateValue(
+      document.getElementById("kpiTotalCobrado"),
+      0,
+      totalCobrado
+    );
+
+    animateValue(
+      document.getElementById("kpiTotalPendiente"),
+      0,
+      totalPendiente
+    );
+
+    // ===============================
+    // GRÁFICO PRO
+    // ===============================
     const ctx = document.getElementById("ventasChart").getContext("2d");
 
     if (ventasChartInstance) {
-  ventasChartInstance.destroy();
-}
+      ventasChartInstance.destroy();
+    }
 
-ventasChartInstance = new Chart(ctx, {
+    ventasChartInstance = new Chart(ctx, {
       type: "line",
       data: {
         labels,
@@ -700,35 +679,55 @@ ventasChartInstance = new Chart(ctx, {
             label: "Ventas",
             data: ventasData,
             borderColor: "#10b981",
-            backgroundColor: "rgba(16,185,129,0.1)",
+            backgroundColor: "rgba(16,185,129,0.08)",
             tension: 0.4,
-            fill: true
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: "#10b981"
           },
           {
             label: "Cobrado",
             data: cobradoData,
             borderColor: "#3b82f6",
-            backgroundColor: "rgba(59,130,246,0.1)",
+            backgroundColor: "rgba(59,130,246,0.08)",
             tension: 0.4,
-            fill: true
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: "#3b82f6"
           }
         ]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             labels: {
-              color: "#e2e8f0"
+              color: "#e2e8f0",
+              font: {
+                size: 12
+              }
             }
           }
         },
         scales: {
           x: {
-            ticks: { color: "#94a3b8" }
+            grid: {
+              color: "rgba(255,255,255,0.05)"
+            },
+            ticks: {
+              color: "#94a3b8"
+            }
           },
           y: {
-            ticks: { color: "#94a3b8" }
+            grid: {
+              color: "rgba(255,255,255,0.05)"
+            },
+            ticks: {
+              color: "#94a3b8"
+            }
           }
         }
       }
