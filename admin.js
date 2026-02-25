@@ -1,5 +1,25 @@
 const ENDPOINT = "/.netlify/functions/airtable";
+let ventasChartInstance = null;
+function animateValue(element, start, end, duration = 800) {
+  let startTime = null;
 
+  function animation(currentTime) {
+    if (!startTime) startTime = currentTime;
+    const progress = currentTime - startTime;
+    const value = Math.min(
+      start + (end - start) * (progress / duration),
+      end
+    );
+
+    element.innerText = "S/ " + Math.floor(value).toLocaleString();
+
+    if (progress < duration) {
+      requestAnimationFrame(animation);
+    }
+  }
+
+  requestAnimationFrame(animation);
+}
 const reservasContainer = document.getElementById("reservasContainer");
 
 // ===============================
@@ -337,6 +357,7 @@ function showSection(sectionId, btn) {
 
   if (sectionId === "reservas") loadReservas();
   if (sectionId === "ventas") loadVentas();
+  if (sectionId === "dashboard") loadDashboard();
 }
 // ===============================
 // VER DETALLE VENTA (MODAL)
@@ -573,5 +594,126 @@ async function registrarPago(ventaId) {
 
   } catch (error) {
     alert("Error inesperado registrando pago");
+  }
+}
+async function loadDashboard() {
+  try {
+
+    const res = await fetch(`${ENDPOINT}?ventas=1`);
+    const ventas = await res.json();
+
+    if (!res.ok || !Array.isArray(ventas)) return;
+
+    let totalVendido = 0;
+    let totalPendiente = 0;
+    let ventasActivas = 0;
+    let ventasPagadas = 0;
+
+    const labels = [];
+    const ventasData = [];
+    const cobradoData = [];
+ventas.sort((a, b) =>
+  new Date(a.fecha_venta || 0) - new Date(b.fecha_venta || 0)
+);
+
+let acumuladoVentas = 0;
+let acumuladoCobrado = 0;
+
+ventas.forEach(v => {
+
+  totalVendido += v.precio_base;
+  totalPendiente += v.saldo_restante;
+
+  if (v.estado_venta === "Activa") ventasActivas++;
+  if (v.estado_venta === "Pagada") ventasPagadas++;
+
+  acumuladoVentas += v.precio_base;
+  acumuladoCobrado += (v.precio_base - v.saldo_restante);
+
+  labels.push(v.fecha_venta);
+  ventasData.push(acumuladoVentas);
+  cobradoData.push(acumuladoCobrado);
+});
+
+    const totalCobrado = totalVendido - totalPendiente;
+
+    const kpis = document.getElementById("dashboardKpis");
+
+    kpis.innerHTML = `
+      <div class="kpi-card-pro">
+        <div class="kpi-title">Total Vendido</div>
+        <div class="kpi-value" id="kpiTotalVendido">S/ ${totalVendido.toLocaleString()}</div>
+      </div>
+      <div class="kpi-card-pro">
+        <div class="kpi-title">Total Cobrado</div>
+        <div class="kpi-value" id="kpiTotalCobrado">S/ ${totalCobrado.toLocaleString()}</div>
+      </div>
+      <div class="kpi-card-pro">
+        <div class="kpi-title">Total Pendiente</div>
+        <div class="kpi-value" id="kpiTotalPendiente">S/ ${totalPendiente.toLocaleString()}</div>
+      </div>
+      <div class="kpi-card-pro">
+        <div class="kpi-title">Ventas Activas</div>
+        <div class="kpi-value" id="kpiTotalActivas">${ventasActivas}</div>
+      </div>
+      <div class="kpi-card-pro">
+        <div class="kpi-title">Ventas Pagadas</div>
+        <div class="kpi-value" id="kpiTotalPagadas">${ventasPagadas}</div>
+      </div>
+    `;
+animateValue(document.getElementById("kpiTotalVendido"), 0, totalVendido);
+animateValue(document.getElementById("kpiTotalCobrado"), 0, totalCobrado);
+animateValue(document.getElementById("kpiTotalPendiente"), 0, totalPendiente);
+    const ctx = document.getElementById("ventasChart").getContext("2d");
+
+    if (ventasChartInstance) {
+  ventasChartInstance.destroy();
+}
+
+ventasChartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Ventas",
+            data: ventasData,
+            borderColor: "#10b981",
+            backgroundColor: "rgba(16,185,129,0.1)",
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: "Cobrado",
+            data: cobradoData,
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59,130,246,0.1)",
+            tension: 0.4,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: {
+              color: "#e2e8f0"
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#94a3b8" }
+          },
+          y: {
+            ticks: { color: "#94a3b8" }
+          }
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Error cargando dashboard", error);
   }
 }

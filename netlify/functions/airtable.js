@@ -46,8 +46,8 @@ exports.handler = async (event) => {
           monto_reserva: r.fields.monto_reserva || 0,
           agente: r.fields.agente || "",
           unidad: Array.isArray(r.fields.unidad_codigo)
-            ? r.fields.unidad_codigo[0]
-            : r.fields.unidad_codigo || "",
+  ? r.fields.unidad_codigo[0]
+  : (r.fields.unidad_codigo || ""),
           unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null,
           precio_lista: r.fields.precio_lista_unidad ? r.fields.precio_lista_unidad[0] : 0,
           precio_final: r.fields.precio_final || "",
