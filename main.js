@@ -10,6 +10,10 @@ const alertBox = document.getElementById("alertBox");
 
 let todasLasUnidades = [];
 
+// ===============================
+// UTILIDADES
+// ===============================
+
 function showAlert(message, type = "error") {
   alertBox.textContent = message;
   alertBox.className = `alert ${type}`;
@@ -30,16 +34,31 @@ function formatCurrency(value) {
 // ===============================
 // CARGAR UNIDADES
 // ===============================
+
 async function loadData() {
-  const res = await fetch(ENDPOINT);
-  const data = await res.json();
-  todasLasUnidades = data;
-  cargarProyectos();
+  try {
+    const res = await fetch(ENDPOINT);
+    const data = await res.json();
+
+    if (!res.ok || !Array.isArray(data)) {
+      showAlert("Error cargando unidades.");
+      return;
+    }
+
+    todasLasUnidades = data;
+    cargarProyectos();
+
+  } catch (error) {
+    showAlert("Error conectando con el servidor.");
+  }
 }
 
 function cargarProyectos() {
   proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
-  const proyectos = [...new Set(todasLasUnidades.map(u => u.proyecto).filter(Boolean))];
+
+  const proyectos = [...new Set(
+    todasLasUnidades.map(u => u.proyecto).filter(Boolean)
+  )];
 
   proyectos.forEach(p => {
     const opt = document.createElement("option");
@@ -60,7 +79,9 @@ proyectoSelect.addEventListener("change", () => {
     u => u.proyecto === proyectoSelect.value
   );
 
-  const manzanas = [...new Set(filtradas.map(u => u.manzana).filter(Boolean))];
+  const manzanas = [...new Set(
+    filtradas.map(u => u.manzana).filter(Boolean)
+  )];
 
   manzanas.forEach(m => {
     const opt = document.createElement("option");
@@ -97,6 +118,7 @@ unidadSelect.addEventListener("change", () => {
     priceBox.classList.add("hidden");
     return;
   }
+
   const precio = parseFloat(selected.dataset.precio || 0);
   precioDisplay.textContent = formatCurrency(precio);
   priceBox.classList.remove("hidden");
@@ -105,21 +127,28 @@ unidadSelect.addEventListener("change", () => {
 // ===============================
 // ENVÍO FORMULARIO
 // ===============================
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   hideAlert();
 
+  if (!unidadSelect.value) {
+    showAlert("Selecciona una unidad.");
+    return;
+  }
+
   try {
 
     const payload = {
+      action: "crear_reserva",  // 🔴 CORRECCIÓN CRÍTICA
       unidad_record_id: unidadSelect.value,
-      cliente_actual: document.getElementById("cliente_actual").value,
-      dni_cliente: document.getElementById("dni_cliente").value,
-      telefono_cliente: document.getElementById("telefono_cliente").value,
-      agente: document.getElementById("agente").value,
-      monto_reserva: document.getElementById("monto_reserva").value || 0,
-      descuento_solicitado: document.getElementById("descuento").value || 0,
-      motivo_descuento: document.getElementById("motivo_descuento").value || ""
+      cliente_actual: document.getElementById("cliente_actual").value.trim(),
+      dni_cliente: document.getElementById("dni_cliente").value.trim(),
+      telefono_cliente: document.getElementById("telefono_cliente").value.trim(),
+      agente: document.getElementById("agente").value.trim(),
+      monto_reserva: Number(document.getElementById("monto_reserva").value || 0),
+      descuento_solicitado: Number(document.getElementById("descuento").value || 0),
+      motivo_descuento: document.getElementById("motivo_descuento").value.trim()
     };
 
     const res = await fetch(ENDPOINT, {
@@ -130,59 +159,42 @@ form.addEventListener("submit", async (e) => {
 
     const result = await res.json();
 
-    if (result.success) {
-
-  const reservaId = result.reserva_id;
-
-  alertBox.className = "alert success";
-  alertBox.classList.remove("hidden");
-
-  alertBox.innerHTML = `
-    <strong>Reserva creada correctamente</strong><br><br>
-    Código de reserva:<br>
-    <div style="font-size:18px;font-weight:bold;margin:10px 0;">
-      ${reservaId}
-    </div>
-    <button id="copyBtn" style="
-      padding:10px 16px;
-      border-radius:10px;
-      border:none;
-      background:#2563eb;
-      color:white;
-      cursor:pointer;
-      margin-right:10px;
-    ">Copiar código</button>
-
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLScvACxsdkB-cIoU5w7Zn1L6MWpDsKISX7FELL01mF74Dih44A/viewform"
-       target="_blank"
-       style="
-        padding:10px 16px;
-        border-radius:10px;
-        background:#10b981;
-        color:white;
-        text-decoration:none;
-        display:inline-block;
-       ">
-       Subir documentos
-    </a>
-  `;
-
-  // BOTÓN COPIAR
-  document.getElementById("copyBtn").addEventListener("click", async () => {
-    await navigator.clipboard.writeText(reservaId);
-    document.getElementById("copyBtn").textContent = "Copiado ✓";
-  });
-
-  form.reset();
-  priceBox.classList.add("hidden");
-  await loadData();
-} else {
+    if (!res.ok || !result.success) {
       showAlert(result.error || "Error creando reserva.");
+      return;
     }
+
+    const reservaId = result.reserva_id;
+
+    alertBox.className = "alert success";
+    alertBox.classList.remove("hidden");
+
+    alertBox.innerHTML = `
+      <strong>Reserva creada correctamente</strong><br><br>
+      Código de reserva:<br>
+      <div style="font-size:18px;font-weight:bold;margin:10px 0;">
+        ${reservaId}
+      </div>
+      <button id="copyBtn" class="btn-secondary">Copiar código</button>
+
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLScvACxsdkB-cIoU5w7Zn1L6MWpDsKISX7FELL01mF74Dih44A/viewform"
+         target="_blank"
+         class="btn-success">
+         Subir documentos
+      </a>
+    `;
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      await navigator.clipboard.writeText(reservaId);
+      document.getElementById("copyBtn").textContent = "Copiado ✓";
+    });
+
+    form.reset();
+    priceBox.classList.add("hidden");
+    await loadData();
 
   } catch (error) {
     showAlert("Error enviando reserva.");
-    console.error(error);
   }
 });
 
