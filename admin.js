@@ -1,23 +1,7 @@
-const PASSWORD = "admin123";
 
 const ENDPOINT = "/.netlify/functions/airtable";
 
-const loginBtn = document.getElementById("loginBtn");
-const loginBox = document.getElementById("loginBox");
-const adminPanel = document.getElementById("adminPanel");
 const reservasContainer = document.getElementById("reservasContainer");
-
-loginBtn.addEventListener("click", () => {
-  const input = document.getElementById("adminPassword").value;
-
-  if (input === PASSWORD) {
-    loginBox.classList.add("hidden");
-    adminPanel.classList.remove("hidden");
-    loadReservas();
-  } else {
-    alert("Contraseña incorrecta");
-  }
-});
 
 async function loadReservas() {
 
@@ -141,4 +125,21 @@ async function guardarNegociacion(id) {
   });
 
   loadReservas();
+}
+function showSection(sectionId, btn) {
+    document.querySelectorAll('.section').forEach(sec => {
+        sec.classList.add('hidden');
+    });
+
+    document.getElementById(sectionId).classList.remove('hidden');
+
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('active');
+    });
+
+    btn.classList.add('active');
+
+    if (sectionId === "reservas") {
+        loadReservas();
+    }
 }

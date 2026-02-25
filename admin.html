@@ -1,34 +1,99 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel Administrativo</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ayllu Laguna Huaypo - Administración</title>
+<link rel="stylesheet" href="admin.css">
+<script defer src="admin.js"></script>
 </head>
+
 <body>
 
-<div class="container">
+<div class="layout">
 
-  <h1>Panel Administrativo</h1>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            AYLLU<br><span>Laguna Huaypo</span>
+        </div>
 
-  <!-- LOGIN SIMPLE -->
-  <div id="loginBox">
-    <input type="password" id="adminPassword" placeholder="Contraseña administrativa">
-    <button id="loginBtn" class="btn-primary">Ingresar</button>
-  </div>
+        <nav>
+            <button onclick="showSection('dashboard')" class="nav-btn active">Dashboard</button>
+            <button onclick="showSection('reservas', this)" class="nav-btn">Reservas</button>
+            <button onclick="showSection('ventas')" class="nav-btn">Ventas</button>
+            <button onclick="showSection('unidades')" class="nav-btn">Unidades</button>
+        </nav>
+    </aside>
 
-  <!-- PANEL -->
-  <div id="adminPanel" class="hidden">
+    <!-- Main Content -->
+    <main class="main">
 
-    <h2>Reservas en Solicitud</h2>
+        <!-- Header -->
+        <header class="header">
+            <div class="title">Panel de Gestión</div>
+            <div class="admin-info">
+                <span class="status-dot"></span>
+                Admin
+            </div>
+        </header>
 
-    <div id="reservasContainer"></div>
+        <!-- Sections -->
 
-  </div>
+        <section id="dashboard" class="section">
+            <h2>Dashboard</h2>
+
+            <div class="kpis">
+                <div class="card">
+                    <h3>Reservas Activas</h3>
+                    <p class="big-number">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Unidades Vendidas</h3>
+                    <p class="big-number">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total por Cobrar</h3>
+                    <p class="big-number">S/ 0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Cobrado</h3>
+                    <p class="big-number">S/ 0</p>
+                </div>
+            </div>
+
+            <div class="chart-placeholder">
+                Gráfico de ventas próximamente
+            </div>
+        </section>
+
+        <section id="reservas" class="section hidden">
+            <h2>Reservas</h2>
+            <div id="reservasContainer"></div>
+                Aquí migramos tu lógica actual
+            </div>
+        </section>
+
+        <section id="ventas" class="section hidden">
+            <h2>Ventas</h2>
+            <div id="ventas-container">
+                Módulo financiero próximamente
+            </div>
+        </section>
+
+        <section id="unidades" class="section hidden">
+            <h2>Unidades</h2>
+            <div id="unidades-container">
+                Inventario próximamente
+            </div>
+        </section>
+
+    </main>
 
 </div>
 
-<script src="admin.js"></script>
 </body>
 </html>
