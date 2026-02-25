@@ -163,7 +163,7 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.cuotas_venta) {
 
   const ventaId = event.queryStringParameters.cuotas_venta;
 
- const formula = `FIND("${ventaId}", ARRAYJOIN({venta}))`;
+ const formula = `{venta} = "${ventaId}"`;
 
   const url = `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}`;
 
