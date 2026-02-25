@@ -84,9 +84,9 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.ventas === "1") {
       return {
         id: r.id,
         cliente: r.fields.cliente || "",
-        unidad: Array.isArray(r.fields.unidad_codigo)
-          ? r.fields.unidad_codigo[0]
-          : r.fields.unidad_codigo || "",
+        unidad: Array.isArray(r.fields.unidad)
+  ? r.fields.unidad[0]
+  : r.fields.unidad || "",
         agente: r.fields.agente || "",
         precio_base: precio,
         monto_reserva: reserva,
@@ -163,7 +163,7 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.cuotas_venta) {
 
   const ventaId = event.queryStringParameters.cuotas_venta;
 
-  const formula = `{venta}='${ventaId}'`;
+  const formula = `FIND("${ventaId}", ARRAYJOIN({venta}))`;
 
   const url = `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}`;
 
@@ -422,7 +422,137 @@ if (!reservaData.id) throw new Error("Error creando reserva")
 
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
       }
+// =========================================
+// REGISTRAR PAGO (CON EXCEDENTE AUTOMÁTICO)
+// =========================================
+if (body.action === "registrar_pago") {
 
+  const { venta_id, monto, metodo, fecha_pago, observacion } = body;
+
+  let montoRestante = Number(monto);
+
+  if (!venta_id || !montoRestante || montoRestante <= 0) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Datos de pago inválidos" })
+    };
+  }
+
+  // 1️⃣ Obtener cuotas ordenadas
+  const formula = `FIND("${venta_id}", ARRAYJOIN({venta}))`;
+
+  const cuotasRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=numero_cuota&sort[0][direction]=asc`,
+    { headers }
+  );
+
+  const cuotasData = await cuotasRes.json();
+
+  const cuotas = cuotasData.records;
+
+  for (const cuota of cuotas) {
+
+    if (montoRestante <= 0) break;
+
+    const pagadoActual = cuota.fields.monto_pagado || 0;
+    const programado = cuota.fields.monto_programado || 0;
+
+    const saldoCuota = programado - pagadoActual;
+
+    if (saldoCuota <= 0) continue;
+
+    const aplicar = Math.min(montoRestante, saldoCuota);
+    const nuevoPagado = pagadoActual + aplicar;
+
+    let nuevoEstado = "Pendiente";
+    if (nuevoPagado === 0) nuevoEstado = "Pendiente";
+    else if (nuevoPagado < programado) nuevoEstado = "Parcial";
+    else nuevoEstado = "Pagada";
+
+    // 2️⃣ Actualizar cuota
+    await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/CUOTAS/${cuota.id}`,
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            monto_pagado: nuevoPagado,
+            estado_cuota: nuevoEstado
+          }
+        })
+      }
+    );
+
+    // 3️⃣ Crear transacción
+    await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/TRANSACCIONES`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            venta: [venta_id],
+            cuota: [cuota.id],
+            monto: aplicar,
+            metodo: metodo,
+            fecha_pago: fecha_pago,
+            observacion: observacion || ""
+          }
+        })
+      }
+    );
+
+    montoRestante -= aplicar;
+  }
+
+  // 4️⃣ Recalcular saldo total venta
+  const ventaRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/VENTAS/${venta_id}`,
+    { headers }
+  );
+
+  const ventaData = await ventaRes.json();
+  const precio = ventaData.fields.precio_base || 0;
+  const reserva = ventaData.fields.monto_reserva || 0;
+  const inicial = ventaData.fields.monto_inicial || 0;
+
+  // Obtener todas las cuotas nuevamente
+  const cuotasFinalRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}`,
+    { headers }
+  );
+
+  const cuotasFinal = await cuotasFinalRes.json();
+
+  const totalPagadoCuotas = cuotasFinal.records.reduce(
+    (sum, c) => sum + (c.fields.monto_pagado || 0),
+    0
+  );
+
+  const saldoVenta = precio - reserva - inicial - totalPagadoCuotas;
+
+  let nuevoEstadoVenta = "Activa";
+  if (saldoVenta <= 0) nuevoEstadoVenta = "Pagada";
+
+  await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/VENTAS/${venta_id}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          estado_venta: nuevoEstadoVenta
+        }
+      })
+    }
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ success: true })
+  };
+}
     } catch (error) {
       return {
         statusCode: 500,

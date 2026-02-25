@@ -316,14 +316,15 @@ async function cargarCuotas(ventaId) {
     return;
   }
 
-  cont.innerHTML = cuotas.map(c => `
-    <div style="margin-bottom:10px; padding:8px; border:1px solid #1e293b; border-radius:8px;">
-      <strong>Cuota ${c.numero}</strong><br>
-      Monto: S/ ${c.monto}<br>
-      Fecha: ${c.fecha}<br>
-      Estado: ${c.estado}
-    </div>
-  `).join("");
+cont.innerHTML = cuotas.map(c => `
+  <div style="margin-bottom:10px; padding:8px; border:1px solid #1e293b; border-radius:8px;">
+    <strong>Cuota ${c.numero}</strong><br>
+    Monto: S/ ${c.monto}<br>
+    Fecha: ${c.fecha}<br>
+    Estado: ${c.estado}<br><br>
+    <button onclick="mostrarPago('${ventaId}', '${c.id}')">Registrar Pago</button>
+  </div>
+`).join("");
 }
 
 // ===============================
@@ -366,4 +367,45 @@ async function crearCuota(ventaId) {
   });
 
   cargarCuotas(ventaId);
+}
+function mostrarPago(ventaId, cuotaId) {
+
+  const cont = document.getElementById("formCuota");
+
+  cont.innerHTML = `
+    <br>
+    <input type="number" id="montoPago" placeholder="Monto"><br><br>
+    <select id="metodoPago">
+      <option value="Efectivo">Efectivo</option>
+      <option value="Transferencia">Transferencia</option>
+      <option value="Yape">Yape</option>
+      <option value="Otro">Otro</option>
+    </select><br><br>
+    <input type="date" id="fechaPago"><br><br>
+    <button onclick="registrarPago('${ventaId}')">Guardar Pago</button>
+  `;
+
+  cont.classList.remove("hidden");
+}
+
+async function registrarPago(ventaId) {
+
+  const monto = document.getElementById("montoPago").value;
+  const metodo = document.getElementById("metodoPago").value;
+  const fecha = document.getElementById("fechaPago").value;
+
+  await fetch(ENDPOINT, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "registrar_pago",
+      venta_id: ventaId,
+      monto,
+      metodo,
+      fecha_pago: fecha
+    })
+  });
+
+  cerrarModal();
+  verVenta(ventaId);
 }
