@@ -1,8 +1,10 @@
-
 const ENDPOINT = "/.netlify/functions/airtable";
 
 const reservasContainer = document.getElementById("reservasContainer");
 
+// ===============================
+// CARGAR RESERVAS
+// ===============================
 async function loadReservas() {
 
   const res = await fetch(ENDPOINT + "?admin=1");
@@ -13,14 +15,12 @@ async function loadReservas() {
   data.forEach(r => {
 
     const div = document.createElement("div");
-    div.style.border = "1px solid #ddd";
-    div.style.padding = "15px";
-    div.style.marginBottom = "10px";
-    div.style.borderRadius = "10px";
+    div.className = "reserva-card";
 
     div.innerHTML = `
       <strong>${r.cliente}</strong><br>
       <strong>Unidad:</strong> ${r.unidad}<br>
+      <strong>Agente:</strong> ${r.agente}<br>
       <strong>Reserva:</strong> S/ ${r.monto_reserva}<br>
       <strong>Precio Lista:</strong> S/ ${r.precio_lista}<br>
       <strong>Estado:</strong> ${r.estado}<br><br>
@@ -30,18 +30,18 @@ async function loadReservas() {
         <button onclick="rechazar('${r.id}', '${r.unidad_record_id}')">Rechazar</button>
       ` : ""}
 
-${r.estado === "Confirmada" ? `
-  <button onclick="mostrarNegociacion('${r.id}')">Negociar</button>
+      ${r.estado === "Confirmada" ? `
+        <button onclick="mostrarNegociacion('${r.id}')">Negociar</button>
 
-  ${
-    r.tipo_venta && r.precio_final > 0
-      ? `<button onclick="convertirVenta('${r.id}')"
-          style="margin-left:10px;background:#10b981;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
-          Convertir
-        </button>`
-      : ""
-  }
-` : ""}
+        ${
+          r.tipo_venta && r.precio_final > 0
+            ? `<button onclick="convertirVenta('${r.id}')"
+                style="margin-left:10px;background:#10b981;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                Convertir
+              </button>`
+            : ""
+        }
+      ` : ""}
 
       <div id="neg-${r.id}" style="margin-top:15px;"></div>
     `;
@@ -50,6 +50,9 @@ ${r.estado === "Confirmada" ? `
   });
 }
 
+// ===============================
+// VALIDAR
+// ===============================
 async function validar(id) {
 
   await fetch(ENDPOINT, {
@@ -64,6 +67,9 @@ async function validar(id) {
   loadReservas();
 }
 
+// ===============================
+// RECHAZAR
+// ===============================
 async function rechazar(id, unidadId) {
 
   await fetch(ENDPOINT, {
@@ -79,6 +85,9 @@ async function rechazar(id, unidadId) {
   loadReservas();
 }
 
+// ===============================
+// NEGOCIACION
+// ===============================
 function mostrarNegociacion(id) {
 
   const cont = document.getElementById(`neg-${id}`);
@@ -135,45 +144,10 @@ async function guardarNegociacion(id) {
 
   loadReservas();
 }
-function showSection(sectionId, btn) {
-    document.querySelectorAll('.section').forEach(sec => {
-        sec.classList.add('hidden');
-    });
 
-    document.getElementById(sectionId).classList.remove('hidden');
-
-    document.querySelectorAll('.nav-btn').forEach(b => {
-        b.classList.remove('active');
-    });
-
-    btn.classList.add('active');
-
-    if (sectionId === "reservas") {
-        loadReservas();
-    }
-}
-async function convertirVenta(reservaId) {
-
-  if (!confirm("¿Confirmar conversión a venta?")) return;
-
-  const res = await fetch(ENDPOINT, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "convertir",
-      reserva_id: reservaId
-    })
-  });
-
-  const data = await res.json();
-
-  if (data.success) {
-    alert("Venta creada correctamente");
-    showSection('ventas', document.querySelector('[onclick*="ventas"]'));
-  } else {
-    alert("Error al convertir: " + data.error);
-  }
-}
+// ===============================
+// CONVERTIR A VENTA
+// ===============================
 async function convertirVenta(reservaId) {
 
   if (!confirm("¿Confirmar conversión a venta?")) return;
@@ -196,4 +170,94 @@ async function convertirVenta(reservaId) {
   } else {
     alert("Error: " + data.error);
   }
+}
+
+// ===============================
+// CARGAR VENTAS (CON KPIs)
+// ===============================
+async function loadVentas() {
+
+  const res = await fetch(`${ENDPOINT}?ventas=1`);
+  const ventas = await res.json();
+
+  const container = document.getElementById("ventasContainer");
+  container.innerHTML = "";
+
+  let totalVendido = 0;
+  let totalPendiente = 0;
+  let ventasActivas = 0;
+
+  ventas.forEach(v => {
+    totalVendido += v.precio_base;
+    totalPendiente += v.saldo_restante;
+
+    if (v.estado_venta === "Activa") {
+      ventasActivas++;
+    }
+  });
+
+  const totalCobrado = totalVendido - totalPendiente;
+
+  container.innerHTML = `
+    <div class="kpis-grid">
+      <div class="kpi-card">
+        <h3>Total Vendido</h3>
+        <p>S/ ${totalVendido.toLocaleString()}</p>
+      </div>
+      <div class="kpi-card">
+        <h3>Total Cobrado</h3>
+        <p>S/ ${totalCobrado.toLocaleString()}</p>
+      </div>
+      <div class="kpi-card">
+        <h3>Total Pendiente</h3>
+        <p>S/ ${totalPendiente.toLocaleString()}</p>
+      </div>
+      <div class="kpi-card">
+        <h3>Ventas Activas</h3>
+        <p>${ventasActivas}</p>
+      </div>
+    </div>
+    <hr style="margin:30px 0;">
+  `;
+
+  ventas.forEach(v => {
+
+    const div = document.createElement("div");
+    div.className = "venta-card";
+
+    div.innerHTML = `
+      <strong>${v.cliente}</strong><br>
+      <strong>Unidad:</strong> ${v.unidad}<br>
+      <strong>Agente:</strong> ${v.agente}<br>
+      <strong>Precio:</strong> S/ ${v.precio_base}<br>
+      <strong>Reserva:</strong> S/ ${v.monto_reserva}<br>
+      <strong>Tipo:</strong> ${v.tipo_venta}<br>
+      <strong>Fecha:</strong> ${v.fecha_venta}<br>
+      <strong>Estado:</strong> ${v.estado_venta}<br><br>
+      <button>Gestionar</button>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+// ===============================
+// CAMBIO DE SECCION
+// ===============================
+function showSection(sectionId, btn) {
+
+  document.querySelectorAll('.section').forEach(sec => {
+    sec.classList.add('hidden');
+  });
+
+  document.getElementById(sectionId).classList.remove('hidden');
+
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.remove('active');
+  });
+
+  if (btn) btn.classList.add('active');
+
+  if (sectionId === "reservas") loadReservas();
+  if (sectionId === "ventas") loadVentas();
 }

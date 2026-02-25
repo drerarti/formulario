@@ -33,6 +33,7 @@ const result = data.records.map(r => ({
   estado: r.fields.estado_reserva,
   cliente: r.fields.cliente,
   monto_reserva: r.fields.monto_reserva || 0,
+  agente: r.fields.agente || "",
   unidad: Array.isArray(r.fields.unidad_codigo)
   ? r.fields.unidad_codigo[0]
   : r.fields.unidad_codigo || "",
@@ -58,7 +59,57 @@ const result = data.records.map(r => ({
       };
     }
   }
+// =========================================
+// GET VENTAS (ADMIN)
+// =========================================
+if (event.httpMethod === "GET" && event.queryStringParameters?.ventas === "1") {
 
+  try {
+
+    const response = await fetch(
+      `https://api.airtable.com/v0/${BASE_ID}/VENTAS`,
+      { headers }
+    );
+
+    const data = await response.json();
+
+    const result = data.records.map(r => {
+
+      const precio = r.fields.precio_base || 0;
+      const reserva = r.fields.monto_reserva || 0;
+      const inicial = r.fields.monto_inicial || 0;
+
+      const saldo = precio - reserva - inicial;
+
+      return {
+        id: r.id,
+        cliente: r.fields.cliente || "",
+        unidad: Array.isArray(r.fields.unidad_codigo)
+          ? r.fields.unidad_codigo[0]
+          : r.fields.unidad_codigo || "",
+        agente: r.fields.agente || "",
+        precio_base: precio,
+        monto_reserva: reserva,
+        monto_inicial: inicial,
+        saldo_restante: saldo > 0 ? saldo : 0,
+        tipo_venta: r.fields.tipo_venta || "",
+        fecha_venta: r.fields.fecha_venta || "",
+        estado_venta: r.fields.estado_venta || "Activa"
+      };
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result)
+    };
+
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
+  }
+}
   // =========================================
   // GET UNIDADES DISPONIBLES
   // =========================================
@@ -126,17 +177,14 @@ if (body.action === "negociacion") {
   return { statusCode: 200, body: JSON.stringify({ success: true }) };
 }
 // =========================================
-// CONVERTIR A VENTA
+// CONVERTIR A VENTA (VERSIÓN SEGURA)
 // =========================================
 if (body.action === "convertir") {
 
   // 1️⃣ Obtener reserva
-  const reservaRes = await fetch(
-    `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${body.reserva_id}`,
-    { headers }
-  );
+const reservaData = await reservaRes.json();
 
-  const reservaData = await reservaRes.json();
+if (!reservaData.id) throw new Error("Error creando reserva");
 
   if (!reservaData.fields) {
     return { statusCode: 400, body: JSON.stringify({ error: "Reserva no encontrada" }) };
@@ -144,6 +192,20 @@ if (body.action === "convertir") {
 
   if (reservaData.fields.estado_reserva !== "Confirmada") {
     return { statusCode: 400, body: JSON.stringify({ error: "La reserva no está confirmada" }) };
+  }
+
+  if (reservaData.fields.venta && reservaData.fields.venta.length > 0) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Esta reserva ya fue convertida." })
+    };
+  }
+
+  if (!reservaData.fields.unidad || !reservaData.fields.unidad.length) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Reserva sin unidad vinculada." })
+    };
   }
 
   const unidadId = reservaData.fields.unidad[0];
@@ -173,11 +235,14 @@ if (body.action === "convertir") {
   const ventaData = await ventaRes.json();
 
   if (!ventaData.id) {
-    return { statusCode: 500, body: JSON.stringify({ error: "Error creando venta" }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Error creando venta." })
+    };
   }
 
-  // 3️⃣ Actualizar reserva
-  await fetch(
+  // 3️⃣ Actualizar reserva (AHORA SÍ IMPORTANTE)
+  const updateReserva = await fetch(
     `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${body.reserva_id}`,
     {
       method: "PATCH",
@@ -190,6 +255,15 @@ if (body.action === "convertir") {
       })
     }
   );
+
+  const updateReservaData = await updateReserva.json();
+
+  if (!updateReservaData.id) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Venta creada pero no se pudo actualizar reserva." })
+    };
+  }
 
   // 4️⃣ Actualizar unidad
   await fetch(
