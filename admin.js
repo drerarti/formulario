@@ -20,6 +20,32 @@ function animateValue(element, start, end, duration = 800) {
 
   requestAnimationFrame(animation);
 }
+function getEstadoClass(estado) {
+  switch (estado) {
+    case "Confirmada":
+      return "estado-confirmada";
+    case "Solicitud":
+      return "estado-solicitud";
+    case "Rechazada":
+      return "estado-rechazada";
+    case "Convertida":
+      return "estado-convertida";
+    default:
+      return "";
+  }
+}
+function getVentaEstadoClass(estado) {
+  switch (estado) {
+    case "Activa":
+      return "venta-activa";
+    case "Pagada":
+      return "venta-pagada";
+    case "Cancelada":
+      return "venta-cancelada";
+    default:
+      return "";
+  }
+}
 const reservasContainer = document.getElementById("reservasContainer");
 
 // ===============================
@@ -39,42 +65,43 @@ async function loadReservas() {
 
     reservasContainer.innerHTML = "";
 
-    data.forEach(r => {
+    reservasContainer.innerHTML += `
+  <div class="reserva-card">
+    
+    <div class="reserva-header">
+      <div class="reserva-cliente">
+        ${r.cliente}
+      </div>
+      <div class="reserva-estado ${getEstadoClass(r.estado_reserva)}">
+        ${r.estado_reserva.toUpperCase()}
+      </div>
+    </div>
 
-      const div = document.createElement("div");
-      div.className = "reserva-card";
+    <div class="reserva-body">
+      <div><strong>Unidad:</strong> ${r.unidad_codigo || r.unidad}</div>
+      <div><strong>Agente:</strong> ${r.agente}</div>
+      <div><strong>Reserva:</strong> S/ ${r.reserva_monto}</div>
+      <div><strong>Precio Lista:</strong> S/ ${r.precio_lista}</div>
+    </div>
 
-      div.innerHTML = `
-        <strong>${r.cliente}</strong><br>
-        <strong>Unidad:</strong> ${r.unidad}<br>
-        <strong>Agente:</strong> ${r.agente}<br>
-        <strong>Reserva:</strong> S/ ${r.monto_reserva}<br>
-        <strong>Precio Lista:</strong> S/ ${r.precio_lista}<br>
-        <strong>Estado:</strong> ${r.estado}<br><br>
-
-        ${r.estado === "Solicitud" ? `
+    <div class="reserva-actions">
+      ${
+        r.estado_reserva === "Solicitud"
+        ? `
           <button onclick="validar('${r.id}')">Validar</button>
-          <button onclick="rechazar('${r.id}', '${r.unidad_record_id}')">Rechazar</button>
-        ` : ""}
-
-        ${r.estado === "Confirmada" ? `
+          <button onclick="rechazar('${r.id}','${r.unidad_record_id}')">Rechazar</button>
+        `
+        : `
           <button onclick="mostrarNegociacion('${r.id}')">Negociar</button>
+          <button class="btn-primary" onclick="convertirVenta('${r.id}', this)">Convertir</button>
+        `
+      }
+    </div>
 
-          ${
-            r.tipo_venta && Number(r.precio_final) > 0
-              ? `<button onclick="convertirVenta('${r.id}', this)"
-                  style="margin-left:10px;background:#10b981;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
-                  Convertir
-                </button>`
-              : ""
-          }
-        ` : ""}
+    <div id="neg-${r.id}" class="negociacion-container"></div>
 
-        <div id="neg-${r.id}" style="margin-top:15px;"></div>
-      `;
-
-      reservasContainer.appendChild(div);
-    });
+  </div>
+`;
 
   } catch (error) {
     reservasContainer.innerHTML = "<p>Error inesperado cargando reservas</p>";
@@ -278,58 +305,52 @@ async function loadVentas() {
     const container = document.getElementById("ventasContainer");
     container.innerHTML = "";
 
-    let totalVendido = 0;
-    let totalPendiente = 0;
-    let ventasActivas = 0;
-
-    ventas.forEach(v => {
-      totalVendido += v.precio_base;
-      totalPendiente += v.saldo_restante;
-      if (v.estado_venta === "Activa") ventasActivas++;
-    });
-
-    const totalCobrado = totalVendido - totalPendiente;
-
-    container.innerHTML = `
-      <div class="kpis-grid">
-        <div class="kpi-card">
-          <h3>Total Vendido</h3>
-          <p>S/ ${totalVendido.toLocaleString()}</p>
-        </div>
-        <div class="kpi-card">
-          <h3>Total Cobrado</h3>
-          <p>S/ ${totalCobrado.toLocaleString()}</p>
-        </div>
-        <div class="kpi-card">
-          <h3>Total Pendiente</h3>
-          <p>S/ ${totalPendiente.toLocaleString()}</p>
-        </div>
-        <div class="kpi-card">
-          <h3>Ventas Activas</h3>
-          <p>${ventasActivas}</p>
-        </div>
-      </div>
-      <hr style="margin:30px 0;">
-    `;
-
     ventas.forEach(v => {
 
-      const div = document.createElement("div");
-      div.className = "venta-card";
+      container.innerHTML += `
+        <div class="venta-card">
 
-      div.innerHTML = `
-        <strong>${v.cliente}</strong><br>
-        <strong>Unidad:</strong> ${v.unidad}<br>
-        <strong>Agente:</strong> ${v.agente}<br>
-        <strong>Precio:</strong> S/ ${v.precio_base}<br>
-        <strong>Reserva:</strong> S/ ${v.monto_reserva}<br>
-        <strong>Tipo:</strong> ${v.tipo_venta}<br>
-        <strong>Fecha:</strong> ${v.fecha_venta}<br>
-        <strong>Estado:</strong> ${v.estado_venta}<br><br>
-        <button onclick="verVenta('${v.id}')">Gestionar</button>
+          <div class="venta-header">
+            <div class="venta-cliente">${v.cliente}</div>
+            <div class="venta-estado ${getVentaEstadoClass(v.estado_venta)}">
+              ${v.estado_venta.toUpperCase()}
+            </div>
+          </div>
+
+          <div class="venta-body">
+            <div><strong>Unidad:</strong> ${v.unidad_codigo || v.unidad}</div>
+            <div><strong>Agente:</strong> ${v.agente}</div>
+            <div><strong>Tipo:</strong> ${v.tipo_venta}</div>
+            <div><strong>Fecha:</strong> ${v.fecha_venta}</div>
+          </div>
+
+          <div class="venta-finanzas">
+            <div class="finanza-item">
+              <span>Precio</span>
+              <strong>S/ ${v.precio_base}</strong>
+            </div>
+            <div class="finanza-item">
+              <span>Cobrado</span>
+              <strong class="positivo">
+                S/ ${v.precio_base - v.saldo_restante}
+              </strong>
+            </div>
+            <div class="finanza-item">
+              <span>Pendiente</span>
+              <strong class="pendiente">
+                S/ ${v.saldo_restante}
+              </strong>
+            </div>
+          </div>
+
+          <div class="venta-actions">
+            <button class="btn-primary" onclick="verVenta('${v.id}')">
+              Gestionar
+            </button>
+          </div>
+
+        </div>
       `;
-
-      container.appendChild(div);
     });
 
   } catch (error) {

@@ -165,3 +165,175 @@ body {
     border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.05);
 }
+.reserva-card {
+  background: linear-gradient(145deg, #0f1c2e, #0b1624);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: 0.3s ease;
+}
+
+.reserva-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(16,185,129,0.3);
+}
+
+.reserva-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.reserva-cliente {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.reserva-estado {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estado-confirmada {
+  background: rgba(16,185,129,0.2);
+  color: #10b981;
+}
+
+.estado-solicitud {
+  background: rgba(234,179,8,0.2);
+  color: #eab308;
+}
+
+.estado-rechazada {
+  background: rgba(239,68,68,0.2);
+  color: #ef4444;
+}
+
+.estado-convertida {
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+}
+
+.reserva-body div {
+  margin-bottom: 6px;
+}
+
+.reserva-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.reserva-actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #1f2937;
+  color: white;
+  transition: 0.2s;
+}
+
+.reserva-actions button:hover {
+  background: #374151;
+}
+
+.btn-primary {
+  background: #10b981 !important;
+}
+
+.btn-primary:hover {
+  background: #059669 !important;
+}
+.venta-card {
+  background: linear-gradient(145deg, #0f1c2e, #0b1624);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: 0.3s ease;
+}
+
+.venta-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(59,130,246,0.4);
+}
+
+.venta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.venta-cliente {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.venta-estado {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.venta-activa {
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+}
+
+.venta-pagada {
+  background: rgba(16,185,129,0.2);
+  color: #10b981;
+}
+
+.venta-cancelada {
+  background: rgba(239,68,68,0.2);
+  color: #ef4444;
+}
+
+.venta-body div {
+  margin-bottom: 5px;
+}
+
+.venta-finanzas {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.finanza-item {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.finanza-item strong {
+  font-size: 16px;
+}
+
+.positivo {
+  color: #10b981;
+}
+
+.pendiente {
+  color: #f59e0b;
+}
+
+.venta-actions {
+  margin-top: 15px;
+}
+
+.venta-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
