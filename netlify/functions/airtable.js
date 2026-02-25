@@ -181,10 +181,15 @@ if (body.action === "negociacion") {
 // =========================================
 if (body.action === "convertir") {
 
-  // 1️⃣ Obtener reserva
-const reservaData = await reservaRes.json();
+  // 1️⃣ Obtener reserva correctamente
+  const reservaRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${body.reserva_id}`,
+    { headers }
+  );
 
-if (!reservaData.id) throw new Error("Error creando reserva");
+  const reservaData = await reservaRes.json();
+
+if (!reservaData.id) throw new Error("Error creando reserva")
 
   if (!reservaData.fields) {
     return { statusCode: 400, body: JSON.stringify({ error: "Reserva no encontrada" }) };
@@ -435,6 +440,7 @@ if (event.httpMethod === "POST") {
       }
     );
 
+    const reservaData = await reservaRes.json();
     if (!reservaData.id) throw new Error("Error creando reserva");
 
     // ================================
