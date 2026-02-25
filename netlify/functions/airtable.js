@@ -163,7 +163,7 @@ if (event.httpMethod === "GET" && event.queryStringParameters?.cuotas_venta) {
 
   const ventaId = event.queryStringParameters.cuotas_venta;
 
-  const formula = `{venta} = "${ventaId}"`;
+ const formula = `FIND("${ventaId}", ARRAYJOIN({venta}))`;
 
   const url = `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}`;
 
@@ -358,7 +358,7 @@ if (!reservaData.id) throw new Error("Error creando reserva")
       })
     }
   );
-  
+
   return {
     statusCode: 200,
     body: JSON.stringify({ success: true, venta_id: ventaData.id })
@@ -437,10 +437,6 @@ if (body.action === "registrar_pago") {
       body: JSON.stringify({ error: "Datos de pago inválidos" })
     };
   }
-
-  // 1️⃣ Obtener cuotas ordenadas
-  const formula = `FIND("${venta_id}", ARRAYJOIN({venta}))`;
-
   const cuotasRes = await fetch(
     `https://api.airtable.com/v0/${BASE_ID}/CUOTAS?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=numero_cuota&sort[0][direction]=asc`,
     { headers }
