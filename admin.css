@@ -1,13 +1,29 @@
+/* ===========================================================
+   admin.css - Versión final (reemplazar archivo actual)
+   Basado en tu admin.html / admin.css originales. :contentReference[oaicite:2]{index=2} :contentReference[oaicite:3]{index=3}
+   =========================================================== */
+
+/* ---------------------------
+   RESET / BASE
+   --------------------------- */
+* { box-sizing: border-box; }
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
     background: #0f172a;
     color: #cbd5e1;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    line-height: 1.45;
 }
 
+/* ---------------------------
+   LAYOUT
+   --------------------------- */
 .layout {
     display: flex;
     height: 100vh;
+    overflow: hidden;
 }
 
 .sidebar {
@@ -16,6 +32,7 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,0.02);
 }
 
 .logo {
@@ -23,34 +40,49 @@ body {
     font-weight: bold;
     color: #10b981;
     margin-bottom: 40px;
+    line-height: 1.1;
 }
 
 .logo span {
     font-size: 14px;
     color: #22d3ee;
+    display:block;
 }
 
+nav { display: flex; flex-direction: column; gap: 6px; }
+
+/* NAV BUTTONS */
 .nav-btn {
     background: none;
     border: none;
     color: #cbd5e1;
     text-align: left;
     padding: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     cursor: pointer;
     border-radius: 8px;
+    transition: all .18s ease;
+    font-size: 15px;
 }
-
-.nav-btn:hover,
+.nav-btn:hover {
+    transform: translateX(4px);
+    color: #fff;
+}
 .nav-btn.active {
-    background: linear-gradient(90deg, #10b981, #2563eb);
+    background: linear-gradient(90deg,#10b981 0%,#2563eb 100%);
     color: white;
+    box-shadow: 0 6px 20px rgba(16,185,129,0.08);
 }
 
+/* ---------------------------
+   MAIN
+   --------------------------- */
 .main {
     flex: 1;
     padding: 30px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-width: 0;
 }
 
 .header {
@@ -60,15 +92,20 @@ body {
     margin-bottom: 30px;
 }
 
-.status-dot {
-    width: 10px;
-    height: 10px;
-    background: #10b981;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-}
+.title { font-weight: 600; font-size: 18px; color: #e6eef8; }
 
+.admin-info { color: #93c5fd; font-size: 14px; display:flex; align-items:center; gap:8px; }
+.status-dot { width: 10px; height: 10px; background: #10b981; border-radius: 50%; display: inline-block; }
+
+/* ---------------------------
+   SECTIONS / HIDDEN
+   --------------------------- */
+.section { margin-bottom: 30px; }
+.section.hidden { display: none; }
+
+/* ---------------------------
+   BASE CARDS & KPIS
+   --------------------------- */
 .kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -76,495 +113,276 @@ body {
     margin-bottom: 30px;
 }
 
+/* card - legacy */
 .card {
     background: #1e293b;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.05);
 }
 
-.big-number {
-    font-size: 28px;
-    font-weight: bold;
-    margin-top: 10px;
-}
-
-.chart-placeholder {
-    background: #1e293b;
-    padding: 40px;
+/* ---------------------------
+   KPI CARD PRO (nuevo)
+   --------------------------- */
+.kpi-card-pro {
+    background: linear-gradient(145deg, #1e293b, #111827);
+    padding: 20px;
     border-radius: 12px;
-    text-align: center;
+    border: 1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+    transition: transform .22s ease, box-shadow .22s ease;
+}
+.kpi-card-pro:hover { transform: translateY(-6px); box-shadow: 0 18px 60px rgba(16,185,129,0.08); }
+
+.kpi-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: .8px; }
+.kpi-value { font-size: 28px; font-weight: 700; margin-top: 6px; color: #e2e8f0; }
+
+/* ---------------------------
+   GRÁFICO CARD
+   --------------------------- */
+.chart-card {
+    background: #0b1320;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.02);
+    min-height: 260px;
+    box-shadow: inset 0 -40px 60px rgba(0,0,0,0.25);
 }
 
-.section.hidden {
-    display: none;
-}
+/* canvas responsive container */
+.chart-card canvas { width: 100% !important; height: 360px !important; }
+
+/* ---------------------------
+   MODAL (mejorado)
+   --------------------------- */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.85);
+  background: rgba(4,6,12,0.75);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  z-index: 9999;
+  padding: 20px;
 }
 
 .modal-content {
-  background: #0f172a;
-  padding: 30px;
-  border-radius: 16px;
-  width: 600px;
-  max-width: 95%;
-  border: 1px solid #1e293b;
-}
-
-.close-btn {
-  float: right;
-  cursor: pointer;
-  font-size: 24px;
-  color: #22d3ee;
-}
-
-.hidden {
-  display: none;
-}
-.kpi-card-pro {
-    background: linear-gradient(145deg, #1e293b, #111827);
-    padding: 25px;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    transition: 0.3s ease;
-}
-
-.kpi-card-pro:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 50px rgba(16,185,129,0.2);
-}
-
-.kpi-title {
-    font-size: 14px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.kpi-value {
-    font-size: 32px;
-    font-weight: 700;
-    margin-top: 10px;
-    color: #e2e8f0;
-}
-
-.chart-card {
-    background: #111827;
-    padding: 30px;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-.reserva-card {
-  background: linear-gradient(145deg, #0f1c2e, #0b1624);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  transition: 0.3s ease;
-}
-
-.reserva-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(16,185,129,0.3);
-}
-
-.reserva-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.reserva-cliente {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.reserva-estado {
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.estado-confirmada {
-  background: rgba(16,185,129,0.2);
-  color: #10b981;
-}
-
-.estado-solicitud {
-  background: rgba(234,179,8,0.2);
-  color: #eab308;
-}
-
-.estado-rechazada {
-  background: rgba(239,68,68,0.2);
-  color: #ef4444;
-}
-
-.estado-convertida {
-  background: rgba(59,130,246,0.2);
-  color: #3b82f6;
-}
-
-.reserva-body div {
-  margin-bottom: 6px;
-}
-
-.reserva-actions {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-}
-
-.reserva-actions button {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: #1f2937;
-  color: white;
-  transition: 0.2s;
-}
-
-.reserva-actions button:hover {
-  background: #374151;
-}
-
-.btn-primary {
-  background: #10b981 !important;
-}
-
-.btn-primary:hover {
-  background: #059669 !important;
-}
-.venta-card {
-  background: linear-gradient(145deg, #0f1c2e, #0b1624);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  transition: 0.3s ease;
-}
-
-.venta-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(59,130,246,0.4);
-}
-
-.venta-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.venta-cliente {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.venta-estado {
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.venta-activa {
-  background: rgba(59,130,246,0.2);
-  color: #3b82f6;
-}
-
-.venta-pagada {
-  background: rgba(16,185,129,0.2);
-  color: #10b981;
-}
-
-.venta-cancelada {
-  background: rgba(239,68,68,0.2);
-  color: #ef4444;
-}
-
-.venta-body div {
-  margin-bottom: 5px;
-}
-
-.venta-finanzas {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-}
-
-.finanza-item {
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-}
-
-.finanza-item strong {
-  font-size: 16px;
-}
-
-.positivo {
-  color: #10b981;
-}
-
-.pendiente {
-  color: #f59e0b;
-}
-
-.venta-actions {
-  margin-top: 15px;
-}
-
-.venta-actions button {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-/* ===================================================
-   RESERVAS PRO (compatibles con tu diseño actual)
-=================================================== */
-
-.reserva-header-pro {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.reserva-cliente-pro {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.reserva-estado-pro {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.reserva-body-pro {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-.reserva-item span {
-  font-size: 12px;
-  color: #94a3b8;
-  display: block;
-}
-
-.reserva-item strong {
-  font-size: 15px;
-}
-
-.reserva-actions-pro {
-  margin-top: 18px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* ===================================================
-   BOTONES PRO
-=================================================== */
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid #334155;
-  color: #cbd5e1;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.btn-outline:hover {
-  background: #1e293b;
-}
-
-.btn-danger {
-  background: rgba(239,68,68,0.2);
-  color: #ef4444;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.btn-danger:hover {
-  background: rgba(239,68,68,0.35);
-}
-
-/* ===================================================
-   NEGOCIACION PRO
-=================================================== */
-
-.negociacion-card-pro {
-  margin-top: 15px;
-  padding: 20px;
+  background: linear-gradient(180deg,#081226 0%, #0f172a 100%);
+  padding: 28px;
   border-radius: 14px;
-  background: #111827;
-  border: 1px solid rgba(255,255,255,0.05);
+  width: 880px;
+  max-width: calc(100% - 48px);
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 40px 120px rgba(2,6,23,0.6);
+  position: relative;
+  max-height: 80vh;            /* evita overflow total */
+  overflow-y: auto;           /* scroll interno */
+  -webkit-overflow-scrolling: touch;
 }
 
-.neg-grid-pro {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 15px;
+/* close */
+.close-btn {
+  position:absolute;
+  right:18px;
+  top:14px;
+  cursor: pointer;
+  font-size: 22px;
+  color: #7dd3fc;
+  background: transparent;
+  border: none;
 }
 
-.neg-grid-pro input,
-.neg-grid-pro select,
-.negociacion-card-pro textarea {
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #1e293b;
-  background: #0f172a;
-  color: #e2e8f0;
-}
+/* modal content sections */
+.modal-header-pro { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.modal-body-pro { display:flex; flex-direction:column; gap:16px; color:#cfe6ff; }
 
-/* ===================================================
-   VENTAS PRO
-=================================================== */
-
-.venta-card-pro {
-  background: linear-gradient(145deg, #0f1c2e, #0b1624);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  transition: 0.3s ease;
-}
-
-.venta-card-pro:hover {
-  transform: translateY(-3px);
-  border-color: rgba(59,130,246,0.4);
-}
-
-.venta-header-pro {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 15px;
-}
-
-.venta-cliente-pro {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.venta-estado-pro {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.venta-body-pro {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-.venta-finanzas-pro {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  display: flex;
-  justify-content: space-between;
-}
-
-.venta-actions-pro {
-  margin-top: 15px;
-}
-
-/* ===================================================
-   MODAL PRO
-=================================================== */
-
-.modal-header-pro {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.modal-body-pro {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.modal-section-pro div {
-  margin-bottom: 5px;
-}
-
+/* modal sections */
+.modal-section-pro div { margin-bottom:6px; }
 .modal-finanzas-pro {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
   gap: 10px;
+  padding: 8px 0;
 }
+.modal-finanzas-pro span { font-size: 12px; color: #9fb0c8; display:block; }
+.modal-finanzas-pro strong { font-size: 15px; color:#e6eef8; }
 
-.modal-finanzas-pro span {
-  font-size: 12px;
-  color: #94a3b8;
-  display: block;
-}
-
-/* ===================================================
-   BARRA PROGRESO
-=================================================== */
-
+/* progress bar */
 .barra-progreso-pro {
   width: 100%;
   height: 10px;
-  background: #1e293b;
+  background: rgba(255,255,255,0.03);
   border-radius: 10px;
   overflow: hidden;
+  margin: 6px 0 12px 0;
 }
-
 .barra-interna-pro {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #3b82f6);
-  transition: width 0.6s ease;
+  background: linear-gradient(90deg,#10b981,#3b82f6);
+  transition: width .6s ease;
 }
 
-/* ===================================================
-   CUOTAS PRO
-=================================================== */
-
-.cuota-card-pro {
-  background: #111827;
-  border: 1px solid rgba(255,255,255,0.05);
-  padding: 12px;
+/* ---------------------------
+   RESERVAS (cards PRO)
+   --------------------------- */
+#reservasContainer .reserva-card,
+.reserva-card {
+  background: linear-gradient(180deg,#071027 0%, #071827 100%);
+  border: 1px solid rgba(255,255,255,0.03);
+  padding: 16px;
   border-radius: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 30px rgba(2,8,20,0.45);
 }
 
-.cuota-header-pro {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
+.reserva-header-pro { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
+.reserva-cliente-pro { font-size:16px; font-weight:700; color:#e6eef8; }
+.reserva-estado-pro { padding:6px 12px; border-radius:20px; font-size:12px; font-weight:700; text-transform:uppercase; background: rgba(255,255,255,0.02); color:#cbd5e1; }
+
+/* body grid */
+.reserva-body-pro {
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;
+  margin-bottom:10px;
 }
+.reserva-item span { display:block; font-size:12px; color:#94a3b8; margin-bottom:4px; }
+.reserva-item strong { font-size:14px; color:#e6eef8; }
+
+/* actions */
+.reserva-actions-pro { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+
+/* ---------------------------
+   VENTAS (cards PRO)
+   --------------------------- */
+.venta-card-pro {
+  background: linear-gradient(145deg, #071228, #071827);
+  border: 1px solid rgba(255,255,255,0.02);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.venta-card-pro:hover { transform: translateY(-4px); box-shadow: 0 18px 60px rgba(5,18,40,0.45); }
+.venta-header-pro { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.venta-cliente-pro { font-weight:700; color:#e6eef8; }
+.venta-estado-pro { padding:6px 12px; border-radius:20px; font-size:12px; font-weight:700; text-transform:uppercase; background: rgba(255,255,255,0.02); color:#cbd5e1; }
+.venta-body-pro { display:grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:10px; }
+.venta-finanzas-pro { display:flex; gap:12px; align-items:center; justify-content:space-between; }
+
+/* ---------------------------
+   CUOTAS (cards)
+   --------------------------- */
+.cuota-card-pro {
+  background: linear-gradient(180deg,#081226,#071228);
+  border: 1px solid rgba(255,255,255,0.03);
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.cuota-header-pro { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.cuota-header-pro strong { font-size:15px; color:#e6eef8; }
+.cuota-card-pro div { color:#cfe6ff; }
+
+/* estado badges (colores) */
+.estado-pendiente, .estado-pending { background:#0b1320; color:#94a3b8; padding:6px 10px; border-radius:10px; font-weight:700; font-size:12px; }
+.estado-parcial, .estado-partial  { background:#1f2937; color:#f59e0b; padding:6px 10px; border-radius:10px; font-weight:700; font-size:12px; }
+.estado-pagada, .estado-pag { background:#052e21; color:#34d399; padding:6px 10px; border-radius:10px; font-weight:700; font-size:12px; }
+
+/* ---------------------------
+   BOTONES (consistentes)
+   --------------------------- */
+.btn-primary {
+  background: linear-gradient(90deg,#10b981,#2563eb);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight:700;
+  transition: transform .12s ease, box-shadow .12s ease;
+  box-shadow: 0 8px 26px rgba(16,185,129,0.08);
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-outline:hover { background: rgba(255,255,255,0.02); }
+
+.btn-danger {
+  background: rgba(239,68,68,0.12);
+  color: #f87171;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+/* inputs (formularios dentro modal) */
+.neg-grid-pro input, .neg-grid-pro select, .negociacion-card-pro textarea, input[type="number"], input[type="date"], select {
+  width:100%;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.04);
+  background: #071224;
+  color:#dbeafe;
+  outline:none;
+}
+.negociacion-card-pro textarea { min-height:54px; }
+
+/* negociacion card */
+.negociacion-card-pro {
+  margin-top:10px;
+  padding:12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg,#071022,#071224);
+  border: 1px solid rgba(255,255,255,0.02);
+}
+
+/* formCuota area */
+#formCuota { margin-top: 10px; }
+
+/* ---------------------------
+   RESPONSIVE
+   --------------------------- */
+@media (max-width: 900px) {
+  .sidebar { width: 64px; padding: 12px; }
+  .logo { font-size: 14px; text-align:center; }
+  .nav-btn { padding: 10px; font-size: 13px; }
+  .modal-content { width: 96%; padding: 18px; max-height: 90vh; }
+  .chart-card canvas { height: 260px !important; }
+}
+
+@media (max-width: 600px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; display:flex; flex-direction:row; gap:8px; align-items:center; padding:12px; }
+  .main { padding: 16px; }
+  .modal-content { width: 98%; padding: 14px; border-radius: 8px; }
+  .venta-finanzas-pro { flex-direction: column; gap:8px; align-items:flex-start; }
+}
+
+/* ---------------------------
+   UTILITY CLASSES
+   --------------------------- */
+.hidden { display:none; }
+.center { text-align:center; }
+.small { font-size:12px; color:#94a3b8; }
+
+/* ---------------------------
+   FINE TUNES / LEGACY COMPATIBILITY
+   (evita que elementos antiguos rompan el diseño)
+   --------------------------- */
+.section h2 { font-size:28px; margin-bottom:14px; color:#fff; }
+a { color:inherit; text-decoration:none; }
+
+/* Fin del archivo admin.css */

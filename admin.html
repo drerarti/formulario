@@ -9,91 +9,74 @@
 </head>
 
 <body>
-
+<!-- ======= CONTENEDOR PRINCIPAL ======= -->
 <div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">AYLLU <span>Laguna Huaypo</span></div>
+    <nav>
+      <button class="nav-btn active" data-nav="dashboard">Dashboard</button>
+      <button class="nav-btn" data-nav="reservas">Reservas</button>
+      <button class="nav-btn" data-nav="ventas">Ventas</button>
+      <button class="nav-btn" data-nav="unidades">Unidades</button>
+    </nav>
+    <div style="flex:1"></div>
+    <div class="admin-info"><span class="status-dot"></span> Administrador</div>
+  </aside>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="logo">
-            AYLLU<br><span>Laguna Huaypo</span>
-        </div>
+  <!-- MAIN -->
+  <main class="main">
+    <div class="header">
+      <div class="title">Panel de Gestión</div>
+      <div class="small">Bienvenido</div>
+    </div>
 
-        <nav>
-            <button onclick="showSection('dashboard', this)" class="nav-btn active">Dashboard</button>
-            <button onclick="showSection('reservas', this)" class="nav-btn">Reservas</button>
-            <button onclick="showSection('ventas', this)" class="nav-btn">Ventas</button>
-            <button onclick="showSection('unidades', this)" class="nav-btn">Unidades</button>
-        </nav>
-    </aside>
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="section">
+      <h2>Dashboard General</h2>
+      <div id="dashboardKpis" class="kpis"></div>
 
-    <!-- Main Content -->
-    <main class="main">
+      <div class="chart-card" style="margin-top:18px;">
+        <canvas id="ventasChart"></canvas>
+      </div>
+    </section>
 
-        <!-- Header -->
-        <header class="header">
-            <div class="title">Panel de Gestión</div>
-            <div class="admin-info">
-                <span class="status-dot"></span>
-                Administrador
-            </div>
-        </header>
+    <!-- RESERVAS -->
+    <section id="reservas" class="section hidden">
+      <h2>Reservas Activas</h2>
+      <div id="reservasContainer"></div>
+    </section>
 
-        <!-- ================= DASHBOARD ================= -->
-        <section id="dashboard" class="section">
+    <!-- VENTAS -->
+    <section id="ventas" class="section hidden">
+      <h2>Gestión de Ventas</h2>
+      <div id="ventasContainer"></div>
+    </section>
 
-            <h2>Dashboard General</h2>
+    <!-- UNIDADES (placeholder) -->
+    <section id="unidades" class="section hidden">
+      <h2>Inventario de Unidades</h2>
+      <p class="small">Próximamente módulo de inventario</p>
+    </section>
 
-            <div id="dashboardKpis" class="kpis">
-                <!-- Se llenará dinámicamente -->
-            </div>
-
-            <div class="chart-card">
-    <canvas id="ventasChart"></canvas>
+  </main>
 </div>
 
-        </section>
-
-        <!-- ================= RESERVAS ================= -->
-        <section id="reservas" class="section hidden">
-
-            <h2>Reservas Activas</h2>
-            <div id="reservasContainer"></div>
-
-        </section>
-
-        <!-- ================= VENTAS ================= -->
-        <section id="ventas" class="section hidden">
-
-            <h2>Gestión de Ventas</h2>
-
-            <!-- KPIs + Listado dinámico -->
-            <div id="ventasContainer"></div>
-
-        </section>
-
-        <!-- ================= UNIDADES ================= -->
-        <section id="unidades" class="section hidden">
-
-            <h2>Inventario de Unidades</h2>
-            <div id="unidadesContainer">
-                Próximamente módulo de inventario
-            </div>
-
-        </section>
-
-    </main>
-
-</div>
-<!-- MODAL VENTA -->
-<div id="ventaModal" class="modal hidden">
+<!-- ======= MODAL VENTA (único modal reusado) ======= -->
+<div id="ventaModal" class="modal hidden" aria-hidden="true">
   <div class="modal-content">
-
-    <span class="close-btn" onclick="cerrarModal()">×</span>
-
-    <div id="modalVentaContenido"></div>
-
+    <button class="close-btn" onclick="cerrarModal()">✕</button>
+    <div id="modalVentaContenido">
+      <!-- contenido generado por verVenta(id) -->
+    </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ======= SCRIPTS - Chart.js (opcional) y admin.js ======= -->
+<!-- Si usas Chart.js: (versión recomendada) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- admin.js (pega aquí tu admin.js consolidado o referencia a archivo) -->
+<script src="/assets/js/admin.js"></script>
 </body>
 </html>
