@@ -19,6 +19,48 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
 
       const qs = event.queryStringParameters || {};
+      // ==============================
+// VALIDAR AGENTE
+// ==============================
+
+if (qs.validar_agente === "1") {
+
+  const codigo = qs.codigo;
+
+  const formula = `{codigo_agente}="${codigo}"`;
+
+  const url = `https://api.airtable.com/v0/${BASE_ID}/AGENTES?filterByFormula=${encodeURIComponent(formula)}`;
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error("Error validando agente");
+
+  const data = await response.json();
+
+  if (data.records.length === 0) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ valido: false })
+    };
+  }
+
+  const agente = data.records[0].fields;
+
+  if (agente.estado !== "Activo") {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ valido: false })
+    };
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      valido: true,
+      nombre: agente.nombre,
+      codigo: agente.codigo_agente
+    })
+  };
+}
 // ==============================
 // GET ESTADO PARA PLANO
 // ==============================

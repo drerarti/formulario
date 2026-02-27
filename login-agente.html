@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Login Agente</title>
+  <style>
+    body {
+      font-family: Arial;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f2f2f2;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 12px;
+      background: #2e7d32;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h3>Ingreso Agente</h3>
+  <input id="codigo" placeholder="Código (ej: AG01)" />
+  <button onclick="login()">Ingresar</button>
+</div>
+
+<script>
+async function login() {
+  const codigo = document.getElementById("codigo").value.trim();
+
+  if (!codigo) return alert("Ingrese código");
+
+  const res = await fetch(
+    `/.netlify/functions/airtable?validar_agente=1&codigo=${codigo}`
+  );
+
+  const data = await res.json();
+
+  if (!data.valido) {
+    alert("Código inválido");
+    return;
+  }
+
+  localStorage.setItem("agente_codigo", data.codigo);
+  localStorage.setItem("agente_nombre", data.nombre);
+
+  window.location.href = "/plano-test.html?proyecto=ALP&fase=F2";
+}
+</script>
+
+</body>
+</html>

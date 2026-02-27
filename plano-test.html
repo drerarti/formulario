@@ -17,7 +17,7 @@ body { font-family: Arial; margin:0; }
 
 #plano-wrapper {
   width: 100%;
-  height: calc(100vh - 160px);
+  height: calc(100vh - 180px);
   overflow: hidden;
   touch-action: none;
   background: #f5f5f5;
@@ -25,7 +25,7 @@ body { font-family: Arial; margin:0; }
 
 #plano-container svg {
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 path {
@@ -137,6 +137,7 @@ body.no-scroll { overflow: hidden; }
     <option value="E1">E1</option>
     <option value="T1">T1</option>
   </select>
+  <button onclick="logout()" style="margin-left:10px;">Salir</button>
 </div>
 <div id="resumen"></div>
 <div id="filtros">
@@ -155,6 +156,7 @@ body.no-scroll { overflow: hidden; }
 <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
 
 <script>
+  
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 let mapaLotes = {};
 
@@ -162,17 +164,30 @@ let mapaLotes = {};
 const params = new URLSearchParams(window.location.search);
 const proyecto = params.get("proyecto");
 const fase = params.get("fase");
-document.getElementById("selectProyecto").value = proyecto;
-document.getElementById("selectFase").value = fase;
 
+// ===============================
+// PROTECCIÓN DE ACCESO
+// ===============================
+
+const agenteCodigo = localStorage.getItem("agente_codigo");
+
+if (!agenteCodigo) {
+  window.location.href = "/login-agente.html";
+}
 if (!proyecto || !fase) {
   document.getElementById("header").innerText = "Faltan parámetros proyecto y fase";
   throw new Error("Proyecto o fase no definidos");
 }
-
+document.getElementById("selectProyecto").value = proyecto;
+document.getElementById("selectFase").value = fase;
 // Mostrar en header
 document.getElementById("header").innerText = `Proyecto: ${proyecto} | Fase: ${fase}`;
+const agenteNombre = localStorage.getItem("agente_nombre");
 
+if (agenteNombre) {
+  document.getElementById("header").innerHTML += 
+    " | Agente: " + agenteNombre;
+}
 // 🔷 Cargar SVG dinámico según nombre
 const nombreSVG = `${proyecto.toLowerCase()}-${fase.toLowerCase()}-ma.svg`;
 
@@ -386,6 +401,11 @@ function actualizarResumen(data) {
 }
 function irAReserva(unidadId) {
   window.location.href = `/index.html?unidad_id=${unidadId}`;
+}
+function logout() {
+  localStorage.removeItem("agente_codigo");
+  localStorage.removeItem("agente_nombre");
+  window.location.href = "/login-agente.html";
 }
 </script>
 
