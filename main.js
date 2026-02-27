@@ -47,7 +47,50 @@ async function loadData() {
 
     todasLasUnidades = data;
     cargarProyectos();
+    // ===============================
+// AUTOCARGA DESDE PLANO
+// ===============================
 
+const params = new URLSearchParams(window.location.search);
+const unidadFromURL = params.get("unidad_id");
+
+if (unidadFromURL) {
+
+  const unidadObj = todasLasUnidades.find(
+    u => u.unidad_id === unidadFromURL
+  );
+
+  if (unidadObj) {
+
+    // Seleccionar proyecto
+    proyectoSelect.value = unidadObj.proyecto;
+    proyectoSelect.dispatchEvent(new Event("change"));
+
+    // Esperar que carguen manzanas
+    setTimeout(() => {
+
+      manzanaSelect.value = unidadObj.manzana;
+      manzanaSelect.dispatchEvent(new Event("change"));
+
+      // Esperar que carguen unidades
+      setTimeout(() => {
+
+        const option = [...unidadSelect.options].find(
+          opt => opt.textContent === unidadFromURL
+        );
+
+        if (option) {
+          unidadSelect.value = option.value;
+          unidadSelect.dispatchEvent(new Event("change"));
+        }
+
+      }, 200);
+
+    }, 200);
+
+  }
+
+}
   } catch (error) {
     showAlert("Error conectando con el servidor.");
   }
