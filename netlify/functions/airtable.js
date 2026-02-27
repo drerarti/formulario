@@ -19,7 +19,38 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
 
       const qs = event.queryStringParameters || {};
+// ==============================
+// GET ESTADO PARA PLANO
+// ==============================
+if (qs.plano === "1") {
 
+  const proyecto = qs.proyecto;
+  const fase = qs.fase;
+
+  const formula = `
+    AND(
+      {proyecto}="${proyecto}",
+      {Fase}="${fase}"
+    )
+  `;
+
+  const url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error("Error obteniendo estado para plano");
+
+  const data = await response.json();
+
+const result = data.records.map(r => ({
+  lote_id: r.fields.unidad_id,
+  estado: (r.fields.estado_unidad || "").toLowerCase(),
+  precio: r.fields.precio_lista || 0,
+  manzana: r.fields.Manzana || "",
+  lote: r.fields.Lote || ""
+}));
+
+  return { statusCode: 200, body: JSON.stringify(result) };
+}
       // ==============================
       // GET ADMIN RESERVAS
       // ==============================
