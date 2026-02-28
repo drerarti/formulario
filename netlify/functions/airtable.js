@@ -88,7 +88,8 @@ const result = data.records.map(r => ({
   estado: (r.fields.estado_unidad || "").toLowerCase(),
   precio: r.fields.precio_lista || 0,
   manzana: r.fields.Manzana || "",
-  lote: r.fields.Lote || ""
+  lote: r.fields.Lote || "",
+  area: r.fields.area_m2 || 0
 }));
 
   return { statusCode: 200, body: JSON.stringify(result) };

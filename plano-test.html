@@ -17,10 +17,10 @@ body { font-family: Arial; margin:0; }
 
 #plano-wrapper {
   width: 100%;
-  height: calc(100vh - 180px);
+   height: calc(100vh - 180px);
   overflow: hidden;
   touch-action: none;
-  background: #f5f5f5;
+  background: #e9ecef;
 }
 
 #plano-container svg {
@@ -53,21 +53,38 @@ path.selected {
 
 #mobile-card {
   position: fixed;
-  bottom: -300px;
+  bottom: 0;
   left: 0;
+
   width: 100%;
-  max-height: 60vh;
+  box-sizing: border-box; /* 🔥 CLAVE */
+
+  max-height: 45vh;
   overflow-y: auto;
+
   background: white;
-  padding: 16px;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  transition: bottom 0.3s ease;
-  z-index: 2000;
+  padding: 14px 16px 18px 16px;
+
+  box-shadow: 0 -6px 25px rgba(0,0,0,0.18);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(100%);
+  z-index: 9999;
+}
+#mobile-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
 }
 
-#mobile-card.active { bottom: 0; }
+#mobile-card p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+#mobile-card.active {
+  transform: translateY(0);
+}
 
 .close-card {
   position: absolute;
@@ -108,14 +125,108 @@ path.selected {
 }
 .btn-reservar {
   width: 100%;
-  margin-top: 15px;
+  margin-top: 12px;
   padding: 12px;
-  background: #28a745;
+  background: linear-gradient(135deg,#28a745,#218838);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  
+}
+.blur-bg {
+  filter: blur(1px) brightness(0.9);
+  transition: filter 0.3s ease;
+}
+#top-panel {
+  position: relative;
+  z-index: 2000;
+}
+
+#top-bar {
+  display: none;
+  background: #111;
+  color: white;
+  padding: 10px 14px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#toggle-panel {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+#top-content {
+  transition: max-height 0.35s ease, opacity 0.3s ease;
+}
+
+/* 📱 SOLO EN MÓVIL */
+@media (max-width: 768px) {
+
+  #top-bar {
+    display: flex;
+  }
+
+  #top-content {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+  }
+
+  #top-content.active {
+    max-height: 600px;
+    opacity: 1;
+  }
+
+}
+.modal-360 {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-360.hidden {
+  display: none;
+}
+
+.modal-header {
+  color: white;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+#visor360 {
+  flex: 1;
+}
+#btnPresentacion {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg,#000,#1c1c1c);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  letter-spacing: 0.5px;
+}
+
+#btnPresentacion:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
 }
 body.no-scroll { overflow: hidden; }
 </style>
@@ -123,7 +234,16 @@ body.no-scroll { overflow: hidden; }
 
 <body>
 
-<div id="header"></div>
+
+<div id="top-panel">
+
+  <div id="top-bar">
+    <span id="mini-info"></span>
+    <span id="toggle-panel">▼</span>
+  </div>
+  <div id="top-content">
+    <div id="header"></div>
+    <button id="btnPresentacion">Modo Presentación</button>
 <div id="selector-proyecto">
   <select id="selectProyecto">
     <option value="ALP">ALP</option>
@@ -146,15 +266,27 @@ body.no-scroll { overflow: hidden; }
   <label><input type="checkbox" value="vendido" checked> Vendido</label>
   <label><input type="checkbox" value="financiado" checked> Financiado</label>
 </div>
+</div>
+</div>
 <div id="plano-wrapper">
   <div id="plano-container"></div>
 </div>
 
 <div id="tooltip"></div>
+
 <div id="mobile-card"></div>
 
 <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
+<div id="modal360" class="modal-360 hidden">
+  <div class="modal-header">
+    <span id="contador360">Vista 1 de 1</span>
+    <button id="cerrar360">Cerrar</button>
+  </div>
 
+  <div id="visor360"></div>
+</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 <script>
   
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -164,7 +296,10 @@ let mapaLotes = {};
 const params = new URLSearchParams(window.location.search);
 const proyecto = params.get("proyecto");
 const fase = params.get("fase");
-
+const claveProyecto = `${proyecto.toLowerCase()}-${fase.toLowerCase()}`;
+const vistas360Config = {
+  "alp-f2": 1
+};
 // ===============================
 // PROTECCIÓN DE ACCESO
 // ===============================
@@ -188,6 +323,26 @@ if (agenteNombre) {
   document.getElementById("header").innerHTML += 
     " | Agente: " + agenteNombre;
 }
+
+// Mini info compacta
+function actualizarMiniInfo() {
+  const resumenTexto = document.getElementById("resumen").innerText;
+  document.getElementById("mini-info").innerText =
+    `${proyecto} | ${fase}`;
+}
+
+actualizarMiniInfo();
+
+// Toggle panel móvil
+const toggleBtn = document.getElementById("toggle-panel");
+const topContent = document.getElementById("top-content");
+
+toggleBtn.addEventListener("click", () => {
+  topContent.classList.toggle("active");
+
+  toggleBtn.innerText =
+    topContent.classList.contains("active") ? "▲" : "▼";
+});
 // 🔷 Cargar SVG dinámico según nombre
 const nombreSVG = `${proyecto.toLowerCase()}-${fase.toLowerCase()}-ma.svg`;
 
@@ -205,10 +360,10 @@ fetch(`/planos/${nombreSVG}`)
     const panzoom = Panzoom(element, {
   maxScale: 4,
   minScale: 1,
-  step: 0.08,
+  step: 0.30,
   contain: 'outside',
   animate: true,
-  duration: 180
+  duration: 120
 });
 
     element.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
@@ -244,9 +399,37 @@ function cargarEstados() {
       activarEventos();
       aplicarFiltro();
       actualizarResumen(data);
+      actualizarMiniInfo();
     });
 }
+function getColorEstado(estado) {
+  return {
+    disponible: "#28a745",
+    reservado: "#ffc107",
+    vendido: "#dc3545",
+    financiado: "#0d6efd"
+  }[estado] || "#999";
+}
+const btnPresentacion = document.getElementById("btnPresentacion");
+const modal360 = document.getElementById("modal360");
+const cerrar360 = document.getElementById("cerrar360");
 
+if (btnPresentacion && modal360 && cerrar360) {
+
+  btnPresentacion.addEventListener("click", () => {
+    modal360.classList.remove("hidden");
+    document.body.classList.add("no-scroll");
+    vistaActual = 1;
+    iniciarVisor360();
+  });
+
+  cerrar360.addEventListener("click", () => {
+    modal360.classList.add("hidden");
+    document.body.classList.remove("no-scroll");
+    if (viewer) viewer.destroy();
+  });
+
+}
 function activarEventos() {
 
   const svg = document.querySelector('#plano-container svg');
@@ -262,6 +445,7 @@ function activarEventos() {
 if (target.classList.contains("bloqueado")) return;
     document.querySelectorAll("path").forEach(p => p.classList.remove("selected"));
     target.classList.add("selected");
+    target.style.filter = "brightness(1.1)";
 
     const mobileCard = document.getElementById("mobile-card");
 
@@ -277,16 +461,61 @@ if (lote.estado === "disponible") {
 }
 
 mobileCard.innerHTML = `
-  <span class="close-card" onclick="cerrarCard()">✕</span>
-  <h3>${lote.lote_id}</h3>
-  <p><strong>Estado:</strong> ${lote.estado}</p>
-  <p><strong>Precio:</strong> S/ ${lote.precio.toLocaleString()}</p>
-  <p><strong>Manzana:</strong> ${lote.manzana}</p>
-  <p><strong>Lote:</strong> ${lote.lote}</p>
-  ${botonAccion}
+<div style="width:40px;height:4px;background:#ccc;border-radius:4px;margin:0 auto 12px;"></div>
+
+<span class="close-card" onclick="cerrarCard()">✕</span>
+
+<div style="
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+  flex-wrap:nowrap;
+">
+
+  <h3 style="
+    margin:0;
+    font-size:16px;
+    flex:1;
+    min-width:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  ">
+    ${lote.lote_id}
+  </h3>
+
+  <span style="
+    padding:4px 8px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:bold;
+    background:${getColorEstado(lote.estado)};
+    color:white;
+    flex-shrink:0;
+    white-space:nowrap;
+  ">
+    ${lote.estado.toUpperCase()}
+  </span>
+
+</div>
+
+<div style="
+  background:#f7f7f7;
+  padding:10px;
+  border-radius:12px;
+  margin-bottom:10px;
+">
+  <p style="margin:4px 0;"><strong>Precio:</strong> S/ ${lote.precio.toLocaleString()}</p>
+  <p style="margin:4px 0;"><strong>Área:</strong> ${lote.area} m²</p>
+</div>
+
+${botonAccion}
 `;
 
     mobileCard.classList.add("active");
+    document.getElementById("plano-wrapper").classList.add("blur-bg");
     document.body.classList.add("no-scroll");
 
     setTimeout(() => {
@@ -314,6 +543,7 @@ if (target.classList.contains("bloqueado")) {
         <strong>${lote.lote_id}</strong><br>
         Estado: ${lote.estado}<br>
         Precio: S/ ${lote.precio.toLocaleString()}
+        <p><strong>Área:</strong> ${lote.area} m²</p>
       `;
 
       tooltip.style.left = e.pageX + 15 + "px";
@@ -350,7 +580,12 @@ function aplicarFiltro() {
 function cerrarCard() {
   document.getElementById("mobile-card").classList.remove("active");
   document.body.classList.remove("no-scroll");
+  document.getElementById("plano-wrapper").classList.remove("blur-bg");
   document.querySelectorAll("path").forEach(p => p.classList.remove("selected"));
+  document.querySelectorAll("path").forEach(p => {
+  p.classList.remove("selected");
+  p.style.filter = "none";
+});
 }
 
 function cerrarSiFuera(e) {
@@ -407,7 +642,30 @@ function logout() {
   localStorage.removeItem("agente_nombre");
   window.location.href = "/login-agente.html";
 }
-</script>
+let viewer = null;
+let vistaActual = 1;
 
+function iniciarVisor360() {
+
+  const totalVistas = vistas360Config[claveProyecto] || 1;
+  const ruta = `/assets/360/${claveProyecto}/0${vistaActual}.jpg`;
+
+  if (viewer) {
+    viewer.destroy();
+  }
+
+  viewer = pannellum.viewer('visor360', {
+    type: 'equirectangular',
+    panorama: ruta,
+    autoLoad: true,
+    showZoomCtrl: true,
+    showFullscreenCtrl: false,
+    compass: false
+  });
+
+  document.getElementById("contador360").innerText =
+    `Vista ${vistaActual} de ${totalVistas}`;
+}
+</script>
 </body>
 </html>
