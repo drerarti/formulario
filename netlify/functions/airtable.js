@@ -4,6 +4,10 @@ const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
+console.log("=== VARIABLES DE ENTORNO ===");
+console.log("AIRTABLE_TOKEN:", AIRTABLE_TOKEN ? "OK" : "UNDEFINED");
+console.log("BASE_ID:", BASE_ID ? "OK" : "UNDEFINED");
+console.log("JWT_SECRET:", JWT_SECRET ? "OK" : "UNDEFINED");
 exports.handler = async (event) => {
 
   const headers = {
@@ -19,6 +23,62 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
 
       const qs = event.queryStringParameters || {};
+      // ==============================
+// LOGIN AGENTE
+// ==============================
+
+if (qs.validar_agente === "1") {
+
+  const codigo = qs.codigo;
+
+  if (!codigo) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ valido: false })
+    };
+  }
+
+  const formula = `{codigo_agente}="${codigo}"`;
+
+  const url = `https://api.airtable.com/v0/${BASE_ID}/AGENTES?filterByFormula=${encodeURIComponent(formula)}`;
+
+  const response = await fetch(url, { headers });
+  const data = await response.json();
+
+  if (!data.records || data.records.length === 0) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ valido: false })
+    };
+  }
+
+  const agente = data.records[0].fields;
+
+  if (agente.estado !== "Activo") {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ valido: false })
+    };
+  }
+
+  const token = jwt.sign(
+    {
+      codigo: agente.codigo_agente,
+      nombre: agente.nombre_agente,
+      rol: agente.rol
+    },
+    JWT_SECRET,
+    { expiresIn: "8h" }
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      valido: true,
+      token
+    })
+  };
+}
       // ==============================
 // VALIDAR AGENTE
 // ==============================
