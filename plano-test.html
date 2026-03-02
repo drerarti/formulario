@@ -304,11 +304,37 @@ const vistas360Config = {
 // PROTECCIÓN DE ACCESO
 // ===============================
 
-const agenteCodigo = localStorage.getItem("agente_codigo");
+const token = localStorage.getItem("auth_token");
 
-if (!agenteCodigo) {
+if (!token) {
   window.location.href = "/login-agente.html";
 }
+
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+  return JSON.parse(jsonPayload);
+}
+
+let decoded;
+
+try {
+  decoded = parseJwt(token);
+} catch (err) {
+  localStorage.removeItem("auth_token");
+  window.location.href = "/login-agente.html";
+}
+
+const agenteNombre = decoded.nombre;
+
+document.getElementById("header").innerHTML += 
+  " | Agente: " + agenteNombre;
 if (!proyecto || !fase) {
   document.getElementById("header").innerText = "Faltan parámetros proyecto y fase";
   throw new Error("Proyecto o fase no definidos");
@@ -317,7 +343,6 @@ document.getElementById("selectProyecto").value = proyecto;
 document.getElementById("selectFase").value = fase;
 // Mostrar en header
 document.getElementById("header").innerText = `Proyecto: ${proyecto} | Fase: ${fase}`;
-const agenteNombre = localStorage.getItem("agente_nombre");
 
 if (agenteNombre) {
   document.getElementById("header").innerHTML += 

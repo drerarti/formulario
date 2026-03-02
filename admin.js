@@ -3,7 +3,38 @@
 // Desde inicio hasta guardarNegociacion()
 // Basado en tu versión funcional (referencia). :contentReference[oaicite:1]{index=1}
 // ===========================
+const token = localStorage.getItem("auth_token");
 
+if (!token) {
+  window.location.href = "/login-agente.html";
+}
+
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+  return JSON.parse(jsonPayload);
+}
+
+let decoded;
+
+try {
+  decoded = parseJwt(token);
+} catch (err) {
+  localStorage.removeItem("auth_token");
+  window.location.href = "/login-agente.html";
+}
+
+// 🔴 OPCIONAL PERO RECOMENDADO
+if (decoded.rol !== "admin") {
+  alert("No autorizado");
+  window.location.href = "/plano-test.html";
+}
 const ENDPOINT = "/.netlify/functions/airtable";
 let ventasChartInstance = null;
 
@@ -29,7 +60,11 @@ const reservasContainer = document.getElementById("reservasContainer");
 // ===============================
 async function loadReservas() {
   try {
-    const res = await fetch(ENDPOINT + "?admin=1");
+    const res = await fetch(ENDPOINT + "?admin=1", {
+  headers: {
+    "Authorization": `Bearer ${token}`
+  }
+});
     const data = await res.json();
 
     if (!res.ok || !Array.isArray(data)) {
@@ -99,8 +134,12 @@ window.loadReservas = loadReservas;
 async function validar(id) {
   try {
     const res = await fetch(ENDPOINT, {
+      
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+},
       body: JSON.stringify({ action: "validar", reserva_id: id })
     });
     const data = await res.json();
@@ -116,11 +155,17 @@ window.validar = validar;
 // ===============================
 // RECHAZAR
 // ===============================
+
 async function rechazar(id, unidadId) {
   try {
+    
     const res = await fetch(ENDPOINT, {
+      
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+},
       body: JSON.stringify({ action: "rechazar", reserva_id: id, unidad_record_id: unidadId })
     });
     const data = await res.json();
@@ -207,8 +252,12 @@ async function guardarNegociacion(id) {
     };
 
     const res = await fetch(ENDPOINT, {
+      
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+},
       body: JSON.stringify(payload)
     });
 
@@ -253,8 +302,12 @@ async function convertirVenta(reservaId, btn) {
     }
 
     const res = await fetch(ENDPOINT, {
+      
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+},
       body: JSON.stringify({ action: "convertir", reserva_id: reservaId })
     });
 
@@ -598,8 +651,12 @@ async function crearCuota(ventaId) {
     }
 
     const res = await fetch(ENDPOINT, {
+      
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+},
       body: JSON.stringify({ action: "crear_cuota", venta_id: ventaId, numero, monto, fecha })
     });
 
@@ -673,8 +730,12 @@ async function registrarPago(ventaId, cuotaId = "") {
     if (cuotaId) payload.cuota_id = cuotaId;
 
     const res = await fetch(ENDPOINT, {
+      
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+},
       body: JSON.stringify(payload)
     });
 

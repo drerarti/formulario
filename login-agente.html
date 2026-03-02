@@ -66,8 +66,7 @@ async function login() {
     return;
   }
 
-  localStorage.setItem("agente_codigo", data.codigo);
-  localStorage.setItem("agente_nombre", data.nombre);
+  localStorage.setItem("auth_token", data.token);
 
   window.location.href = "/plano-test.html?proyecto=ALP&fase=F2";
 }

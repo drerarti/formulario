@@ -1,3 +1,30 @@
+const token = localStorage.getItem("auth_token");
+
+if (!token) {
+  window.location.href = "/login-agente.html";
+}
+
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+  return JSON.parse(jsonPayload);
+}
+
+let agenteNombre = "Desconocido";
+
+try {
+  const decoded = parseJwt(token);
+  agenteNombre = decoded.nombre;
+} catch (err) {
+  localStorage.removeItem("auth_token");
+  window.location.href = "/login-agente.html";
+}
 const ENDPOINT = "/.netlify/functions/airtable";
 
 const form = document.getElementById("reservaForm");
@@ -95,7 +122,6 @@ if (unidadFromURL) {
     showAlert("Error conectando con el servidor.");
   }
 }
-
 function cargarProyectos() {
   proyectoSelect.innerHTML = '<option value="">Selecciona proyecto</option>';
 
@@ -188,17 +214,20 @@ form.addEventListener("submit", async (e) => {
       cliente_actual: document.getElementById("cliente_actual").value.trim(),
       dni_cliente: document.getElementById("dni_cliente").value.trim(),
       telefono_cliente: document.getElementById("telefono_cliente").value.trim(),
-      agente: document.getElementById("agente").value.trim(),
       monto_reserva: Number(document.getElementById("monto_reserva").value || 0),
       descuento_solicitado: Number(document.getElementById("descuento").value || 0),
       motivo_descuento: document.getElementById("motivo_descuento").value.trim()
     };
 
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    const token = localStorage.getItem("auth_token");
+const res = await fetch(ENDPOINT, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  },
+  body: JSON.stringify(payload)
+});
 
     const result = await res.json();
 
@@ -242,3 +271,12 @@ form.addEventListener("submit", async (e) => {
 });
 
 loadData();
+document.getElementById("infoAgente").innerHTML = `
+  Agente: <strong>${agenteNombre}</strong>
+  <button onclick="logout()" style="margin-left:10px;">Cerrar sesión</button>
+`;
+
+function logout() {
+  localStorage.removeItem("auth_token");
+  window.location.href = "/login-agente.html";
+}

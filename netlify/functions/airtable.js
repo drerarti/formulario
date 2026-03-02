@@ -2,7 +2,8 @@ const fetch = global.fetch;
 
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const BASE_ID = process.env.AIRTABLE_BASE;
-
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
 exports.handler = async (event) => {
 
   const headers = {
@@ -15,7 +16,6 @@ exports.handler = async (event) => {
     // ======================================================
     // ======================= GET ===========================
     // ======================================================
-
     if (event.httpMethod === "GET") {
 
       const qs = event.queryStringParameters || {};
@@ -23,43 +23,63 @@ exports.handler = async (event) => {
 // VALIDAR AGENTE
 // ==============================
 
-if (qs.validar_agente === "1") {
+if (qs.admin === "1") {
 
-  const codigo = qs.codigo;
+  const authHeader = event.headers.authorization;
+  if (!authHeader) {
+    return { statusCode: 401, body: JSON.stringify({ error: "No autorizado" }) };
+  }
 
-  const formula = `{codigo_agente}="${codigo}"`;
+  const token = authHeader.split(" ")[1];
 
-  const url = `https://api.airtable.com/v0/${BASE_ID}/AGENTES?filterByFormula=${encodeURIComponent(formula)}`;
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return { statusCode: 401, body: JSON.stringify({ error: "Token inválido" }) };
+  }
+
+  if (decoded.rol !== "admin") {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Acceso restringido a administrador" })
+    };
+  }
+
+  const formula = `
+    OR(
+      {estado_reserva}="Solicitud",
+      {estado_reserva}="Confirmada"
+    )
+  `;
+
+  const url = `https://api.airtable.com/v0/${BASE_ID}/RESERVAS?filterByFormula=${encodeURIComponent(formula)}`;
 
   const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Error validando agente");
+  if (!response.ok) throw new Error("Error obteniendo reservas");
 
   const data = await response.json();
 
-  if (data.records.length === 0) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ valido: false })
-    };
-  }
+  const result = data.records.map(r => ({
+    id: r.id,
+    estado: r.fields.estado_reserva,
+    cliente: r.fields.cliente,
+    monto_reserva: r.fields.monto_reserva || 0,
+    agente: r.fields.agente || "",
+    unidad: Array.isArray(r.fields.unidad_codigo)
+      ? r.fields.unidad_codigo[0]
+      : (r.fields.unidad_codigo || ""),
+    unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null,
+    precio_lista: r.fields.precio_lista_unidad ? r.fields.precio_lista_unidad[0] : 0,
+    precio_final: r.fields.precio_final || "",
+    tipo_venta: r.fields.tipo_venta || "",
+    numero_cuotas: r.fields.numero_cuotas || "",
+    monto_inicial: r.fields.monto_inicial || "",
+    fecha_inicio_pagos: r.fields.fecha_inicio_pagos || "",
+    observaciones: r.fields.observaciones_negociacion || ""
+  }));
 
-  const agente = data.records[0].fields;
-
-  if (agente.estado !== "Activo") {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ valido: false })
-    };
-  }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      valido: true,
-      nombre: agente.nombre,
-      codigo: agente.codigo_agente
-    })
-  };
+  return { statusCode: 200, body: JSON.stringify(result) };
 }
 // ==============================
 // GET ESTADO PARA PLANO
@@ -271,11 +291,50 @@ const result = data.records.map(r => ({
     // ======================================================
     // ======================= PATCH =========================
     // ======================================================
+if (event.httpMethod === "PATCH") {
+const body = JSON.parse(event.body || "{}");
+const hoyISO = new Date().toISOString().split("T")[0];
+  const authHeader = event.headers.authorization;
+  if (!authHeader) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: "No autorizado" })
+    };
+  }
 
-    if (event.httpMethod === "PATCH") {
+  const token = authHeader.split(" ")[1];
 
-      const body = JSON.parse(event.body || "{}");
-      const hoyISO = new Date().toISOString().split("T")[0];
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: "Token inválido" })
+    };
+  }
+
+  const action = body.action;
+
+  // 🔴 Acciones exclusivas admin
+  const adminActions = [
+    "validar",
+    "rechazar",
+    "convertir",
+    "negociacion",
+    "registrar_pago",
+    "crear_cuota"
+  ];
+
+  if (adminActions.includes(action) && decoded.rol !== "admin") {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Acceso restringido a administrador" })
+    };
+  }
+    
+
+  // 🔓 Aquí sigue tu lógica normal de PATCH}
 
       // NEGOCIACIÓN
       if (body.action === "negociacion") {
@@ -578,6 +637,30 @@ const result = data.records.map(r => ({
 
     if (event.httpMethod === "POST") {
 
+      const authHeader = event.headers.authorization;
+
+if (!authHeader) {
+  return {
+    statusCode: 401,
+    body: JSON.stringify({ error: "No autorizado" })
+  };
+}
+
+const token = authHeader.split(" ")[1];
+
+let decoded;
+
+try {
+  decoded = jwt.verify(token, JWT_SECRET);
+} catch (err) {
+  return {
+    statusCode: 401,
+    body: JSON.stringify({ error: "Token inválido o expirado" })
+  };
+}
+
+const agenteCodigo = decoded.codigo;
+const agenteNombre = decoded.nombre;
       const body = JSON.parse(event.body || "{}");
 
       if (!body.action) {
@@ -677,7 +760,7 @@ const result = data.records.map(r => ({
                 cliente: body.cliente_actual,
                 dni_cliente: body.dni_cliente,
                 telefono_cliente: body.telefono_cliente,
-                agente: body.agente,
+                agente: agenteNombre,
                 monto_reserva: Number(body.monto_reserva || 0),
                 descuento_solicitado: Number(body.descuento_solicitado || 0),
                 motivo_descuento: body.motivo_descuento,
