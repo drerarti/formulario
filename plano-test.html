@@ -296,7 +296,7 @@ let mapaLotes = {};
 const params = new URLSearchParams(window.location.search);
 const proyecto = params.get("proyecto");
 const fase = params.get("fase");
-const claveProyecto = `${proyecto.toLowerCase()}-${fase.toLowerCase()}`;
+
 const vistas360Config = {
   "alp-f2": 1
 };
@@ -331,23 +331,18 @@ try {
   window.location.href = "/login-agente.html";
 }
 
-const agenteNombre = decoded.nombre;
-
-document.getElementById("header").innerHTML += 
-  " | Agente: " + agenteNombre;
 if (!proyecto || !fase) {
   document.getElementById("header").innerText = "Faltan parámetros proyecto y fase";
   throw new Error("Proyecto o fase no definidos");
 }
+const claveProyecto = `${proyecto.toLowerCase()}-${fase.toLowerCase()}`;
 document.getElementById("selectProyecto").value = proyecto;
 document.getElementById("selectFase").value = fase;
 // Mostrar en header
-document.getElementById("header").innerText = `Proyecto: ${proyecto} | Fase: ${fase}`;
+const agenteNombre = decoded.nombre || "";
 
-if (agenteNombre) {
-  document.getElementById("header").innerHTML += 
-    " | Agente: " + agenteNombre;
-}
+document.getElementById("header").innerText =
+  `Proyecto: ${proyecto} | Fase: ${fase} | Agente: ${agenteNombre}`;
 
 // Mini info compacta
 function actualizarMiniInfo() {
@@ -663,8 +658,7 @@ function irAReserva(unidadId) {
   window.location.href = `/index.html?unidad_id=${unidadId}`;
 }
 function logout() {
-  localStorage.removeItem("agente_codigo");
-  localStorage.removeItem("agente_nombre");
+  localStorage.removeItem("auth_token");
   window.location.href = "/login-agente.html";
 }
 let viewer = null;
