@@ -115,47 +115,6 @@ const result = data.records.map(r => ({
   return { statusCode: 200, body: JSON.stringify(result) };
 }
       // ==============================
-      // GET ADMIN RESERVAS
-      // ==============================
-      if (qs.admin === "1") {
-
-        const formula = `
-          OR(
-            {estado_reserva}="Solicitud",
-            {estado_reserva}="Confirmada"
-          )
-        `;
-
-        const url = `https://api.airtable.com/v0/${BASE_ID}/RESERVAS?filterByFormula=${encodeURIComponent(formula)}`;
-
-        const response = await fetch(url, { headers });
-        if (!response.ok) throw new Error("Error obteniendo reservas");
-
-        const data = await response.json();
-
-        const result = data.records.map(r => ({
-          id: r.id,
-          estado: r.fields.estado_reserva,
-          cliente: r.fields.cliente,
-          monto_reserva: r.fields.monto_reserva || 0,
-          agente: r.fields.agente || "",
-          unidad: Array.isArray(r.fields.unidad_codigo)
-  ? r.fields.unidad_codigo[0]
-  : (r.fields.unidad_codigo || ""),
-          unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null,
-          precio_lista: r.fields.precio_lista_unidad ? r.fields.precio_lista_unidad[0] : 0,
-          precio_final: r.fields.precio_final || "",
-          tipo_venta: r.fields.tipo_venta || "",
-          numero_cuotas: r.fields.numero_cuotas || "",
-          monto_inicial: r.fields.monto_inicial || "",
-          fecha_inicio_pagos: r.fields.fecha_inicio_pagos || "",
-          observaciones: r.fields.observaciones_negociacion || ""
-        }));
-
-        return { statusCode: 200, body: JSON.stringify(result) };
-      }
-
-      // ==============================
       // GET VENTAS
       // ==============================
       if (qs.ventas === "1") {
@@ -334,7 +293,7 @@ const hoyISO = new Date().toISOString().split("T")[0];
   }
     
 
-  // 🔓 Aquí sigue tu lógica normal de PATCH}
+  // 🔓 Aquí sigue tu lógica normal de PATCH
 
       // NEGOCIACIÓN
       if (body.action === "negociacion") {
