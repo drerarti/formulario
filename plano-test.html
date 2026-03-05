@@ -23,11 +23,19 @@ body { font-family: Arial; margin:0; }
   background: #e9ecef;
 }
 
-#plano-container svg {
-  width: 100%;
-  height: 100%;
+#plano-container{
+  width:100%;
+  height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
+#plano-container svg{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
 path {
   transition: fill 0.3s ease;
   cursor: pointer;
@@ -37,7 +45,11 @@ path.selected {
   stroke: #000;
   stroke-width: 2;
 }
-
+.manzana-highlight{
+  filter: brightness(1.15);
+  stroke: #333;
+  stroke-width: 1.5;
+}
 #tooltip {
   position: absolute;
   background: white;
@@ -93,13 +105,19 @@ path.selected {
   font-size: 18px;
   cursor: pointer;
 }
-#filtros {
-  padding:10px;
-  background:#f0f0f0;
+#filtros{
+  padding:8px 10px;
   display:flex;
-  gap:15px;
+  gap:10px;
   flex-wrap:wrap;
-  font-size:14px;
+  font-size:13px;
+  background:#fafafa;
+}
+
+#filtros label{
+  background:#eee;
+  padding:6px 10px;
+  border-radius:20px;
 }
 #selector-proyecto {
   display: flex;
@@ -115,13 +133,15 @@ path.selected {
   border: none;
   font-size: 14px;
 }
-#resumen {
-  padding: 8px 10px;
-  background: #111;
-  color: white;
-  font-size: 13px;
-  display: flex;
-  justify-content: space-around;
+#resumen{
+  padding:10px;
+  font-size:13px;
+  display:flex;
+  gap:10px;
+  justify-content:space-between;
+  background:#fff;
+  border-bottom:1px solid #ddd;
+  color:#333;
 }
 .btn-reservar {
   width: 100%;
@@ -228,6 +248,83 @@ path.selected {
   transform: translateY(-2px);
   box-shadow: 0 10px 24px rgba(0,0,0,0.45);
 }
+text {
+  pointer-events: none;
+  font-weight: bold;
+  vector-effect: non-scaling-stroke;
+  font-size:14px;
+}
+path:hover {
+  stroke: #000;
+  stroke-width: 1.5;
+  filter: brightness(1.15);
+}
+#selector-proyecto{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:10px;
+  background:#1a1a1a;
+}
+
+#buscador-lote{
+  flex:1 1 100%;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:white;
+  border-radius:10px;
+  padding:6px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+
+#selector-proyecto select{
+  flex:1;
+  padding:8px;
+  border-radius:8px;
+  border:none;
+  background:#2b2b2b;
+  color:white;
+}
+#buscador-lote input{
+  flex:1;
+  min-width:0;
+  border:none;
+  outline:none;
+  font-size:14px;
+}
+
+
+#buscador-lote button{
+  flex:0 0 auto;
+  padding:8px 12px;
+  background:#111;
+  color:white;
+  border:none;
+  border-radius:6px;
+  font-size:14px;
+}
+#sugerencias-lotes{
+  position:absolute;
+  background:white;
+  border:1px solid #ddd;
+  border-radius:6px;
+  width:100%;
+  max-height:180px;
+  overflow-y:auto;
+  box-shadow:0 4px 10px rgba(0,0,0,0.15);
+  z-index:5000;
+}
+
+.sugerencia-item{
+  padding:8px 10px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.sugerencia-item:hover{
+  background:#f0f0f0;
+}
 body.no-scroll { overflow: hidden; }
 </style>
 </head>
@@ -245,17 +342,25 @@ body.no-scroll { overflow: hidden; }
     <div id="header"></div>
     <button id="btnPresentacion">Modo Presentación</button>
 <div id="selector-proyecto">
+  <div id="buscador-lote">
+  <input 
+    type="text" 
+    id="inputLote"
+    placeholder="Buscar lote (ej: L35)"
+  >
+<div id="sugerencias-lotes"></div>
+  <button id="btnBuscarLote">Buscar</button>
+</div>
   <select id="selectProyecto">
-    <option value="ALP">ALP</option>
-    <option value="SOL">SOL</option>
-    <option value="TER">TER</option>
+    <option value="ALP">Alpinas</option>
+    <option value="PR">Piuray</option>
+    <option value="VG">Virgilio</option>
+    <option value="LMF">Luz Miraflores</option>
   </select>
 
   <select id="selectFase">
     <option value="F1">F1</option>
     <option value="F2">F2</option>
-    <option value="E1">E1</option>
-    <option value="T1">T1</option>
   </select>
   <button onclick="logout()" style="margin-left:10px;">Salir</button>
 </div>
@@ -276,7 +381,7 @@ body.no-scroll { overflow: hidden; }
 
 <div id="mobile-card"></div>
 
-<script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
+<script src="/js/panzoom.min.js"></script>
 <div id="modal360" class="modal-360 hidden">
   <div class="modal-header">
     <span id="contador360">Vista 1 de 1</span>
@@ -291,7 +396,7 @@ body.no-scroll { overflow: hidden; }
   
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 let mapaLotes = {};
-
+let panzoom;
 // 🔷 Leer parámetros de URL
 const params = new URLSearchParams(window.location.search);
 const proyecto = params.get("proyecto");
@@ -377,17 +482,52 @@ fetch(`/planos/${nombreSVG}`)
 
     const element = document.querySelector('#plano-container svg');
 
-    const panzoom = Panzoom(element, {
-  maxScale: 4,
+panzoom = Panzoom(element, {
+
+  maxScale: 12,
   minScale: 1,
-  step: 0.30,
-  contain: 'outside',
+  step: 0.3,
+
+  contain: "outside",
+pinchAndPan: true,
+  canvas: true,
+
   animate: true,
-  duration: 120
+  duration: 350
 });
+setTimeout(() => {
 
-    element.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
+  panzoom.zoomTo(0,0,1.4);
 
+},100);
+let lastTap = 0;
+
+element.addEventListener("touchend", function(e) {
+
+  if(e.target.closest("path")) return;
+
+  const now = Date.now();
+
+  if (now - lastTap < 300) {
+    panzoom.zoomIn();
+  }
+
+  lastTap = now;
+
+});
+element.addEventListener("panzoomchange", () => {
+
+  const scale = panzoom.getScale();
+
+  element.querySelectorAll("text").forEach(t=>{
+    t.style.fontSize = (14/scale) + "px";
+  });
+
+});
+    const wrapper = document.getElementById("plano-wrapper");
+
+element.addEventListener('wheel', panzoom.zoomWithWheel);
+element.parentElement.style.touchAction = "none";
     cargarEstados();
   });
 
@@ -465,7 +605,9 @@ function activarEventos() {
 if (target.classList.contains("bloqueado")) return;
     document.querySelectorAll("path").forEach(p => p.classList.remove("selected"));
     target.classList.add("selected");
-    target.style.filter = "brightness(1.1)";
+    limpiarManzana();
+resaltarManzana(target.id);
+target.style.filter = "brightness(1.1)";
 
     const mobileCard = document.getElementById("mobile-card");
 
@@ -653,6 +795,158 @@ function actualizarResumen(data) {
     Vendidos: ${conteo.vendido} |
     Financiados: ${conteo.financiado}
   `;
+}
+document.getElementById("btnBuscarLote")
+.addEventListener("click", buscarLote);
+
+document.getElementById("inputLote")
+.addEventListener("keypress", function(e){
+  if(e.key === "Enter") buscarLote();
+});
+
+function buscarLote(){
+
+  const input = document.getElementById("inputLote")
+    .value.trim()
+    .toUpperCase();
+
+  if(!input) return;
+
+  let loteId = null;
+
+  // buscar coincidencia parcial
+ loteId = Object.keys(mapaLotes)
+  .find(id => id.toUpperCase().endsWith(input));
+if(!loteId){
+  alert("Lote no encontrado");
+  return;
+}
+
+const partes = loteId.split("-");
+const manzana = partes[2];
+
+zoomManzana(manzana);
+
+  const el = document.getElementById(loteId);
+
+  if(!el){
+    alert("Lote no encontrado en el plano");
+    return;
+  }
+
+  el.click();
+
+}
+const inputLote = document.getElementById("inputLote");
+const sugerencias = document.getElementById("sugerencias-lotes");
+
+inputLote.addEventListener("input", mostrarSugerencias);
+
+function mostrarSugerencias(){
+
+  const texto = inputLote.value.trim().toUpperCase();
+
+  sugerencias.innerHTML = "";
+
+  if(texto.length < 1) return;
+
+  const resultados = Object.keys(mapaLotes)
+    .filter(id => id.toUpperCase().includes(texto))
+    .slice(0,8);
+
+  resultados.forEach(id=>{
+
+    const div = document.createElement("div");
+    div.className = "sugerencia-item";
+    div.innerText = id;
+
+    div.onclick = ()=>{
+
+      const el = document.getElementById(id);
+
+     if(el){
+  el.dispatchEvent(new Event("click",{bubbles:true}));
+}
+
+      sugerencias.innerHTML = "";
+      inputLote.value = "";
+inputLote.blur();
+    };
+
+    sugerencias.appendChild(div);
+
+  });
+
+}
+function resaltarManzana(loteId){
+
+  const partes = loteId.split("-");
+  const manzana = partes[2];
+
+  const svg = document.querySelector('#plano-container svg');
+
+  svg.querySelectorAll("path").forEach(p => {
+
+    const id = p.id;
+
+    if(!id) return;
+
+    if(id.includes(`-${manzana}-`)){
+      p.classList.add("manzana-highlight");
+    }
+
+  });
+
+}
+function zoomManzana(manzana){
+
+  const svg = document.querySelector('#plano-container svg');
+
+  const lotes = Array.from(svg.querySelectorAll("path"))
+    .filter(p => p.id.includes(`-${manzana}-`));
+
+  if(lotes.length === 0) return;
+
+  let minX=Infinity,minY=Infinity,maxX=0,maxY=0;
+
+  lotes.forEach(l=>{
+    const b = l.getBBox();
+    minX = Math.min(minX,b.x);
+    minY = Math.min(minY,b.y);
+    maxX = Math.max(maxX,b.x+b.width);
+    maxY = Math.max(maxY,b.y+b.height);
+  });
+
+  const cx = (minX+maxX)/2;
+  const cy = (minY+maxY)/2;
+
+  const scale = 2;
+
+  const currentScale = panzoom.getScale();
+panzoom.zoom(scale / currentScale, { animate:true });
+
+  const wrapper = document.getElementById("plano-wrapper");
+const rect = wrapper.getBoundingClientRect();
+
+setTimeout(()=>{
+
+ const newScale = panzoom.getScale();
+
+panzoom.pan(
+  rect.width/2 - cx * newScale,
+  rect.height/2 - cy * newScale,
+  { animate:true, duration:600 }
+);
+
+},300);
+}
+function limpiarManzana(){
+
+  const svg = document.querySelector('#plano-container svg');
+
+  svg.querySelectorAll(".manzana-highlight")
+     .forEach(p=>p.classList.remove("manzana-highlight"));
+
 }
 function irAReserva(unidadId) {
   window.location.href = `/index.html?unidad_id=${unidadId}`;

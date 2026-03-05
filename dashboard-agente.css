@@ -1,0 +1,365 @@
+/* ===============================
+   RESET Y BASE
+================================= */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at 20% 20%, #1a1f38, #0b0e1a 60%);
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ===============================
+   ESTRUCTURA GENERAL
+================================= */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+
+/* ===============================
+   HEADER
+================================= */
+
+.top-header {
+  padding: 20px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(20, 24, 46, 0.75);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.brand-logo {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: #c6a85a;
+}
+
+.brand-sub {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.agent-block {
+  text-align: right;
+}
+
+.agent-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.agent-status {
+  font-size: 11px;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #00ff9d;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #00ff9d;
+}
+
+/* ===============================
+   HERO
+================================= */
+
+.hero-section {
+  position: relative;
+  padding: 30px 20px 40px 20px;
+  background: linear-gradient(135deg, #1f2444, #141833);
+  overflow: hidden;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(198,168,90,0.15), transparent 60%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-content h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.hero-content p {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ===============================
+   KPI GRID
+================================= */
+
+.kpi-grid {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.kpi-card {
+  background: rgba(26, 31, 56, 0.85);
+  border-radius: 18px;
+  padding: 18px;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kpi-card:active {
+  transform: scale(0.97);
+}
+
+.kpi-label {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.kpi-card.highlight {
+  background: linear-gradient(135deg, #2a2f59, #1b1f3b);
+  border: 1px solid rgba(198,168,90,0.25);
+}
+
+.kpi-card.highlight-strong {
+  background: linear-gradient(135deg, #2d264f, #1b1633);
+  border: 1px solid rgba(198,168,90,0.45);
+  box-shadow: 0 0 25px rgba(198,168,90,0.15);
+}
+
+/* ===============================
+   SECCIÓN DINÁMICA
+================================= */
+
+.view-container {
+  padding: 20px;
+  padding-bottom: 100px;
+}
+
+.section-card {
+  background: rgba(25, 29, 55, 0.9);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+  animation: fadeIn 0.35s ease forwards;
+}
+
+.section-card h2 {
+  margin-top: 0;
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #c6a85a;
+}
+
+.section-card p {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* ===============================
+   NAVEGACIÓN INFERIOR
+================================= */
+
+.bottom-navigation {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(16, 20, 40, 0.95);
+  backdrop-filter: blur(16px);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0 16px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.nav-btn.active {
+  color: #c6a85a;
+}
+
+.nav-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.nav-badge {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  background: #ff4d4d;
+  color: white;
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 10px;
+}
+
+/* ===============================
+   LOADER GLOBAL
+================================= */
+
+.global-loader {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 22, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loader-ring {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(198,168,90,0.2);
+  border-top: 3px solid #c6a85a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ===============================
+   ANIMACIONES
+================================= */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* ===============================
+   QUICK ACTIONS
+================================= */
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+
+.action-card {
+  background: linear-gradient(135deg, #1e2344, #151938);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 20px;
+  text-align: left;
+  color: white;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 35px rgba(0,0,0,0.5);
+}
+
+.action-card.primary {
+  background: linear-gradient(135deg, #2c2f63, #1c1f48);
+  border: 1px solid rgba(198,168,90,0.35);
+}
+
+.action-icon {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.action-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.action-sub {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+.reserva-card {
+  background: rgba(28, 32, 60, 0.9);
+  padding: 18px;
+  border-radius: 18px;
+  margin: 12px 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+.reserva-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.reserva-body {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.estado-solicitud {
+  color: #ffc107;
+}
+
+.estado-confirmada {
+  color: #00d4ff;
+}
+
+.estado-rechazada {
+  color: #ff4d4d;
+}

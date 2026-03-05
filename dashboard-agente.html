@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Agente | Ayllu</title>
+
+  <!-- Tipografía elegante -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="dashboard-agente.css" />
+</head>
+
+<body>
+
+<div class="app-shell">
+
+  <!-- ===== HEADER SUPERIOR ===== -->
+  <header class="top-header">
+
+    <div class="brand-block">
+      <div class="brand-logo">AYLLU</div>
+      <div class="brand-sub">Panel Privado</div>
+    </div>
+
+    <div class="agent-block">
+      <div class="agent-name" id="agentName">Agente</div>
+      <div class="agent-status">
+        <span class="status-dot"></span>
+        Activo
+      </div>
+    </div>
+
+  </header>
+
+
+  <!-- ===== CONTENIDO PRINCIPAL ===== -->
+  <main class="main-content" id="mainContent">
+
+    <!-- HERO / BIENVENIDA -->
+    <section class="hero-section" id="heroSection">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <h1 id="heroTitle">Bienvenido</h1>
+        <p id="heroSubtitle">Resumen general de tu actividad comercial</p>
+      </div>
+    </section>
+
+
+    <!-- KPI GRID -->
+    <section class="kpi-grid" id="kpiGrid">
+
+      <div class="kpi-card">
+        <div class="kpi-label">Reservas Activas</div>
+        <div class="kpi-value" id="kpiReservas">--</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Ventas Activas</div>
+        <div class="kpi-value" id="kpiVentas">--</div>
+      </div>
+
+      <div class="kpi-card highlight">
+        <div class="kpi-label">Comisión Proyectada</div>
+        <div class="kpi-value" id="kpiComisionProyectada">S/ --</div>
+      </div>
+
+      <div class="kpi-card highlight-strong">
+        <div class="kpi-label">Comisión Disponible</div>
+        <div class="kpi-value" id="kpiComisionDisponible">S/ --</div>
+      </div>
+
+    </section>
+
+
+    <!-- SECCIÓN DINÁMICA -->
+    <section class="view-container" id="viewContainer">
+      <!-- Aquí se renderizarán reservas / ventas / comisiones -->
+    </section>
+
+  </main>
+
+
+  <!-- ===== NAVEGACIÓN INFERIOR ===== -->
+  <nav class="bottom-navigation">
+
+    <button class="nav-btn active" data-view="inicio">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-text">Inicio</span>
+    </button>
+
+    <button class="nav-btn" data-view="reservas">
+      <span class="nav-icon">📄</span>
+      <span class="nav-text">Reservas</span>
+      <span class="nav-badge hidden" id="badgeReservas">0</span>
+    </button>
+
+    <button class="nav-btn" data-view="ventas">
+      <span class="nav-icon">📊</span>
+      <span class="nav-text">Ventas</span>
+    </button>
+
+    <button class="nav-btn" data-view="comisiones">
+      <span class="nav-icon">💰</span>
+      <span class="nav-text">Comisiones</span>
+    </button>
+
+  </nav>
+
+</div>
+
+
+<!-- ===== OVERLAY LOADING ===== -->
+<div class="global-loader hidden" id="globalLoader">
+  <div class="loader-ring"></div>
+</div>
+
+<script src="dashboard-agente.js"></script>
+
+</body>
+</html>

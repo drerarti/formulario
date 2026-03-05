@@ -55,9 +55,42 @@
 
     <!-- UNIDADES (placeholder) -->
     <section id="unidades" class="section hidden">
-      <h2>Inventario de Unidades</h2>
-      <p class="small">Próximamente módulo de inventario</p>
-    </section>
+
+<h2>Inventario de Unidades</h2>
+
+<div id="filtrosUnidades" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+
+<select id="filtroProyecto">
+<option value="">Todos los proyectos</option>
+</select>
+
+<select id="filtroFase">
+  <option value="">Todas las fases</option>
+</select>
+
+<select id="filtroManzana">
+<option value="">Todas las manzanas</option>
+</select>
+
+<select id="filtroEstado">
+<option value="">Todos los estados</option>
+<option>Disponible</option>
+<option>Reservado</option>
+<option>Vendido</option>
+</select>
+
+<input
+id="buscarLote"
+type="text"
+placeholder="Buscar lote (ej: MA-06)"
+style="padding:6px 8px;border-radius:6px;border:none;"
+/>
+
+</div>
+
+<div id="unidadesContainer"></div>
+
+</section>
 
   </main>
 </div>

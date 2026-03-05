@@ -140,6 +140,175 @@ if (qs.admin === "1") {
   return { statusCode: 200, body: JSON.stringify(result) };
 }
 // ==============================
+// GET MIS RESERVAS (AGENTE)
+// ==============================
+if (qs.mis_reservas === "1") {
+
+  const authHeader = event.headers.authorization;
+  if (!authHeader) {
+    return { statusCode: 401, body: JSON.stringify({ error: "No autorizado" }) };
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return { statusCode: 401, body: JSON.stringify({ error: "Token inválido" }) };
+  }
+
+  const formula = `LOWER({agente}) = LOWER("${decoded.nombre}")`;
+
+  const url =
+  `https://api.airtable.com/v0/${BASE_ID}/RESERVAS` +
+  `?filterByFormula=${encodeURIComponent(formula)}` +
+  `&expand[]=unidad`;
+
+const response = await fetch(url, { headers });
+const data = await response.json();
+
+const result = data.records.map(r => {
+
+ let unidadCodigo = "";
+
+if (r.fields.unidad_codigo && r.fields.unidad_codigo.length > 0) {
+  unidadCodigo = r.fields.unidad_codigo[0];
+}
+
+  return {
+    cliente: r.fields.cliente,
+    unidad: unidadCodigo,
+    monto: r.fields.monto_reserva || 0,
+    estado: r.fields.estado_reserva || ""
+  };
+
+});
+
+return {
+  statusCode: 200,
+  body: JSON.stringify(result)
+};}
+// ==============================
+// GET KPIS AGENTE
+// ==============================
+if (qs.kpis_agente === "1") {
+
+  const authHeader = event.headers.authorization;
+  if (!authHeader) {
+    return { statusCode: 401, body: JSON.stringify({ error: "No autorizado" }) };
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return { statusCode: 401, body: JSON.stringify({ error: "Token inválido" }) };
+  }
+
+  const agente = decoded.nombre;
+
+  // =====================
+  // RESERVAS
+  // =====================
+
+  const formulaReservas = `FIND("${agente}", {agente})`;
+
+  const urlReservas =
+    `https://api.airtable.com/v0/${BASE_ID}/RESERVAS?filterByFormula=${encodeURIComponent(formulaReservas)}`;
+
+  const resReservas = await fetch(urlReservas, { headers });
+  const dataReservas = await resReservas.json();
+
+  const reservas = dataReservas.records.length;
+
+  // =====================
+  // VENTAS
+  // =====================
+
+  const formulaVentas = `FIND("${agente}", {agente})`;
+
+  const urlVentas =
+    `https://api.airtable.com/v0/${BASE_ID}/VENTAS?filterByFormula=${encodeURIComponent(formulaVentas)}`;
+
+  const resVentas = await fetch(urlVentas, { headers });
+  const dataVentas = await resVentas.json();
+
+  const ventas = dataVentas.records.length;
+let comisionProyectada = 0;
+
+dataVentas.records.forEach(v => {
+  const precio = v.fields.precio_base || 0;
+
+  // comisión 5%
+  const comision = precio * 0.05;
+
+  comisionProyectada += comision;
+});
+  return {
+  statusCode: 200,
+  body: JSON.stringify({
+    reservas,
+    ventas,
+    comision_proyectada: comisionProyectada
+  })
+};
+}
+// ==============================
+// GET MIS VENTAS (AGENTE)
+// ==============================
+if (qs.mis_ventas === "1") {
+
+  const authHeader = event.headers.authorization;
+  if (!authHeader) {
+    return { statusCode: 401, body: JSON.stringify({ error: "No autorizado" }) };
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return { statusCode: 401, body: JSON.stringify({ error: "Token inválido" }) };
+  }
+
+  const agente = decoded.nombre;
+
+ const formula = `{agente}="${agente}"`;
+
+  const url =
+    `https://api.airtable.com/v0/${BASE_ID}/VENTAS?filterByFormula=${encodeURIComponent(formula)}&expand[]=unidad`;
+
+  const response = await fetch(url, { headers });
+  const data = await response.json();
+
+  const result = data.records.map(r => {
+let unidadCodigo = "";
+
+if (r.expanded && r.expanded.unidad && r.expanded.unidad.length > 0) {
+  unidadCodigo = r.expanded.unidad[0].fields.unidad_codigo || "";
+}
+    const precio = r.fields.precio_base || 0;
+    const reserva = r.fields.monto_reserva || 0;
+    const inicial = r.fields.monto_inicial || 0;
+    const saldo = precio - reserva - inicial;
+
+    return {
+      id: r.id,
+      cliente: r.fields.cliente || "",
+      unidad: unidadCodigo,
+      precio_base: precio,
+      saldo_restante: saldo > 0 ? saldo : 0,
+      estado: r.fields.estado_venta || "Activa"
+    };
+  });
+
+  return { statusCode: 200, body: JSON.stringify(result) };
+}
+// ==============================
 // GET ESTADO PARA PLANO
 // ==============================
 if (qs.plano === "1") {
@@ -154,14 +323,30 @@ if (qs.plano === "1") {
     )
   `;
 
-  const url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?filterByFormula=${encodeURIComponent(formula)}`;
+let allRecords = [];
+let offset = null;
+
+do {
+
+  let url =
+    `https://api.airtable.com/v0/${BASE_ID}/UNIDADES` +
+    `?filterByFormula=${encodeURIComponent(formula)}` +
+    `&pageSize=100`;
+
+  if (offset) {
+    url += `&offset=${offset}`;
+  }
 
   const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Error obteniendo estado para plano");
-
   const data = await response.json();
 
-const result = data.records.map(r => ({
+  allRecords = allRecords.concat(data.records);
+
+  offset = data.offset;
+
+} while (offset);
+
+const result = allRecords.map(r => ({
   lote_id: r.fields.unidad_id,
   estado: (r.fields.estado_unidad || "").toLowerCase(),
   precio: r.fields.precio_lista || 0,
@@ -169,7 +354,6 @@ const result = data.records.map(r => ({
   lote: r.fields.Lote || "",
   area: r.fields.area_m2 || 0
 }));
-
   return { statusCode: 200, body: JSON.stringify(result) };
 }
       // ==============================
@@ -280,7 +464,45 @@ const result = data.records.map(r => ({
 
         return { statusCode: 200, body: JSON.stringify(filtradas) };
       }
+if (qs.unidades === "1") {
 
+  let allRecords = [];
+  let offset = null;
+
+  do {
+
+    let url = `https://api.airtable.com/v0/${BASE_ID}/UNIDADES?pageSize=100`;
+
+    if (offset) {
+      url += `&offset=${offset}`;
+    }
+
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    allRecords = allRecords.concat(data.records);
+
+    offset = data.offset;
+
+  } while (offset);
+
+  const result = allRecords.map(r => ({
+    id: r.id,
+    codigo: r.fields.unidad_codigo || "",
+    proyecto: r.fields.proyecto || "",
+    fase: r.fields.Fase || "",
+    manzana: r.fields.Manzana || "",
+    lote: r.fields.Lote || "",
+    area: r.fields.area_m2 || 0,
+    precio: r.fields.precio_lista || 0,
+    estado: r.fields.estado_unidad || ""
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(result)
+  };
+}
       // ==============================
       // GET UNIDADES DISPONIBLES
       // ==============================
@@ -350,7 +572,29 @@ const hoyISO = new Date().toISOString().split("T")[0];
     };
   }
     
+if (body.action === "editar_unidad") {
 
+  await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/UNIDADES/${body.unidad_id}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          precio_lista: Number(body.precio),
+          area_m2: Number(body.area),
+          estado_unidad: body.estado
+        }
+      })
+    }
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ success: true })
+  };
+
+}
   // 🔓 Aquí sigue tu lógica normal de PATCH
 
       // NEGOCIACIÓN

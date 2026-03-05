@@ -4,7 +4,7 @@
 // Basado en tu versión funcional (referencia). :contentReference[oaicite:1]{index=1}
 // ===========================
 const token = localStorage.getItem("auth_token");
-
+let unidadesCache = [];
 if (!token) {
   window.location.href = "/login-agente.html";
 }
@@ -437,7 +437,7 @@ function showSection(sectionId, btn) {
   document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
   const section = document.getElementById(sectionId);
   if (section) section.classList.remove('hidden');
-
+if (sectionId === "unidades") loadUnidades();
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
@@ -1002,15 +1002,211 @@ function initAdmin() {
       loadDashboard();
     }
   }, 200);
+  const ff = document.getElementById("filtroFase");
+const fp = document.getElementById("filtroProyecto");
+const fm = document.getElementById("filtroManzana");
+const fe = document.getElementById("filtroEstado");
+const bl = document.getElementById("buscarLote");
+
+if(fp) fp.addEventListener("change", ()=>{
+  actualizarFiltrosDependientes();
+  aplicarFiltros();
+});
+
+if(ff) ff.addEventListener("change", ()=>{
+  actualizarFiltrosDependientes();
+  aplicarFiltros();
+});
+
+if(fm) fm.addEventListener("change", aplicarFiltros);
+if(fe) fe.addEventListener("change", aplicarFiltros);
+if(bl) bl.addEventListener("input", aplicarFiltros);
+}
+async function loadUnidades(){
+
+  const res = await fetch(`${ENDPOINT}?unidades=1`);
+  const unidades = await res.json();
+
+  unidadesCache = unidades;
+
+  llenarFiltros();
+aplicarFiltros();
+
+}
+function renderUnidades(lista){
+
+  const container = document.getElementById("unidadesContainer");
+
+  container.innerHTML = "";
+lista.sort((a,b)=>{
+  if(a.manzana === b.manzana){
+    return Number(a.lote) - Number(b.lote);
+  }
+  return a.manzana.localeCompare(b.manzana);
+});
+  lista.forEach(u => {
+
+    container.innerHTML += `
+    <div class="unidad-card estado-${u.estado.toLowerCase()}">
+
+      <h3>Lote ${u.manzana}-${u.lote}</h3>
+
+      <div class="unidad-info">Proyecto: ${u.proyecto}</div>
+
+      Área:
+      <input type="number" id="area-${u.id}" value="${u.area || 0}">
+
+      Precio:
+      <input type="number" id="precio-${u.id}" value="${u.precio || 0}">
+
+      Estado:
+      <select id="estado-${u.id}">
+        <option ${u.estado=="Disponible"?"selected":""}>Disponible</option>
+        <option ${u.estado=="Reservado"?"selected":""}>Reservado</option>
+        <option ${u.estado=="Vendido"?"selected":""}>Vendido</option>
+      </select>
+
+      <button onclick="guardarUnidad('${u.id}')">Guardar</button>
+
+    </div>
+    `;
+  });
+
+}
+function llenarFiltros(){
+
+  const
+   proyectos = [...new Set(unidadesCache.map(u => u.proyecto))];
+  const manzanas = [...new Set(unidadesCache.map(u => u.manzana))];
+  const fases = [...new Set(unidadesCache.map(u => u.fase))];
+
+  const filtroFase = document.getElementById("filtroFase");
+  const filtroProyecto = document.getElementById("filtroProyecto");
+  const filtroManzana = document.getElementById("filtroManzana");
+
+  filtroFase.innerHTML = '<option value="">Todas las fases</option>';
+
+fases.forEach(f=>{
+  filtroFase.innerHTML += `<option value="${f}">Fase ${f}</option>`;
+});
+  filtroProyecto.innerHTML = '<option value="">Todos los proyectos</option>';
+  proyectos.forEach(p=>{
+    filtroProyecto.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+
+  filtroManzana.innerHTML = '<option value="">Todas las manzanas</option>';
+  manzanas.forEach(m=>{
+    filtroManzana.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+}
+function aplicarFiltros(){
+
+  const fase = document.getElementById("filtroFase").value;
+  const proyecto = document.getElementById("filtroProyecto").value;
+  const manzana = document.getElementById("filtroManzana").value;
+  const estado = document.getElementById("filtroEstado").value;
+  const buscar = document.getElementById("buscarLote").value.toLowerCase();
+
+  let resultado = [...unidadesCache];
+
+  if(proyecto){
+    resultado = resultado.filter(u => u.proyecto === proyecto);
+  }
+
+  if(fase){
+    resultado = resultado.filter(u => u.fase == fase);
+  }
+
+  if(manzana){
+    resultado = resultado.filter(u => u.manzana === manzana);
+  }
+
+  if(estado){
+    resultado = resultado.filter(u => u.estado === estado);
+  }
+
+  if(buscar){
+    resultado = resultado.filter(u =>
+      `${u.manzana}-${u.lote}`.toLowerCase().includes(buscar)
+    );
+  }
+
+ const contador = document.getElementById("contadorUnidades");
+if(contador){
+  contador.innerText = `Mostrando ${resultado.length} unidades`;
 }
 
+  renderUnidades(resultado);
+
+}
+function actualizarFiltrosDependientes(){
+
+  const proyecto = document.getElementById("filtroProyecto").value;
+  const fase = document.getElementById("filtroFase")?.value;
+
+  let lista = unidadesCache;
+
+  if(proyecto){
+    lista = lista.filter(u => u.proyecto === proyecto);
+  }
+
+  if(fase){
+    lista = lista.filter(u => u.fase == fase);
+  }
+
+  const manzanas = [...new Set(lista.map(u => u.manzana))];
+
+  const filtroManzana = document.getElementById("filtroManzana");
+
+  filtroManzana.innerHTML = '<option value="">Todas las manzanas</option>';
+
+  manzanas.forEach(m=>{
+    filtroManzana.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+
+}
+async function guardarUnidad(id){
+
+  const precio = document.getElementById(`precio-${id}`).value;
+  const area = document.getElementById(`area-${id}`).value;
+  const estado = document.getElementById(`estado-${id}`).value;
+
+  const res = await fetch(ENDPOINT,{
+
+    method:"PATCH",
+
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":`Bearer ${token}`
+    },
+
+    body:JSON.stringify({
+      action:"editar_unidad",
+      unidad_id:id,
+      precio,
+      area,
+      estado
+    })
+
+  });
+
+  const data = await res.json();
+
+  if(!res.ok || !data.success){
+    alert("Error actualizando unidad");
+    return;
+  }
+
+  alert("Unidad actualizada");
+loadUnidades();
+llenarFiltros();
+aplicarFiltros();
+renderUnidades(unidadesCache);
+}
 // Exponer init y ejecutar cuando DOM esté listo
 window.initAdmin = initAdmin;
-
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAdmin);
 } else {
   initAdmin();
 }
-
-// ---------- FIN PARTE 3 ----------
