@@ -64,7 +64,7 @@ function formatCurrency(value) {
 
 async function loadData() {
   try {
-    const res = await fetch(ENDPOINT);
+    const res = await fetch(`${ENDPOINT}?unidades=1`);
     const data = await res.json();
 
     if (!res.ok || !Array.isArray(data)) {
@@ -84,38 +84,35 @@ const unidadFromURL = params.get("unidad_id");
 if (unidadFromURL) {
 
   const unidadObj = todasLasUnidades.find(
-    u => u.unidad_id === unidadFromURL
-  );
+  u => u.codigo === unidadFromURL
+);
 
-  if (unidadObj) {
+if (unidadObj) {
 
-    // Seleccionar proyecto
-    proyectoSelect.value = unidadObj.proyecto;
-    proyectoSelect.dispatchEvent(new Event("change"));
+  proyectoSelect.value = unidadObj.proyecto;
+  proyectoSelect.dispatchEvent(new Event("change"));
 
-    // Esperar que carguen manzanas
+  setTimeout(() => {
+
+    manzanaSelect.value = unidadObj.manzana;
+    manzanaSelect.dispatchEvent(new Event("change"));
+
     setTimeout(() => {
 
-      manzanaSelect.value = unidadObj.manzana;
-      manzanaSelect.dispatchEvent(new Event("change"));
+      const option = [...unidadSelect.options].find(
+        opt => opt.textContent === unidadObj.codigo
+      );
 
-      // Esperar que carguen unidades
-      setTimeout(() => {
-
-        const option = [...unidadSelect.options].find(
-          opt => opt.textContent === unidadFromURL
-        );
-
-        if (option) {
-          unidadSelect.value = option.value;
-          unidadSelect.dispatchEvent(new Event("change"));
-        }
-
-      }, 200);
+      if (option) {
+        unidadSelect.value = option.value;
+        unidadSelect.dispatchEvent(new Event("change"));
+      }
 
     }, 200);
 
-  }
+  }, 200);
+
+}
 
 }
   } catch (error) {
@@ -176,7 +173,7 @@ manzanaSelect.addEventListener("change", () => {
     const opt = document.createElement("option");
     opt.value = u.id;
     opt.dataset.precio = u.precio || 0;
-    opt.textContent = u.unidad_id;
+    opt.textContent = u.codigo;
     unidadSelect.appendChild(opt);
   });
 });

@@ -488,7 +488,7 @@ if (qs.unidades === "1") {
 
   const result = allRecords.map(r => ({
     id: r.id,
-    codigo: r.fields.unidad_codigo || "",
+    codigo: r.fields.unidad_id || "",
     proyecto: r.fields.proyecto || "",
     fase: r.fields.Fase || "",
     manzana: r.fields.Manzana || "",
