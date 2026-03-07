@@ -164,16 +164,20 @@ manzanaSelect.addEventListener("change", () => {
   unidadSelect.innerHTML = '<option value="">Selecciona unidad</option>';
 
   const filtradas = todasLasUnidades.filter(
-    u =>
-      u.proyecto === proyectoSelect.value &&
-      u.manzana === manzanaSelect.value
-  );
+  u =>
+    u.proyecto === proyectoSelect.value &&
+    u.manzana === manzanaSelect.value &&
+    u.estado === "Disponible"
+);
 
   filtradas.forEach(u => {
+
     const opt = document.createElement("option");
+
     opt.value = u.id;
     opt.dataset.precio = u.precio || 0;
     opt.textContent = u.codigo;
+    
     unidadSelect.appendChild(opt);
   });
 });
