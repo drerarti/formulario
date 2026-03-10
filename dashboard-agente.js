@@ -3,7 +3,17 @@
 // ===============================
 
 const token = localStorage.getItem("auth_token");
+let UNIDADES_MAP = {};
+async function loadUnidades() {
 
+  const res = await fetch('/.netlify/functions/airtable?unidades=1');
+  const data = await res.json();
+
+  data.forEach(u => {
+    UNIDADES_MAP[u.id] = u;
+  });
+
+}
 if (!token) {
   window.location.href = "/login-agente.html";
 }
@@ -180,7 +190,9 @@ function goToPlano() {
 async function renderReservas() {
 
   showLoader();
-
+// cargar unidades
+const unidadesRes = await fetch('/.netlify/functions/airtable?unidades=1');
+const unidadesCache = await unidadesRes.json();
   try {
     const res = await fetch(`${ENDPOINT}?mis_reservas=1`, {
       headers: {
@@ -210,18 +222,33 @@ const data = await res.json();
         <h2>Mis Reservas</h2>
       </div>
 
-      ${data.map(r => `
-        <div class="reserva-card">
-          <div class="reserva-header">
-            <strong>${r.cliente}</strong>
-            <span class="estado-${(r.estado || '').toLowerCase()}">${r.estado}</span>
-          </div>
-          <div class="reserva-body">
-            <div>Unidad: ${r.unidad}</div>
-            <div>Monto: ${formatCurrency(r.monto)}</div>
-          </div>
-        </div>
-      `).join("")}
+     ${data.map(r => {
+
+  let unidad = r.unidad || "";
+  let precio_lista = r.precio_lista || 0;
+
+  const unidadData = unidadesCache.find(u => u.id === unidad);
+
+  if (unidadData) {
+    unidad = unidadData.codigo;
+    precio_lista = unidadData.precio;
+  }
+
+  return `
+    <div class="reserva-card">
+      <div class="reserva-header">
+        <strong>${r.cliente}</strong>
+        <span class="estado-${(r.estado || '').toLowerCase()}">${r.estado}</span>
+      </div>
+      <div class="reserva-body">
+        <div>Unidad: ${unidad}</div>
+        <div>Monto: ${formatCurrency(r.monto)}</div>
+        <div>Precio Lista: ${formatCurrency(precio_lista)}</div>
+      </div>
+    </div>
+  `;
+
+}).join("")}
     `;
 
   } catch (error) {

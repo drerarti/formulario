@@ -177,7 +177,7 @@ manzanaSelect.addEventListener("change", () => {
     opt.value = u.id;
     opt.dataset.precio = u.precio || 0;
     opt.textContent = u.codigo;
-    
+
     unidadSelect.appendChild(opt);
   });
 });
@@ -241,7 +241,12 @@ const res = await fetch(ENDPOINT, {
 
     alertBox.className = "alert success";
     alertBox.classList.remove("hidden");
-
+const selected = unidadSelect.options[unidadSelect.selectedIndex];
+const codigoUnidad = selected.textContent;
+const googleFormURL =
+`https://docs.google.com/forms/d/e/1FAIpQLScvACxsdkB-cIoU5w7Zn1L6MWpDsKISX7FELL01mF74Dih44A/viewform
+?entry.734153405=${reservaId}
+&entry.1840987523=${encodeURIComponent(codigoUnidad)}`;
     alertBox.innerHTML = `
       <strong>Reserva creada correctamente</strong><br><br>
       Código de reserva:<br>
@@ -250,11 +255,13 @@ const res = await fetch(ENDPOINT, {
       </div>
       <button id="copyBtn" class="btn-secondary">Copiar código</button>
 
-      <a href="https://docs.google.com/forms/d/e/1FAIpQLScvACxsdkB-cIoU5w7Zn1L6MWpDsKISX7FELL01mF74Dih44A/viewform"
-         target="_blank"
-         class="btn-success">
-         Subir documentos
-      </a>
+      <a href="${googleFormURL}"
+ target="_blank"
+ class="btn-success">
+ Subir documentos
+</a>
+ Subir documentos
+</a>
     `;
 
     document.getElementById("copyBtn").addEventListener("click", async () => {

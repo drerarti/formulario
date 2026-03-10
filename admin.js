@@ -4,6 +4,18 @@
 // Basado en tu versión funcional (referencia). :contentReference[oaicite:1]{index=1}
 // ===========================
 const token = localStorage.getItem("auth_token");
+let UNIDADES_MAP = {};
+
+async function cargarUnidades() {
+
+  const res = await fetch('/.netlify/functions/airtable?unidades=1');
+  const data = await res.json();
+
+  data.forEach(u => {
+    UNIDADES_MAP[u.id] = u;
+  });
+
+}
 let unidadesCache = [];
 if (!token) {
   window.location.href = "/login-agente.html";
@@ -81,10 +93,16 @@ async function loadReservas() {
 
       // campos defensivos: si no vienen, mostrar vacío o 0
       const cliente = r.cliente || "";
-      const unidad = r.unidad || "";
-      const agente = r.agente || "";
-      const monto_reserva = Number(r.monto_reserva || 0);
-      const precio_lista = Number(r.precio_lista || 0);
+      let unidad = r.unidad || "";
+const agente = r.agente || "";
+const monto_reserva = Number(r.monto_reserva || 0);
+let precio_lista = Number(r.precio_lista || 0);
+      const unidadData = unidadesCache.find(u => u.id === unidad);
+
+if (unidadData) {
+  unidad = unidadData.codigo;
+  precio_lista = unidadData.precio;
+}
       const estado = r.estado || "";
 
       div.innerHTML = `
@@ -363,7 +381,7 @@ async function loadVentas() {
     });
 
     const totalCobrado = totalVendido - totalPendiente;
-
+container.innerHTML = "";
     container.innerHTML = `
       <div class="kpis-grid">
         <div class="kpi-card">
@@ -387,9 +405,14 @@ async function loadVentas() {
       const div = document.createElement("div");
       div.className = "venta-card-pro";
       const cliente = v.cliente || "";
-      const unidad = v.unidad || "";
+      let unidad = v.unidad || "";
       const agente = v.agente || "";
       const precio = Number(v.precio_base || 0).toLocaleString();
+      const unidadData = unidadesCache.find(u => u.id === unidad);
+
+if (unidadData) {
+  unidad = unidadData.codigo;
+}
       const reserva = Number(v.monto_reserva || 0).toLocaleString();
       const tipo = v.tipo_venta || "";
       const fecha = v.fecha_venta || "";
@@ -963,7 +986,6 @@ async function loadDashboard() {
 window.loadDashboard = loadDashboard;
 
 /* ---------- INICIALIZADOR / BINDINGS ---------- */
-
 function initAdmin() {
   // asegurar que los botones de nav llaman showSection con data-nav
   document.querySelectorAll('[data-nav]').forEach(btn => {
@@ -1002,6 +1024,7 @@ function initAdmin() {
       loadDashboard();
     }
   }, 200);
+  loadUnidades();
   const ff = document.getElementById("filtroFase");
 const fp = document.getElementById("filtroProyecto");
 const fm = document.getElementById("filtroManzana");

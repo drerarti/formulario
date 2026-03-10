@@ -23,6 +23,31 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
 
       const qs = event.queryStringParameters || {};
+      
+      // =======================================
+// OBTENER UNIDAD DESDE RESERVA
+// =======================================
+
+if (qs.reserva) {
+
+  const reservaId = qs.reserva.trim().replace(",", "");
+
+  const url = `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${reservaId}`;
+
+  const response = await fetch(url, { headers });
+
+  const data = await response.json();
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+  unidad_id: data.fields.unidad_codigo 
+    ? data.fields.unidad_codigo[0] 
+    : null
+})
+  };
+
+}
       // ==============================
 // LOGIN AGENTE
 // ==============================
@@ -120,22 +145,33 @@ if (qs.admin === "1") {
 
   const data = await response.json();
 
-  const result = data.records.map(r => ({
+const result = data.records.map(r => {
+
+  let unidadCodigo = "";
+  let precioLista = r.fields.precio_lista_unidad || 0;
+
+   if (r.fields.unidad && r.fields.unidad.length > 0) {
+    unidadCodigo = r.fields.unidad[0];
+  }
+
+  return {
     id: r.id,
     estado: r.fields.estado_reserva,
     cliente: r.fields.cliente,
     monto_reserva: r.fields.monto_reserva || 0,
     agente: r.fields.agente || "",
-    unidad: r.fields.unidad_codigo ? r.fields.unidad_codigo[0] : "",
+    unidad: unidadCodigo,
     unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null,
-    precio_lista: r.fields.precio_lista_unidad ? r.fields.precio_lista_unidad[0] : 0,
+    precio_lista: precioLista,
     precio_final: r.fields.precio_final || "",
     tipo_venta: r.fields.tipo_venta || "",
     numero_cuotas: r.fields.numero_cuotas || "",
     monto_inicial: r.fields.monto_inicial || "",
     fecha_inicio_pagos: r.fields.fecha_inicio_pagos || "",
     observaciones: r.fields.observaciones_negociacion || ""
-  }));
+  };
+
+});
 
   return { statusCode: 200, body: JSON.stringify(result) };
 }
@@ -170,21 +206,21 @@ const data = await response.json();
 
 const result = data.records.map(r => {
 
- let unidadCodigo = "";
+let unidadCodigo = "";
+let precioLista = r.fields.precio_lista_unidad || 0;
 
-if (r.fields.unidad_codigo && r.fields.unidad_codigo.length > 0) {
-  unidadCodigo = r.fields.unidad_codigo[0];
+if (r.fields.unidad && r.fields.unidad.length > 0) {
+  unidadCodigo = r.fields.unidad[0];
 }
-
-  return {
-    cliente: r.fields.cliente,
-    unidad: unidadCodigo,
-    monto: r.fields.monto_reserva || 0,
-    estado: r.fields.estado_reserva || ""
-  };
+return {
+  cliente: r.fields.cliente,
+  unidad: unidadCodigo,
+  monto: r.fields.monto_reserva || 0,
+  precio_lista: precioLista,
+  estado: r.fields.estado_reserva || ""
+};
 
 });
-
 return {
   statusCode: 200,
   body: JSON.stringify(result)
@@ -308,6 +344,7 @@ if (r.expanded && r.expanded.unidad && r.expanded.unidad.length > 0) {
 
   return { statusCode: 200, body: JSON.stringify(result) };
 }
+
 // ==============================
 // GET ESTADO PARA PLANO
 // ==============================
