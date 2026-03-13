@@ -217,6 +217,7 @@ form.addEventListener("submit", async (e) => {
       telefono_cliente: document.getElementById("telefono_cliente").value.trim(),
       monto_reserva: Number(document.getElementById("monto_reserva").value || 0),
       descuento_solicitado: Number(document.getElementById("descuento").value || 0),
+       sobreprecio: Number(document.getElementById("sobreprecio").value || 0),
       motivo_descuento: document.getElementById("motivo_descuento").value.trim()
     };
 

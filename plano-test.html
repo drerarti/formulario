@@ -341,6 +341,10 @@ body.no-scroll { overflow: hidden; }
   <div id="top-content">
     <div id="header"></div>
     <button id="btnPresentacion">Modo Presentación</button>
+    <div style="display:flex; gap:8px; margin:6px 0;">
+  <button onclick="descargarPlano()">PNG</button>
+  <button onclick="descargarPlanoPDF()">PDF</button>
+</div>
 <div id="selector-proyecto">
   <div id="buscador-lote">
   <input 
@@ -394,6 +398,7 @@ body.no-scroll { overflow: hidden; }
 </div>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
 <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -959,7 +964,120 @@ function logout() {
 }
 let viewer = null;
 let vistaActual = 1;
+function descargarPlano(){
 
+const svg = document.querySelector("#plano-container svg");
+
+if(!svg){
+  alert("Plano no cargado");
+  return;
+}
+
+const serializer = new XMLSerializer();
+const source = serializer.serializeToString(svg);
+
+const img = new Image();
+const svgBlob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
+const url = URL.createObjectURL(svgBlob);
+
+img.onload = function(){
+
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+
+const scale = 3;
+
+canvas.width = img.width * scale;
+canvas.height = img.height * scale;
+
+ctx.scale(scale, scale);
+
+// fondo blanco
+ctx.fillStyle = "#ffffff";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ctx.drawImage(img,0,0);
+
+  const link = document.createElement("a");
+  link.download = `plano-${proyecto}-${fase}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+
+  URL.revokeObjectURL(url);
+
+};
+
+img.src = url;
+
+}
+async function descargarPlanoPDF(){
+
+const svg = document.querySelector("#plano-container svg");
+
+if(!svg){
+  alert("Plano no cargado");
+  return;
+}
+
+const serializer = new XMLSerializer();
+const source = serializer.serializeToString(svg);
+
+const img = new Image();
+const svgBlob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
+const url = URL.createObjectURL(svgBlob);
+
+img.onload = function(){
+
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+
+const scale = 2;
+
+canvas.width = img.width * scale;
+canvas.height = img.height * scale;
+
+ctx.scale(scale, scale);
+
+// fondo blanco
+ctx.fillStyle = "#ffffff";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ctx.drawImage(img,0,0);
+
+  const imgData = canvas.toDataURL("image/jpeg",0.8);
+
+  const { jsPDF } = window.jspdf;
+
+  const pdf = new jsPDF("landscape","pt","a3");
+
+  pdf.text(`Proyecto: ${proyecto} - Fase: ${fase}`,40,40);
+
+const pageWidth = pdf.internal.pageSize.getWidth();
+const pageHeight = pdf.internal.pageSize.getHeight();
+
+const margin = 40;
+
+const maxWidth = pageWidth - margin * 2;
+const maxHeight = pageHeight - 100;
+
+let width = maxWidth;
+let height = canvas.height * width / canvas.width;
+
+if (height > maxHeight) {
+  height = maxHeight;
+  width = canvas.width * height / canvas.height;
+}
+
+pdf.addImage(imgData,"JPEG",margin,60,width,height);
+  pdf.save(`plano-${proyecto}-${fase}.pdf`);
+
+  URL.revokeObjectURL(url);
+
+};
+
+img.src = url;
+
+}
 function iniciarVisor360() {
 
   const totalVistas = vistas360Config[claveProyecto] || 1;

@@ -478,3 +478,13 @@ cursor:pointer;
 .unidad-card button:hover{
 background:#1d4ed8;
 }
+.tabla-wrapper{
+  width:100%;
+  overflow-x:auto;
+}
+
+.tabla-admin{
+  width:100%;
+  min-width:700px;
+  border-collapse:collapse;
+}

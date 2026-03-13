@@ -192,7 +192,10 @@ async function renderReservas() {
   showLoader();
 // cargar unidades
 const unidadesRes = await fetch('/.netlify/functions/airtable?unidades=1');
+const extensionesRes = await fetch('/.netlify/functions/airtable?extensiones=1');
+
 const unidadesCache = await unidadesRes.json();
+const extensiones = await extensionesRes.json();
   try {
     const res = await fetch(`${ENDPOINT}?mis_reservas=1`, {
       headers: {
@@ -223,17 +226,60 @@ const data = await res.json();
       </div>
 
      ${data.map(r => {
+const extension = extensiones.find(e => e.reserva_id === r.reserva_id);
+let estadoExtension = "";
 
+if (extension) {
+
+  if (extension.estado_extension === "Solicitud") {
+    estadoExtension = `<div class="estado-extension pendiente">
+      Extensión pendiente de aprobación
+    </div>`;
+  }
+
+  if (extension.estado_extension === "Aprobada") {
+    estadoExtension = `<div class="estado-extension aprobada">
+      Extensión aprobada
+    </div>`;
+  }
+
+  if (extension.estado_extension === "Rechazada") {
+    estadoExtension = `<div class="estado-extension rechazada">
+      Extensión rechazada
+    </div>`;
+  }
+
+}
   let unidad = r.unidad || "";
   let precio_lista = r.precio_lista || 0;
 
-  const unidadData = unidadesCache.find(u => u.id === unidad);
+  const unidadData = unidadesCache.find(u => 
+  u.id === unidad || u.codigo === unidad
+);
 
   if (unidadData) {
     unidad = unidadData.codigo;
     precio_lista = unidadData.precio;
   }
+let botonExtension = "";
 
+if (
+  Number(r.monto) === 500 &&
+  r.estado === "Confirmada" &&
+  !extension
+) {
+
+ const linkExtension =
+`https://docs.google.com/forms/d/e/1FAIpQLSdeT3daEJYT_NPJLi7_fpXlQ-tr5LmD7gA8Wo31FJXsPYgYYg/viewform?entry.572852460=${r.id}&entry.362255831=${unidad}&entry.847575580=2500`;
+
+  botonExtension = `
+  <div class="extension-box">
+    <a href="${linkExtension}" target="_blank" class="btn-extender">
+      Extender reserva
+    </a>
+  </div>
+  `;
+}
   return `
     <div class="reserva-card">
       <div class="reserva-header">
@@ -242,9 +288,18 @@ const data = await res.json();
       </div>
       <div class="reserva-body">
         <div>Unidad: ${unidad}</div>
-        <div>Monto: ${formatCurrency(r.monto)}</div>
+       <div>Monto: ${formatCurrency(r.monto)}</div>
         <div>Precio Lista: ${formatCurrency(precio_lista)}</div>
+        <div>Descuento: S/ ${Number(r.descuento_solicitado || 0).toLocaleString()}</div>
+<div>Sobreprecio: S/ ${Number(r.sobreprecio || 0).toLocaleString()}</div>
+${r.motivo_descuento ? `
+<div class="motivo">
+Motivo: ${r.motivo_descuento}
+</div>
+` : ""}
       </div>
+       ${botonExtension}
+       ${estadoExtension}
     </div>
   `;
 

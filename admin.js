@@ -116,8 +116,20 @@ if (unidadData) {
           <div class="reserva-item"><span>Agente</span><strong>${agente}</strong></div>
           <div class="reserva-item"><span>Reserva</span><strong>S/ ${monto_reserva.toLocaleString()}</strong></div>
           <div class="reserva-item"><span>Precio Lista</span><strong>S/ ${precio_lista.toLocaleString()}</strong></div>
-        </div>
+        </div><div class="reserva-item">
+<span>Descuento</span>
+<strong>S/ ${Number(r.descuento_solicitado || 0).toLocaleString()}</strong>
+</div>
 
+<div class="reserva-item">
+<span>Sobreprecio</span>
+<strong>S/ ${Number(r.sobreprecio || 0).toLocaleString()}</strong>
+</div>
+${r.motivo_descuento ? `
+<div class="reserva-motivo">
+Motivo: ${r.motivo_descuento}
+</div>
+` : ""}
         <div class="reserva-actions-pro">
           ${estado === "Solicitud" ? `
             <button class="btn-outline" onclick="validar('${r.id}')">Validar</button>
@@ -994,7 +1006,7 @@ function initAdmin() {
       showSection(sec, btn);
     });
   });
-
+cargarExtensiones();
   // cargar dashboard por defecto si existe
   const activeSection = document.querySelector('.nav-btn.active')?.getAttribute('data-nav') || "dashboard";
   showSection(activeSection, document.querySelector(`[data-nav="${activeSection}"]`));
@@ -1225,6 +1237,95 @@ loadUnidades();
 llenarFiltros();
 aplicarFiltros();
 renderUnidades(unidadesCache);
+}
+async function cargarExtensiones() {
+
+const res = await fetch("/.netlify/functions/airtable?extensiones=1");
+const data = await res.json();
+
+const tbody = document.getElementById("extensionesBody");
+tbody.innerHTML = "";
+
+data
+.filter(ext => ext.estado_extension === "Solicitud")
+.forEach(ext => {
+
+const tr = document.createElement("tr");
+
+const voucherLink = ext.voucher?.length
+? `<a href="${ext.voucher[0].url}" target="_blank">Ver</a>`
+: "-";
+
+tr.innerHTML = `
+<td>${ext.reserva_id}</td>
+<td>${ext.unidad_codigo}</td>
+<td>${ext.cliente}</td>
+<td>${ext.agente}</td>
+<td>S/ ${ext.monto_adicional}</td>
+<td>${voucherLink}</td>
+<td>
+<button onclick="aprobarExtension('${ext.id}')">Aprobar</button>
+<button onclick="rechazarExtension('${ext.id}')">Rechazar</button>
+</td>
+`;
+
+tbody.appendChild(tr);
+
+});
+
+}
+cargarExtensiones();
+async function aprobarExtension(id){
+
+const res = await fetch('/.netlify/functions/airtable',{
+method:'PATCH',
+headers:{
+'Content-Type':'application/json',
+'Authorization':`Bearer ${token}`
+},
+body:JSON.stringify({
+action:'aprobar_extension',
+extension_id:id
+})
+});
+
+const data = await res.json();
+
+if(data.success){
+alert("Extensión aprobada");
+cargarExtensiones();
+location.reload();
+}else{
+alert("Error aprobando");
+}
+
+}
+
+
+async function rechazarExtension(id){
+
+const res = await fetch('/.netlify/functions/airtable',{
+method:'PATCH',
+headers:{
+'Content-Type':'application/json',
+'Authorization':`Bearer ${token}`
+},
+body:JSON.stringify({
+action:'rechazar_extension',
+extension_id:id
+})
+});
+
+const data = await res.json();
+
+if(data.success){
+alert("Extensión rechazada");
+cargarExtensiones();
+location.reload();
+}else{
+alert("Error rechazando");
+}
+
 }
 // Exponer init y ejecutar cuando DOM esté listo
 window.initAdmin = initAdmin;

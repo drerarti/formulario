@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ayllu Laguna Huaypo - Administración</title>
 <link rel="stylesheet" href="admin.css">
-<script defer src="admin.js"></script>
 </head>
 
 <body>
@@ -19,6 +18,7 @@
       <button class="nav-btn" data-nav="reservas">Reservas</button>
       <button class="nav-btn" data-nav="ventas">Ventas</button>
       <button class="nav-btn" data-nav="unidades">Unidades</button>
+      <button class="nav-btn" onclick="abrirPlanoAdmin()">Plano</button>
     </nav>
     <div style="flex:1"></div>
     <div class="admin-info"><span class="status-dot"></span> Administrador</div>
@@ -91,7 +91,27 @@ style="padding:6px 8px;border-radius:6px;border:none;"
 <div id="unidadesContainer"></div>
 
 </section>
+<section>
+  <h2>Solicitudes de extensión</h2>
 
+<div class="tabla-wrapper">
+<table id="tablaExtensiones" class="tabla-admin">
+  <thead>
+    <tr>
+      <th>Reserva</th>
+      <th>Unidad</th>
+      <th>Cliente</th>
+      <th>Agente</th>
+      <th>Monto</th>
+      <th>Voucher</th>
+      <th>Acción</th>
+    </tr>
+  </thead>
+
+  <tbody id="extensionesBody"></tbody>
+</table>
+</div>
+</section>
   </main>
 </div>
 
@@ -112,5 +132,10 @@ style="padding:6px 8px;border-radius:6px;border:none;"
 <!-- admin.js (pega aquí tu admin.js consolidado o referencia a archivo) -->
 <script src="admin.js"></script>
 <script src="unidades-cache.js"></script>
+<script>
+function abrirPlanoAdmin(){
+  window.open("plano-admin.html","_blank");
+}
+</script>
 </body>
 </html>

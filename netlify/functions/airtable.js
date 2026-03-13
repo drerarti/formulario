@@ -24,6 +24,43 @@ exports.handler = async (event) => {
 
       const qs = event.queryStringParameters || {};
       
+
+      // ==============================
+// GET SOLICITUDES EXTENSION
+// ==============================
+if (qs.extensiones === "1") {
+
+  const url =
+    `https://api.airtable.com/v0/${BASE_ID}/SOLICITUDES_EXTENSION`;
+
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Error obteniendo extensiones" })
+    };
+  }
+
+  const data = await response.json();
+
+  const result = data.records.map(r => ({
+    id: r.id,
+    reserva_id: r.fields.reserva_id || "",
+    unidad_codigo: r.fields.unidad_codigo || "",
+    cliente: r.fields.cliente || "",
+    agente: r.fields.agente || "",
+    monto_adicional: r.fields.monto_adicional || 0,
+    comentarios: r.fields.comentarios || "",
+    estado_extension: r.fields.estado_extension || "",
+    voucher: r.fields.voucher || []
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(result)
+  };
+}
       // =======================================
 // OBTENER UNIDAD DESDE RESERVA
 // =======================================
@@ -163,6 +200,9 @@ const result = data.records.map(r => {
     unidad: unidadCodigo,
     unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : null,
     precio_lista: precioLista,
+    descuento_solicitado: r.fields.descuento_solicitado || 0,
+sobreprecio: r.fields.sobreprecio || 0,
+motivo_descuento: r.fields.motivo_descuento || "",
     precio_final: r.fields.precio_final || "",
     tipo_venta: r.fields.tipo_venta || "",
     numero_cuotas: r.fields.numero_cuotas || "",
@@ -215,9 +255,13 @@ if (r.fields.unidad && r.fields.unidad.length > 0) {
 return {
   cliente: r.fields.cliente,
   unidad: unidadCodigo,
+  unidad_record_id: r.fields.unidad ? r.fields.unidad[0] : "",
   monto: r.fields.monto_reserva || 0,
   precio_lista: precioLista,
-  estado: r.fields.estado_reserva || ""
+  estado: r.fields.estado_reserva || "",
+  descuento_solicitado: r.fields.descuento_solicitado || 0,
+sobreprecio: r.fields.sobreprecio || 0,
+motivo_descuento: r.fields.motivo_descuento || "",
 };
 
 });
@@ -389,7 +433,14 @@ const result = allRecords.map(r => ({
   precio: r.fields.precio_lista || 0,
   manzana: r.fields.Manzana || "",
   lote: r.fields.Lote || "",
-  area: r.fields.area_m2 || 0
+  area: r.fields.area_m2 || 0,
+    cliente: r.fields.cliente_nombre,
+  agente: r.fields.agente_nombre,
+  monto_reserva: r.fields.monto_reserva,
+  descuento_solicitado: r.fields.descuento_solicitado,
+  sobreprecio: r.fields.sobreprecio,
+  motivo_descuento: r.fields.motivo_descuento,
+  reserva_id: r.id
 }));
   return { statusCode: 200, body: JSON.stringify(result) };
 }
@@ -633,7 +684,95 @@ if (body.action === "editar_unidad") {
 
 }
   // 🔓 Aquí sigue tu lógica normal de PATCH
+// ==============================
+// APROBAR EXTENSION
+// ==============================
 
+if (body.action === "aprobar_extension") {
+
+  const extensionId = body.extension_id;
+
+  const extRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/SOLICITUDES_EXTENSION/${extensionId}`,
+    { headers }
+  );
+
+  const extData = await extRes.json();
+
+  const reservaId = extData.fields.reserva_record_id;
+  const montoExtra = extData.fields.monto_adicional || 0;
+
+  const reservaRes = await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${reservaId}`,
+    { headers }
+  );
+
+  const reservaData = await reservaRes.json();
+
+  const montoActual = reservaData.fields.monto_reserva || 0;
+
+  const nuevoMonto = montoActual + montoExtra;
+
+  const fechaFin = new Date(reservaData.fields.fecha_vigencia_fin);
+  fechaFin.setDate(fechaFin.getDate() + 15);
+  const nuevaFecha = fechaFin.toISOString().split("T")[0];
+
+  await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${reservaId}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          monto_reserva: nuevoMonto,
+          fecha_vigencia_fin: nuevaFecha
+        }
+      })
+    }
+  );
+
+  await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/SOLICITUDES_EXTENSION/${extensionId}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          estado_extension: "Aprobada"
+        }
+      })
+    }
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ success: true })
+  };
+}
+// ==============================
+// RECHAZAR EXTENSION
+// ==============================
+
+if (body.action === "rechazar_extension") {
+
+  await fetch(
+    `https://api.airtable.com/v0/${BASE_ID}/SOLICITUDES_EXTENSION/${body.extension_id}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          estado_extension: "Rechazada"
+        }
+      })
+    }
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ success: true })
+  };
+}
       // NEGOCIACIÓN
       if (body.action === "negociacion") {
 
@@ -661,8 +800,24 @@ if (body.action === "editar_unidad") {
       // VALIDAR
       if (body.action === "validar") {
 
-        const fechaFin = new Date();
-        fechaFin.setDate(fechaFin.getDate() + 15);
+        // obtener reserva
+const reservaRes = await fetch(
+  `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${body.reserva_id}`,
+  { headers }
+);
+
+const reservaData = await reservaRes.json();
+
+const monto = reservaData.fields.monto_reserva || 0;
+
+let dias = 15;
+
+if (monto >= 1000) {
+  dias = 30;
+}
+
+const fechaFin = new Date();
+fechaFin.setDate(fechaFin.getDate() + dias);
         const fechaFinISO = fechaFin.toISOString().split("T")[0];
 
         await fetch(
@@ -1061,6 +1216,7 @@ const agenteNombre = decoded.nombre;
                 agente: agenteNombre,
                 monto_reserva: Number(body.monto_reserva || 0),
                 descuento_solicitado: Number(body.descuento_solicitado || 0),
+                sobreprecio: body.sobreprecio,
                 motivo_descuento: body.motivo_descuento,
                 estado_reserva: "Solicitud",
                 fecha_inicio: hoy
