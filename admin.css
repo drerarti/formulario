@@ -488,3 +488,710 @@ background:#1d4ed8;
   min-width:700px;
   border-collapse:collapse;
 }
+.btn-boleta {
+  background: #0a7cff;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-boleta:hover {
+  background: #095fd1;
+}
+
+/* ---------------------------
+   ADMIN PREMIUM LAYER
+   --------------------------- */
+
+:root {
+  --admin-bg: #07111d;
+  --admin-panel: rgba(8, 17, 33, 0.92);
+  --admin-panel-soft: rgba(15, 23, 42, 0.8);
+  --admin-line: rgba(148, 163, 184, 0.18);
+  --admin-line-strong: rgba(198, 168, 90, 0.24);
+  --admin-text: #e5eefb;
+  --admin-text-soft: #9aa8bf;
+  --admin-accent: #c6a85a;
+  --admin-success: #31c48d;
+  --admin-warning: #f59e0b;
+  --admin-danger: #f87171;
+  --admin-active: #38bdf8;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(198, 168, 90, 0.12), transparent 22%),
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 18%),
+    #07111d;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-spacer {
+  flex: 1;
+  min-height: 24px;
+}
+
+.admin-header {
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+
+.legacy-section-title,
+#ventas > h2,
+#extensiones > h2 {
+  display: none;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-kicker,
+.kpi-card-label,
+.insight-title,
+.meta-pill-label,
+.card-topline,
+.count-pill {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.section-kicker {
+  color: var(--admin-accent);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.section-chip,
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(10, 20, 36, 0.82);
+  border: 1px solid var(--admin-line-strong);
+  color: #f8e7ba;
+  font-weight: 600;
+}
+
+.admin-kpis {
+  gap: 16px;
+}
+
+.kpi-card-admin {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(13, 25, 43, 0.96), rgba(8, 17, 31, 0.94));
+  border: 1px solid var(--admin-line);
+  box-shadow: 0 18px 44px rgba(3, 7, 18, 0.34);
+}
+
+.kpi-card-admin::after {
+  content: "";
+  position: absolute;
+  inset: auto -22px -26px auto;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(198, 168, 90, 0.12);
+  filter: blur(4px);
+}
+
+.kpi-card-admin.tone-active::after { background: rgba(56, 189, 248, 0.18); }
+.kpi-card-admin.tone-confirmed::after { background: rgba(49, 196, 141, 0.16); }
+.kpi-card-admin.tone-pending::after { background: rgba(245, 158, 11, 0.18); }
+.kpi-card-admin.tone-premium::after { background: rgba(198, 168, 90, 0.2); }
+
+.kpi-card-label {
+  color: var(--admin-text-soft);
+}
+
+.kpi-card-value {
+  margin-top: 10px;
+  font-size: clamp(28px, 4vw, 34px);
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.kpi-card-note {
+  margin-top: 6px;
+  color: var(--admin-text-soft);
+  font-size: 13px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.95fr);
+  gap: 18px;
+}
+
+.chart-card,
+.insight-panel,
+.toolbar-card,
+.reservation-card-admin,
+.sale-card-admin,
+.extension-column,
+.empty-state-admin,
+.unidad-card {
+  background: linear-gradient(180deg, rgba(10, 19, 34, 0.98), rgba(7, 14, 27, 0.96));
+  border: 1px solid var(--admin-line);
+  box-shadow: 0 18px 42px rgba(2, 8, 20, 0.36);
+}
+
+.insight-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.insight-card {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(8, 17, 31, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.insight-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  color: var(--admin-text);
+}
+
+.insight-card p {
+  margin: 8px 0 0;
+  color: var(--admin-text-soft);
+  font-size: 14px;
+}
+
+.toolbar-card {
+  padding: 14px;
+  border-radius: 18px;
+  margin-bottom: 16px;
+}
+
+.filters-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(150px, 1fr)) minmax(150px, 1fr) minmax(150px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+#ventasFilters {
+  grid-template-columns: minmax(240px, 1.7fr) minmax(160px, 1fr) minmax(160px, 1fr);
+}
+
+#filtrosUnidades {
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) minmax(220px, 1.4fr);
+}
+
+.filters-toolbar input,
+.filters-toolbar select {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(8, 17, 32, 0.88);
+  color: var(--admin-text);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.filters-toolbar input:focus,
+.filters-toolbar select:focus,
+.unidad-card input:focus,
+.unidad-card select:focus {
+  border-color: rgba(198, 168, 90, 0.45);
+  box-shadow: 0 0 0 3px rgba(198, 168, 90, 0.14);
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  min-width: 132px;
+  border-radius: 14px;
+  background: rgba(8, 17, 31, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.meta-pill strong {
+  color: var(--admin-text);
+  font-size: 15px;
+}
+
+.meta-pill.tone-pending {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.meta-pill.tone-active {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.meta-pill.tone-confirmed,
+.meta-pill.tone-premium {
+  border-color: rgba(49, 196, 141, 0.24);
+}
+
+.collection-grid,
+.units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.reservation-card-admin,
+.sale-card-admin {
+  border-radius: 20px;
+  padding: 18px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reservation-card-admin:hover,
+.sale-card-admin:hover,
+.extension-ticket:hover,
+.unidad-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(198, 168, 90, 0.28);
+  box-shadow: 0 24px 50px rgba(3, 7, 18, 0.44);
+}
+
+.collection-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.collection-card-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: rgba(198, 168, 90, 0.12);
+  border: 1px solid rgba(198, 168, 90, 0.2);
+  color: #f3ddb0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.collection-card-title {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 22px;
+}
+
+.collection-card-sub {
+  margin: 6px 0 0;
+  color: var(--admin-text-soft);
+  font-size: 14px;
+}
+
+.collection-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.collection-stats-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.status-pill-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: var(--admin-text);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.status-pill-admin.tone-pending,
+.inline-alert.tone-pending {
+  color: #ffd88d;
+  background: rgba(101, 67, 8, 0.28);
+  border-color: rgba(245, 158, 11, 0.32);
+}
+
+.status-pill-admin.tone-confirmed,
+.inline-alert.tone-confirmed {
+  color: #98f3c7;
+  background: rgba(6, 59, 44, 0.34);
+  border-color: rgba(49, 196, 141, 0.3);
+}
+
+.status-pill-admin.tone-rejected,
+.inline-alert.tone-rejected {
+  color: #fca5a5;
+  background: rgba(98, 25, 25, 0.3);
+  border-color: rgba(248, 113, 113, 0.28);
+}
+
+.status-pill-admin.tone-expired {
+  color: #f8b4b4;
+  background: rgba(82, 24, 24, 0.34);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.status-pill-admin.tone-active {
+  color: #8fe2ff;
+  background: rgba(7, 58, 81, 0.32);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.status-pill-admin.tone-premium,
+.meta-pill.tone-premium {
+  color: #f4deb1;
+  background: rgba(79, 60, 17, 0.28);
+  border-color: rgba(198, 168, 90, 0.32);
+}
+
+.status-pill-admin.tone-neutral {
+  color: #dbe6f8;
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.venta-estado-pro.estado-morosa,
+.estado-morosa {
+  background: rgba(98, 25, 25, 0.3);
+  color: #fca5a5;
+}
+
+.venta-estado-pro.estado-vencida,
+.estado-vencida {
+  background: rgba(101, 67, 8, 0.28);
+  color: #ffd88d;
+}
+
+.venta-estado-pro.estado-con-pagos,
+.venta-estado-pro.estado-en-proceso,
+.estado-con-pagos,
+.estado-en-proceso {
+  background: rgba(7, 58, 81, 0.32);
+  color: #8fe2ff;
+}
+
+.venta-estado-pro.estado-cerrada,
+.estado-cerrada {
+  background: rgba(79, 60, 17, 0.28);
+  color: #f4deb1;
+}
+
+.inline-alert {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  margin-top: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 13px;
+}
+
+.collection-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.inline-form-shell {
+  margin-top: 12px;
+}
+
+.progress-track {
+  height: 10px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #c6a85a);
+}
+
+.progress-caption {
+  margin-top: 8px;
+  color: var(--admin-text-soft);
+  font-size: 13px;
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.pagination-btn {
+  min-width: 104px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(8, 17, 32, 0.9);
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.pagination-label {
+  color: var(--admin-text-soft);
+  font-size: 13px;
+}
+
+.extensions-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.extension-column {
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.extension-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.extension-column-head h3 {
+  margin: 0;
+  color: var(--admin-text);
+}
+
+.extension-column-body {
+  display: grid;
+  gap: 12px;
+}
+
+.extension-ticket {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(8, 17, 31, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.extension-ticket-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.extension-ticket-sub,
+.extension-ticket-note {
+  color: var(--admin-text-soft);
+  font-size: 13px;
+}
+
+.extension-ticket-note {
+  margin: 12px 0 0;
+  line-height: 1.5;
+}
+
+.empty-state-admin {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 200px;
+  padding: 24px;
+  border-radius: 18px;
+  text-align: center;
+}
+
+.empty-state-admin h3 {
+  margin: 0;
+  color: var(--admin-text);
+}
+
+.empty-state-admin p {
+  margin: 0;
+  max-width: 320px;
+  color: var(--admin-text-soft);
+}
+
+.skeleton-card-admin {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  min-height: 136px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(9, 18, 33, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.skeleton-card-admin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.4s infinite;
+}
+
+.skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.skeleton-line.w-40 { width: 40%; }
+.skeleton-line.w-70 { width: 70%; }
+.skeleton-line.w-85 { width: 85%; }
+.skeleton-line.w-100 { width: 100%; }
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.unit-field-label {
+  display: block;
+  margin: 10px 0 6px;
+  color: var(--admin-text-soft);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.unidad-card {
+  width: auto;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.unidad-card button,
+.btn-primary,
+.btn-outline,
+.btn-danger,
+.btn-boleta {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.btn-primary:hover,
+.btn-outline:hover,
+.btn-danger:hover,
+.btn-boleta:hover,
+.pagination-btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary:focus-visible,
+.btn-outline:focus-visible,
+.btn-danger:focus-visible,
+.btn-boleta:focus-visible,
+.pagination-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(198, 168, 90, 0.18);
+}
+
+.btn-danger {
+  border: 1px solid rgba(248, 113, 113, 0.22);
+}
+
+.btn-outline {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(8, 17, 32, 0.66);
+}
+
+.btn-outline:hover {
+  border-color: rgba(198, 168, 90, 0.28);
+  background: rgba(16, 27, 46, 0.88);
+}
+
+@media (max-width: 1180px) {
+  .dashboard-grid,
+  .extensions-board {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-toolbar,
+  #ventasFilters,
+  #filtrosUnidades {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .header-actions,
+  .section-title-row,
+  .collection-card-head,
+  .extension-ticket-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filters-toolbar,
+  #ventasFilters,
+  #filtrosUnidades,
+  .collection-grid,
+  .units-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .meta-row,
+  .collection-actions-row,
+  .pagination-row {
+    justify-content: stretch;
+  }
+
+  .pagination-row {
+    flex-wrap: wrap;
+  }
+}

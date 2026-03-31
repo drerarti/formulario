@@ -3,52 +3,54 @@
 // Desde inicio hasta guardarNegociacion()
 // Basado en tu versión funcional (referencia). :contentReference[oaicite:1]{index=1}
 // ===========================
-const token = localStorage.getItem("auth_token");
-let UNIDADES_MAP = {};
+const { AppCore } = window;
+const session = AppCore.requireSession({
+  role: "admin",
+  forbiddenRedirect: "/dashboard-agente.html"
+});
 
-async function cargarUnidades() {
-
-  const res = await fetch('/.netlify/functions/airtable?unidades=1');
-  const data = await res.json();
-
-  data.forEach(u => {
-    UNIDADES_MAP[u.id] = u;
-  });
-
+if (!session) {
+  throw new Error("Admin session required");
 }
+
+const token = session.token;
+const h = AppCore.escapeHtml;
 let unidadesCache = [];
-if (!token) {
-  window.location.href = "/login-agente.html";
-}
-
-function parseJwt(token) {
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(
-    atob(base64)
-      .split('')
-      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-      .join('')
-  );
-  return JSON.parse(jsonPayload);
-}
-
-let decoded;
-
-try {
-  decoded = parseJwt(token);
-} catch (err) {
-  localStorage.removeItem("auth_token");
-  window.location.href = "/login-agente.html";
-}
+ 
 
 // 🔴 OPCIONAL PERO RECOMENDADO
-if (decoded.rol !== "admin") {
-  alert("No autorizado");
-  window.location.href = "/plano-test.html";
-}
-const ENDPOINT = "/.netlify/functions/airtable";
+
+const ENDPOINT = AppCore.API_ENDPOINT;
 let ventasChartInstance = null;
+
+function encodeArg(value) {
+  return encodeURIComponent(String(value ?? ""));
+}
+
+function adminApi(options = {}) {
+  return AppCore.apiRequest({
+    auth: true,
+    ...options
+  });
+}
+
+function fillSelectOptions(element, placeholderLabel, values, labelBuilder = (value) => value) {
+  if (!element) return;
+
+  AppCore.clearElement(element);
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = placeholderLabel;
+  element.appendChild(placeholder);
+
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = labelBuilder(value);
+    element.appendChild(option);
+  });
+}
 
 // Animación suave para KPIs
 function animateValue(element, start, end, duration = 800) {
@@ -72,14 +74,9 @@ const reservasContainer = document.getElementById("reservasContainer");
 // ===============================
 async function loadReservas() {
   try {
-    const res = await fetch(ENDPOINT + "?admin=1", {
-  headers: {
-    "Authorization": `Bearer ${token}`
-  }
-});
-    const data = await res.json();
+    const data = await adminApi({ query: { admin: 1 } });
 
-    if (!res.ok || !Array.isArray(data)) {
+    if (!Array.isArray(data)) {
       if (reservasContainer) reservasContainer.innerHTML = "<p>Error cargando reservas</p>";
       return;
     }
@@ -97,6 +94,8 @@ async function loadReservas() {
 const agente = r.agente || "";
 const monto_reserva = Number(r.monto_reserva || 0);
 let precio_lista = Number(r.precio_lista || 0);
+      const reservaId = encodeArg(r.id);
+      const unidadRecordId = encodeArg(r.unidad_record_id || "");
       const unidadData = unidadesCache.find(u => u.id === unidad);
 
 if (unidadData) {
@@ -104,16 +103,21 @@ if (unidadData) {
   precio_lista = unidadData.precio;
 }
       const estado = r.estado || "";
+      const clienteHtml = h(cliente);
+      const unidadHtml = h(unidad);
+      const agenteHtml = h(agente);
+      const estadoHtml = h(estado);
+      const motivoHtml = h(r.motivo_descuento || "");
 
       div.innerHTML = `
         <div class="reserva-header-pro">
-          <div class="reserva-cliente-pro">${cliente}</div>
-          <div class="reserva-estado-pro estado-${(estado||'').toLowerCase()}">${estado}</div>
+          <div class="reserva-cliente-pro">${clienteHtml}</div>
+          <div class="reserva-estado-pro estado-${(estado||'').toLowerCase()}">${estadoHtml}</div>
         </div>
 
         <div class="reserva-body-pro">
-          <div class="reserva-item"><span>Unidad</span><strong>${unidad}</strong></div>
-          <div class="reserva-item"><span>Agente</span><strong>${agente}</strong></div>
+          <div class="reserva-item"><span>Unidad</span><strong>${unidadHtml}</strong></div>
+          <div class="reserva-item"><span>Agente</span><strong>${agenteHtml}</strong></div>
           <div class="reserva-item"><span>Reserva</span><strong>S/ ${monto_reserva.toLocaleString()}</strong></div>
           <div class="reserva-item"><span>Precio Lista</span><strong>S/ ${precio_lista.toLocaleString()}</strong></div>
         </div><div class="reserva-item">
@@ -127,23 +131,29 @@ if (unidadData) {
 </div>
 ${r.motivo_descuento ? `
 <div class="reserva-motivo">
-Motivo: ${r.motivo_descuento}
+Motivo: ${motivoHtml}
 </div>
 ` : ""}
         <div class="reserva-actions-pro">
           ${estado === "Solicitud" ? `
-            <button class="btn-outline" onclick="validar('${r.id}')">Validar</button>
-            <button class="btn-danger" onclick="rechazar('${r.id}', '${r.unidad_record_id || ""}')">Rechazar</button>
+            <button class="btn-outline" onclick="validar(decodeURIComponent('${reservaId}'))">Validar</button>
+            <button class="btn-danger" onclick="rechazar(decodeURIComponent('${reservaId}'), decodeURIComponent('${unidadRecordId}'))">Rechazar</button>
           ` : ""}
 
           ${estado === "Confirmada" ? `
-            <button class="btn-outline" onclick="mostrarNegociacion('${r.id}')">Negociar</button>
+            <button class="btn-outline" onclick="mostrarNegociacion(decodeURIComponent('${reservaId}'))">Negociar</button>
+            ${estado === "Confirmada" && !r.boleta_emitida ? `
+<button class="btn-boleta"
+  onclick="abrirPreviewBoleta(decodeURIComponent('${reservaId}'))">
+  Generar Boleta
+</button>
+` : ""}
             ${ (r.tipo_venta && Number(r.precio_final) > 0) ? 
-              `<button class="btn-primary" onclick="convertirVenta('${r.id}', this)">Convertir</button>` : "" }
+              `<button class="btn-primary" onclick="convertirVenta(decodeURIComponent('${reservaId}'), this)">Convertir</button>` : "" }
           ` : ""}
         </div>
 
-        <div id="neg-${r.id}" class="negociacion-container-pro"></div>
+        <div id="neg-${h(r.id)}" class="negociacion-container-pro"></div>
       `;
 
       reservasContainer.appendChild(div);
@@ -154,7 +164,9 @@ Motivo: ${r.motivo_descuento}
     console.error("loadReservas error:", error);
   }
 }
-
+function abrirPreviewBoleta(reservaId) {
+  window.location.href = `preview-boleta.html?id=${encodeURIComponent(reservaId)}`;
+}
 // Exponer globalmente (por si el HTML llama con onclick antes de evaluar)
 window.loadReservas = loadReservas;
 
@@ -368,13 +380,12 @@ window.convertirVenta = convertirVenta;
  */
 async function loadVentas() {
   try {
-    const res = await fetch(`${ENDPOINT}?ventas=1`);
-    const ventas = await res.json();
+    const ventas = await adminApi({ query: { ventas: 1 } });
 
     const container = document.getElementById("ventasContainer");
     if (!container) return;
 
-    if (!res.ok || !Array.isArray(ventas)) {
+    if (!Array.isArray(ventas)) {
       container.innerHTML = "<p>Error cargando ventas</p>";
       return;
     }
@@ -429,25 +440,26 @@ if (unidadData) {
       const tipo = v.tipo_venta || "";
       const fecha = v.fecha_venta || "";
       const estado = v.estado_venta || "";
+      const ventaId = encodeArg(v.id);
 
       div.innerHTML = `
         <div class="venta-header-pro">
-          <div class="venta-cliente-pro">${cliente}</div>
-          <div class="venta-estado-pro estado-${(estado||'').toLowerCase()}">${estado}</div>
+          <div class="venta-cliente-pro">${h(cliente)}</div>
+          <div class="venta-estado-pro estado-${(estado||'').toLowerCase()}">${h(estado)}</div>
         </div>
 
         <div class="venta-body-pro">
-          <div><span>Unidad</span><strong>${unidad}</strong></div>
-          <div><span>Agente</span><strong>${agente}</strong></div>
-          <div><span>Tipo</span><strong>${tipo}</strong></div>
-          <div><span>Fecha</span><strong>${fecha}</strong></div>
+          <div><span>Unidad</span><strong>${h(unidad)}</strong></div>
+          <div><span>Agente</span><strong>${h(agente)}</strong></div>
+          <div><span>Tipo</span><strong>${h(tipo)}</strong></div>
+          <div><span>Fecha</span><strong>${h(fecha)}</strong></div>
         </div>
 
         <div class="venta-finanzas-pro">
           <div><span>Precio</span><strong>S/ ${precio}</strong></div>
           <div><span>Reserva</span><strong>S/ ${reserva}</strong></div>
           <div style="align-self:flex-end;">
-            <button class="btn-primary" onclick="verVenta('${v.id}')">Gestionar</button>
+            <button class="btn-primary" onclick="verVenta(decodeURIComponent('${ventaId}'))">Gestionar</button>
           </div>
         </div>
       `;
@@ -489,11 +501,10 @@ window.showSection = showSection;
  */
 async function verVenta(id) {
   try {
-    const res = await fetch(`${ENDPOINT}?venta_id=${id}`);
-    const data = await res.json();
+    const data = await adminApi({ query: { venta_id: id } });
 
-    if (!res.ok || !data || !data.id) {
-      alert(data?.error || "Error cargando venta");
+    if (!data || !data.id) {
+      alert("Error cargando venta");
       return;
     }
 
@@ -503,26 +514,29 @@ async function verVenta(id) {
     // porcentaje cobrado defensivo
     const precio = Number(data.precio_base || 0);
     const saldo = Number(data.saldo_restante || 0);
-    const cobrado = precio - saldo;
-    const porcentaje = precio > 0 ? Math.round((cobrado / precio) * 100) : 0;
+    const cobrado = Number(data.total_pagado || Math.max(0, precio - saldo));
+    const porcentaje = data.avance_porcentaje || (precio > 0 ? Math.round((cobrado / precio) * 100) : 0);
+    const estadoVentaClass = String(data.estado_venta || "").toLowerCase().replace(/\s+/g, "-");
+    const ventaId = encodeArg(data.id);
 
     cont.innerHTML = `
       <div class="modal-header-pro">
         <h3>Detalle de Venta</h3>
-        <div class="venta-estado-pro estado-${(data.estado_venta||'').toLowerCase()}">${data.estado_venta || ''}</div>
+        <div class="venta-estado-pro estado-${estadoVentaClass}">${h(data.estado_venta || "")}</div>
       </div>
 
       <div class="modal-body-pro">
         <div class="modal-section-pro">
-          <div><strong>Cliente:</strong> ${data.cliente || ""}</div>
-          <div><strong>Unidad:</strong> ${data.unidad || ""}</div>
-          <div><strong>Agente:</strong> ${data.agente || ""}</div>
+          <div><strong>Cliente:</strong> ${h(data.cliente || "")}</div>
+          <div><strong>Unidad:</strong> ${h(data.unidad || "")}</div>
+          <div><strong>Agente:</strong> ${h(data.agente || "")}</div>
         </div>
 
         <div class="modal-finanzas-pro">
           <div><span>Precio Base</span><strong>S/ ${precio.toLocaleString()}</strong></div>
           <div><span>Reserva</span><strong>S/ ${Number(data.monto_reserva||0).toLocaleString()}</strong></div>
           <div><span>Monto Inicial</span><strong>S/ ${Number(data.monto_inicial||0).toLocaleString()}</strong></div>
+          <div><span>Total Pagado</span><strong>S/ ${cobrado.toLocaleString()}</strong></div>
           <div><span>Saldo Restante</span><strong>S/ ${saldo.toLocaleString()}</strong></div>
         </div>
 
@@ -531,8 +545,11 @@ async function verVenta(id) {
         </div>
 
         <div class="modal-section-pro">
-          <div><strong>Tipo:</strong> ${data.tipo_venta || ""}</div>
-          <div><strong>Fecha:</strong> ${data.fecha_venta || ""}</div>
+          <div><strong>Tipo:</strong> ${h(data.tipo_venta || "")}</div>
+          <div><strong>Fecha:</strong> ${h(data.fecha_venta || "")}</div>
+          <div><strong>Próxima cuota:</strong> ${h(data.proxima_cuota || "No programada")}</div>
+          <div><strong>Cuotas vencidas:</strong> ${h(String(data.cuotas_vencidas || 0))}</div>
+          <div><strong>Cuotas morosas:</strong> ${h(String(data.cuotas_morosas || 0))}</div>
         </div>
 
         <hr>
@@ -543,7 +560,7 @@ async function verVenta(id) {
         <div id="formCuota" class="hidden" style="margin-top:12px;"></div>
 
         <div style="margin-top:18px;">
-          <button class="btn-outline" onclick="mostrarFormularioCuota('${data.id}')">Agregar Cuota</button>
+          <button class="btn-outline" onclick="mostrarFormularioCuota(decodeURIComponent('${ventaId}'))">Agregar Cuota</button>
         </div>
 
       </div>
@@ -587,12 +604,11 @@ window.cerrarModal = cerrarModal;
  */
 async function cargarCuotas(ventaId) {
   try {
-    const res = await fetch(`${ENDPOINT}?cuotas_venta=${ventaId}`);
-    const cuotas = await res.json();
+    const cuotas = await adminApi({ query: { cuotas_venta: ventaId } });
     const cont = document.getElementById("listaCuotas");
     if (!cont) return;
 
-    if (!res.ok || !Array.isArray(cuotas)) {
+    if (!Array.isArray(cuotas)) {
       cont.innerHTML = "<em>Error cargando cuotas.</em>";
       return;
     }
@@ -610,18 +626,26 @@ async function cargarCuotas(ventaId) {
       const monto = Number(c.monto || c.monto_programado || 0).toLocaleString();
       const fecha = c.fecha || c.fecha_vencimiento || "";
       const estado = c.estado || c.estado_cuota || "Pendiente";
+      const saldoCuota = Number(c.saldo_pendiente || 0).toLocaleString();
+      const diasAtraso = Number(c.dias_atraso || 0);
       const cuotaId = c.id || "";
+      const cuotaIdEncoded = encodeArg(cuotaId);
+      const ventaIdEncoded = encodeArg(ventaId);
 
       return `
         <div class="cuota-card-pro">
           <div class="cuota-header-pro">
-            <strong>Cuota ${numero}</strong>
-            <span class="estado-${(estado||'').toLowerCase()}">${estado}</span>
+            <strong>Cuota ${h(numero)}</strong>
+            <span class="estado-${(estado||'').toLowerCase()}">${h(estado)}</span>
           </div>
           <div>Monto: S/ ${monto}</div>
-          <div>Fecha: ${fecha}</div>
+          <div>Fecha: ${h(fecha)}</div>
+          <div>Saldo: S/ ${saldoCuota}</div>
+          ${diasAtraso > 0 ? `<div>Días de atraso: ${diasAtraso}</div>` : ""}
           <div style="margin-top:8px;">
-            <button class="btn-outline" onclick="mostrarPago('${ventaId}', '${cuotaId}')">Registrar Pago</button>
+            ${estado === "Pagada"
+              ? `<span class="small">Cuota al día</span>`
+              : `<button class="btn-outline" onclick="mostrarPago(decodeURIComponent('${ventaIdEncoded}'), decodeURIComponent('${cuotaIdEncoded}'))">Registrar Pago</button>`}
           </div>
         </div>
       `;
@@ -642,6 +666,7 @@ window.cargarCuotas = cargarCuotas;
 function mostrarFormularioCuota(ventaId) {
   const form = document.getElementById("formCuota");
   if (!form) return;
+  const ventaIdEncoded = encodeArg(ventaId);
 
   // si abierto, close
   if (form.dataset.open === "1") {
@@ -664,8 +689,8 @@ function mostrarFormularioCuota(ventaId) {
         <input id="fechaCuota" type="date" />
       </div>
       <div style="margin-top:10px; display:flex; gap:8px;">
-        <button class="btn-primary" onclick="crearCuota('${ventaId}')">Guardar Cuota</button>
-        <button class="btn-outline" onclick="mostrarFormularioCuota('${ventaId}')">Cancelar</button>
+        <button class="btn-primary" onclick="crearCuota(decodeURIComponent('${ventaIdEncoded}'))">Guardar Cuota</button>
+        <button class="btn-outline" onclick="mostrarFormularioCuota(decodeURIComponent('${ventaIdEncoded}'))">Cancelar</button>
       </div>
     </div>
   `;
@@ -685,18 +710,12 @@ async function crearCuota(ventaId) {
       return alert("Completa todos los campos");
     }
 
-    const res = await fetch(ENDPOINT, {
-      
+    const data = await adminApi({
       method: "POST",
-      headers: {
-  "Content-Type": "application/json",
-  "Authorization": `Bearer ${token}`
-},
-      body: JSON.stringify({ action: "crear_cuota", venta_id: ventaId, numero, monto, fecha })
+      body: { action: "crear_cuota", venta_id: ventaId, numero, monto, fecha }
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    if (!data.success) {
       return alert(data.error || "Error creando cuota");
     }
 
@@ -720,6 +739,8 @@ window.crearCuota = crearCuota;
 function mostrarPago(ventaId, cuotaId = "") {
   const form = document.getElementById("formCuota");
   if (!form) return;
+  const ventaIdEncoded = encodeArg(ventaId);
+  const cuotaIdEncoded = encodeArg(cuotaId);
 
   // abrir como pago (sobrescribe)
   form.dataset.open = "1";
@@ -727,7 +748,7 @@ function mostrarPago(ventaId, cuotaId = "") {
 
   form.innerHTML = `
     <div class="negociacion-card-pro">
-      <h4>Registrar Pago ${cuotaId ? " - Cuota " + cuotaId : ""}</h4>
+      <h4>Registrar Pago ${cuotaId ? " - Cuota " + h(cuotaId) : ""}</h4>
       <div style="display:grid; gap:8px;">
         <input id="montoPago" type="number" placeholder="Monto (S/)" />
         <select id="metodoPago">
@@ -739,7 +760,7 @@ function mostrarPago(ventaId, cuotaId = "") {
         <input id="fechaPago" type="date" />
       </div>
       <div style="margin-top:8px; display:flex; gap:8px;">
-        <button class="btn-primary" onclick="registrarPago('${ventaId}', '${cuotaId}')">Guardar Pago</button>
+        <button class="btn-primary" onclick="registrarPago(decodeURIComponent('${ventaIdEncoded}'), decodeURIComponent('${cuotaIdEncoded}'))">Guardar Pago</button>
         <button class="btn-outline" onclick="(()=>{ form.innerHTML=''; form.classList.add('hidden'); form.dataset.open='0'; })()">Cancelar</button>
       </div>
     </div>
@@ -764,18 +785,12 @@ async function registrarPago(ventaId, cuotaId = "") {
     // si se pasó cuotaId opcional, se deja que backend lo asocie por orden; no es obligatorio.
     if (cuotaId) payload.cuota_id = cuotaId;
 
-    const res = await fetch(ENDPOINT, {
-      
+    const data = await adminApi({
       method: "PATCH",
-      headers: {
-  "Content-Type": "application/json",
-  "Authorization": `Bearer ${token}`
-},
-      body: JSON.stringify(payload)
+      body: payload
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    if (!data.success) {
       return alert(data.error || "Error registrando pago");
     }
 
@@ -816,8 +831,11 @@ window.safeNumber = safeNumber;
 function getVentaEstadoClass(estado) {
   if (!estado) return "";
   const s = estado.toLowerCase();
-  if (s.includes("act")) return "venta-activa";
-  if (s.includes("pag")) return "venta-pagada";
+  if (s.includes("mora")) return "venta-cancelada";
+  if (s.includes("venc")) return "venta-otra";
+  if (s.includes("pago")) return "venta-activa";
+  if (s.includes("act") || s.includes("proce")) return "venta-activa";
+  if (s.includes("pag") || s.includes("cerr")) return "venta-pagada";
   if (s.includes("can")) return "venta-cancelada";
   return "venta-otra";
 }
@@ -827,6 +845,8 @@ function getCuotaEstadoClass(estado) {
   if (!estado) return "";
   const s = estado.toLowerCase();
   if (s.includes("pag")) return "cuota-pagada";
+  if (s.includes("mora")) return "cuota-otra";
+  if (s.includes("venc")) return "cuota-parcial";
   if (s.includes("parc")) return "cuota-parcial";
   if (s.includes("pend")) return "cuota-pendiente";
   return "cuota-otra";
@@ -839,10 +859,9 @@ let ventasChartInstanceLocal = null;
 
 async function loadDashboard() {
   try {
-    const res = await fetch(`${ENDPOINT}?ventas=1`);
-    const ventas = await res.json();
+    const ventas = await adminApi({ query: { ventas: 1 } });
 
-    if (!res.ok || !Array.isArray(ventas)) {
+    if (!Array.isArray(ventas)) {
       // si no hay datos, limpia widget
       const kpis = document.getElementById("dashboardKpis");
       if (kpis) kpis.innerHTML = "<p>No hay datos de ventas.</p>";
@@ -999,6 +1018,7 @@ window.loadDashboard = loadDashboard;
 
 /* ---------- INICIALIZADOR / BINDINGS ---------- */
 function initAdmin() {
+  if (window.__ADMIN_V2_ENABLED) return;
   // asegurar que los botones de nav llaman showSection con data-nav
   document.querySelectorAll('[data-nav]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1058,9 +1078,7 @@ if(fe) fe.addEventListener("change", aplicarFiltros);
 if(bl) bl.addEventListener("input", aplicarFiltros);
 }
 async function loadUnidades(){
-
-  const res = await fetch(`${ENDPOINT}?unidades=1`);
-  const unidades = await res.json();
+  const unidades = await adminApi({ query: { unidades: 1 } });
 
   unidadesCache = unidades;
 
@@ -1206,28 +1224,18 @@ async function guardarUnidad(id){
   const area = document.getElementById(`area-${id}`).value;
   const estado = document.getElementById(`estado-${id}`).value;
 
-  const res = await fetch(ENDPOINT,{
-
+  const data = await adminApi({
     method:"PATCH",
-
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":`Bearer ${token}`
-    },
-
-    body:JSON.stringify({
+    body:{
       action:"editar_unidad",
       unidad_id:id,
       precio,
       area,
       estado
-    })
-
+    }
   });
 
-  const data = await res.json();
-
-  if(!res.ok || !data.success){
+  if(!data.success){
     alert("Error actualizando unidad");
     return;
   }
@@ -1239,12 +1247,11 @@ aplicarFiltros();
 renderUnidades(unidadesCache);
 }
 async function cargarExtensiones() {
-
-const res = await fetch("/.netlify/functions/airtable?extensiones=1");
-const data = await res.json();
-
+const data = await adminApi({ query: { extensiones: 1 } });
 const tbody = document.getElementById("extensionesBody");
-tbody.innerHTML = "";
+if (!tbody) return;
+
+AppCore.clearElement(tbody);
 
 data
 .filter(ext => ext.estado_extension === "Solicitud")
@@ -1252,22 +1259,46 @@ data
 
 const tr = document.createElement("tr");
 
-const voucherLink = ext.voucher?.length
-? `<a href="${ext.voucher[0].url}" target="_blank">Ver</a>`
-: "-";
+[
+  ext.reserva_id,
+  ext.unidad_codigo,
+  ext.cliente,
+  ext.agente,
+  `S/ ${AppCore.safeNumber(ext.monto_adicional).toLocaleString()}`
+].forEach((value) => {
+  const td = document.createElement("td");
+  td.textContent = String(value || "");
+  tr.appendChild(td);
+});
 
-tr.innerHTML = `
-<td>${ext.reserva_id}</td>
-<td>${ext.unidad_codigo}</td>
-<td>${ext.cliente}</td>
-<td>${ext.agente}</td>
-<td>S/ ${ext.monto_adicional}</td>
-<td>${voucherLink}</td>
-<td>
-<button onclick="aprobarExtension('${ext.id}')">Aprobar</button>
-<button onclick="rechazarExtension('${ext.id}')">Rechazar</button>
-</td>
-`;
+const voucherCell = document.createElement("td");
+const voucherUrl = AppCore.sanitizeUrl(ext.voucher?.[0]?.url);
+if (voucherUrl) {
+  const link = document.createElement("a");
+  link.href = voucherUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Ver";
+  voucherCell.appendChild(link);
+} else {
+  voucherCell.textContent = "-";
+}
+tr.appendChild(voucherCell);
+
+const actionsCell = document.createElement("td");
+const approveButton = document.createElement("button");
+approveButton.type = "button";
+approveButton.textContent = "Aprobar";
+approveButton.addEventListener("click", () => aprobarExtension(ext.id));
+
+const rejectButton = document.createElement("button");
+rejectButton.type = "button";
+rejectButton.textContent = "Rechazar";
+rejectButton.addEventListener("click", () => rechazarExtension(ext.id));
+
+actionsCell.appendChild(approveButton);
+actionsCell.appendChild(rejectButton);
+tr.appendChild(actionsCell);
 
 tbody.appendChild(tr);
 

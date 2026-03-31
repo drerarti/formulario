@@ -1,0 +1,96 @@
+.admin-sheet-body {
+  background:
+    radial-gradient(circle at top right, rgba(198, 168, 90, 0.14), transparent 22%),
+    radial-gradient(circle at left center, rgba(56, 189, 248, 0.08), transparent 20%),
+    #07111d;
+}
+
+.admin-reservation-app .toolbar-sub {
+  color: rgba(244, 232, 201, 0.78);
+}
+
+.admin-reservation-app .toolbar-actions {
+  align-items: center;
+}
+
+.admin-sheet {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(248, 250, 252, 0.985)),
+    #ffffff;
+}
+
+.admin-sheet-hero {
+  align-items: stretch;
+}
+
+.admin-ops-panel {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(198, 168, 90, 0.07));
+  border-color: rgba(198, 168, 90, 0.16);
+}
+
+.admin-ops-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.admin-ops-list div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-ops-list dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7c889d;
+}
+
+.admin-ops-list dd {
+  margin: 0;
+  color: #111827;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.admin-notes-box {
+  min-height: 190px;
+  white-space: pre-wrap;
+}
+
+.admin-signature-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .admin-signature-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .admin-sheet-body {
+    background: #ffffff !important;
+  }
+
+  .admin-sheet {
+    background: #ffffff !important;
+  }
+
+  .admin-ops-panel {
+    background: #ffffff !important;
+    border-color: #d9e1ec !important;
+  }
+
+  .admin-ops-list div,
+  .detail-group,
+  .financial-card,
+  .finance-summary {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .admin-notes-box {
+    min-height: 0;
+  }
+}

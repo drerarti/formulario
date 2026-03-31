@@ -1,339 +1,69 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Plano Dinámico</title>
-
-<style>
-body { font-family: Arial; margin:0; }
-
-#header {
-  padding:10px;
-  background:#111;
-  color:white;
-  font-size:14px;
-}
-
-#plano-wrapper {
-  width: 100%;
-   height: calc(100vh - 180px);
-  overflow: hidden;
-  touch-action: none;
-  background: #e9ecef;
-}
-
-#plano-container{
-  width:100%;
-  height:100%;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-
-#plano-container svg{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-}
-path {
-  transition: fill 0.3s ease;
-  cursor: pointer;
-}
-
-path.selected {
-  stroke: #000;
-  stroke-width: 2;
-}
-.manzana-highlight{
-  filter: brightness(1.15);
-  stroke: #333;
-  stroke-width: 1.5;
-}
-#tooltip {
-  position: absolute;
-  background: white;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  font-size: 13px;
-  border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  pointer-events: none;
-  display: none;
-  z-index: 1000;
-}
-
-#mobile-card {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-
-  width: 100%;
-  box-sizing: border-box; /* 🔥 CLAVE */
-
-  max-height: 45vh;
-  overflow-y: auto;
-
-  background: white;
-  padding: 14px 16px 18px 16px;
-
-  box-shadow: 0 -6px 25px rgba(0,0,0,0.18);
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: translateY(100%);
-  z-index: 9999;
-}
-#mobile-card h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-}
-
-#mobile-card p {
-  margin: 4px 0;
-  font-size: 14px;
-}
-#mobile-card.active {
-  transform: translateY(0);
-}
-
-.close-card {
-  position: absolute;
-  right: 15px;
-  top: 10px;
-  font-size: 18px;
-  cursor: pointer;
-}
-#filtros{
-  padding:8px 10px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  font-size:13px;
-  background:#fafafa;
-}
-
-#filtros label{
-  background:#eee;
-  padding:6px 10px;
-  border-radius:20px;
-}
-#selector-proyecto {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
-  background: #222;
-}
-
-#selector-proyecto select {
-  flex: 1;
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-  font-size: 14px;
-}
-#resumen{
-  padding:10px;
-  font-size:13px;
-  display:flex;
-  gap:10px;
-  justify-content:space-between;
-  background:#fff;
-  border-bottom:1px solid #ddd;
-  color:#333;
-}
-.btn-reservar {
-  width: 100%;
-  margin-top: 12px;
-  padding: 12px;
-  background: linear-gradient(135deg,#28a745,#218838);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  
-}
-.blur-bg {
-  filter: blur(1px) brightness(0.9);
-  transition: filter 0.3s ease;
-}
-#top-panel {
-  position: relative;
-  z-index: 2000;
-}
-
-#top-bar {
-  display: none;
-  background: #111;
-  color: white;
-  padding: 10px 14px;
-  font-size: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#toggle-panel {
-  cursor: pointer;
-  font-size: 16px;
-}
-
-#top-content {
-  transition: max-height 0.35s ease, opacity 0.3s ease;
-}
-
-/* 📱 SOLO EN MÓVIL */
-@media (max-width: 768px) {
-
-  #top-bar {
-    display: flex;
-  }
-
-  #top-content {
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-  }
-
-  #top-content.active {
-    max-height: 600px;
-    opacity: 1;
-  }
-
-}
-.modal-360 {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-360.hidden {
-  display: none;
-}
-
-.modal-header {
-  color: white;
-  padding: 12px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-}
-
-#visor360 {
-  flex: 1;
-}
-#btnPresentacion {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg,#000,#1c1c1c);
-  color: white;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 10px;
-  transition: all 0.25s ease;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-  letter-spacing: 0.5px;
-}
-
-#btnPresentacion:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
-}
-text {
-  pointer-events: none;
-  font-weight: bold;
-  vector-effect: non-scaling-stroke;
-  font-size:14px;
-}
-path:hover {
-  stroke: #000;
-  stroke-width: 1.5;
-  filter: brightness(1.15);
-}
-#selector-proyecto{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:10px;
-  background:#1a1a1a;
-}
-
-#buscador-lote{
-  flex:1 1 100%;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  background:white;
-  border-radius:10px;
-  padding:6px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.15);
-}
-
-#selector-proyecto select{
-  flex:1;
-  padding:8px;
-  border-radius:8px;
-  border:none;
-  background:#2b2b2b;
-  color:white;
-}
-#buscador-lote input{
-  flex:1;
-  min-width:0;
-  border:none;
-  outline:none;
-  font-size:14px;
-}
-
-
-#buscador-lote button{
-  flex:0 0 auto;
-  padding:8px 12px;
-  background:#111;
-  color:white;
-  border:none;
-  border-radius:6px;
-  font-size:14px;
-}
-#sugerencias-lotes{
-  position:absolute;
-  background:white;
-  border:1px solid #ddd;
-  border-radius:6px;
-  width:100%;
-  max-height:180px;
-  overflow-y:auto;
-  box-shadow:0 4px 10px rgba(0,0,0,0.15);
-  z-index:5000;
-}
-
-.sugerencia-item{
-  padding:8px 10px;
-  font-size:14px;
-  cursor:pointer;
-}
-
-.sugerencia-item:hover{
-  background:#f0f0f0;
-}
-body.no-scroll { overflow: hidden; }
-</style>
+<title>Plano Comercial | Ayllu Laguna Huaypo</title>
+<link rel="stylesheet" href="plano.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
 </head>
+<body class="plano-page plano-agent">
+  <div class="plano-shell">
+    <div id="top-panel">
+      <div id="top-bar">
+        <span id="mini-info"></span>
+        <span id="toggle-panel">v</span>
+      </div>
+      <div id="top-content" class="active">
+        <div class="plano-header-row">
+          <div id="header">
+            <span id="headerKicker" class="plano-kicker">Plano comercial</span>
+            <h1 id="headerTitle" class="plano-title">Plano maestro</h1>
+            <p id="headerSubtitle" class="plano-subtitle">Disponibilidad y reserva en tiempo real.</p>
+          </div>
+          <div class="plano-toolbar">
+            <button id="btnPresentacion" class="btn-ghost" type="button">Modo presentacion</button>
+            <button id="btnVisibility" class="btn-ghost" type="button">Modo sol</button>
+            <button id="btnResetView" class="btn-outline" type="button">Reset vista</button>
+            <button id="btn360" class="btn-outline hidden" type="button">Vista 360</button>
+            <button id="btnExportPng" class="btn-outline" type="button">PNG</button>
+            <button id="btnExportPdf" class="btn-outline" type="button">PDF</button>
+            <button id="btnLogout" class="btn-outline" type="button">Salir</button>
+          </div>
+        </div>
 
-<body>
+        <div id="selector-proyecto">
+          <div id="buscador-lote">
+            <input type="text" id="inputLote" placeholder="Buscar lote o codigo">
+            <button id="btnBuscarLote" class="btn-outline" type="button">Buscar</button>
+            <div id="sugerencias-lotes" class="hidden"></div>
+          </div>
+          <select id="selectProyecto">
+            <option value="ALP">Alpinas</option>
+            <option value="PR">Piuray</option>
+            <option value="VG">Virgilio</option>
+            <option value="LMF">Luz Miraflores</option>
+            <option value="Asnacpujio">Asnacpujio-11000</option>
+            <option value="718">718m2</option>
+          </select>
+          <select id="selectFase">
+            <option value="F1">F1</option>
+            <option value="F2">F2</option>
+          </select>
+        </div>
 
+        <div id="resumen"></div>
 
-<div id="top-panel">
+        <div id="filtros">
+          <label><input type="checkbox" value="disponible" checked> Disponible</label>
+          <label><input type="checkbox" value="reservado" checked> Reservado</label>
+          <label><input type="checkbox" value="vendido" checked> Vendido</label>
+          <label><input type="checkbox" value="financiado" checked> Financiado</label>
+        </div>
+      </div>
+    </div>
 
+<<<<<<< HEAD
   <div id="top-bar">
     <span id="mini-info"></span>
     <span id="toggle-panel">▼</span>
@@ -1100,5 +830,58 @@ function iniciarVisor360() {
     `Vista ${vistaActual} de ${totalVistas}`;
 }
 </script>
+=======
+    <section class="plano-stage">
+      <div id="plano-wrapper">
+        <div id="planoLoading"></div>
+        <div id="plano-container"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="tooltip"></div>
+  <div id="panelOverlay"></div>
+
+  <aside id="mobile-card" aria-hidden="true">
+    <div class="panel-handle"></div>
+    <div class="detail-panel-scroll">
+      <div class="detail-heading">
+        <div>
+          <div id="detailEyebrow" class="detail-eyebrow">Detalle del lote</div>
+          <h2 id="detailTitle" class="detail-title">Selecciona un lote</h2>
+          <p id="detailSubtitle" class="detail-subtitle">Explora disponibilidad y reserva.</p>
+        </div>
+        <div>
+          <button id="detailClose" type="button" aria-label="Cerrar">×</button>
+        </div>
+      </div>
+
+      <div id="detailStatusBadge"></div>
+      <div id="detailMetrics" class="detail-metrics"></div>
+      <div id="detailPrimaryActions" class="detail-actions"></div>
+      <section id="detailPublicBlock" class="detail-card"></section>
+      <section id="detailCommercialBlock" class="detail-card hidden"></section>
+      <section id="detailOperationalBlock" class="detail-card hidden"></section>
+      <section id="detailEditBlock" class="detail-card hidden"></section>
+    </div>
+  </aside>
+
+  <div id="modal360" class="modal-360 hidden">
+    <div class="modal-header">
+      <span id="contador360">Vista 1 de 1</span>
+      <button id="cerrar360" class="btn-outline" type="button">Cerrar</button>
+    </div>
+    <div id="visor360"></div>
+  </div>
+
+  <script src="/js/panzoom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/app-core.js"></script>
+  <script src="js/plano-utils.js"></script>
+  <script src="js/plano-experience.js"></script>
+  <script src="plano-agent.page.js"></script>
+>>>>>>> 5cc9890 (deploy)
 </body>
 </html>
+

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ficha Comercial de Reserva | Ayllu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ver-reserva.css" />
+</head>
+<body>
+  <div class="reservation-app">
+    <header class="toolbar no-print">
+      <div class="toolbar-brand">
+        <img class="toolbar-mark" src="assets/brand/ayllu-mark.svg" alt="Ayllu" />
+        <div>
+          <div class="toolbar-logo">AYLLU</div>
+          <div class="toolbar-sub">Ficha comercial de reserva</div>
+        </div>
+      </div>
+
+      <div class="toolbar-side">
+        <p class="toolbar-hint">
+          Diseno optimizado para hoja A4. Puedes imprimir o elegir "Guardar como PDF"
+          en el dialogo del navegador.
+        </p>
+        <div class="toolbar-actions">
+          <button type="button" class="toolbar-btn secondary" id="btnBack">Volver</button>
+          <button type="button" class="toolbar-btn" id="btnPrint">Imprimir</button>
+          <button type="button" class="toolbar-btn accent" id="btnPdf">Guardar como PDF</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="sheet-shell">
+      <div class="loading-state" id="loadingState">
+        <div class="loading-ring" aria-hidden="true"></div>
+        <p>Cargando reserva...</p>
+      </div>
+
+      <div class="error-state hidden" id="errorState">
+        <div class="error-card">
+          <div class="error-kicker">Acceso restringido</div>
+          <h1>No pudimos abrir esta reserva</h1>
+          <p id="errorMessage">La reserva no existe o no esta disponible para tu usuario.</p>
+          <button type="button" class="toolbar-btn accent" id="btnErrorBack">Volver al panel</button>
+        </div>
+      </div>
+
+      <article class="reservation-sheet hidden" id="reservationSheet">
+        <section class="sheet-hero">
+          <div class="hero-brand-block">
+            <div class="hero-brand">
+              <div class="hero-mark-wrap">
+                <img class="hero-mark" src="assets/brand/ayllu-mark.svg" alt="Ayllu" />
+              </div>
+              <div class="hero-copy">
+                <div class="sheet-kicker">Documento comercial privado</div>
+                <h1>Ficha de Reserva</h1>
+                <p class="sheet-subtitle" id="sheetSubtitle">
+                  Documento comercial listo para impresión o guardado como PDF.
+                </p>
+                <div class="project-summary">
+                  <span class="project-chip" id="projectChip">Proyecto no disponible</span>
+                  <span class="project-meta" id="projectMeta">
+                    Sin ubicación comercial detallada
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-summary">
+              <div class="sheet-card compact-card">
+                <div class="card-label">Fecha de emisión</div>
+                <div class="card-value" id="fechaCreacion">--</div>
+                <div class="card-note" id="fechaInicio">Sin fecha de inicio registrada</div>
+              </div>
+
+              <div class="sheet-card compact-card">
+                <div class="card-label">Vigencia comercial</div>
+                <div class="card-value" id="fechaVigencia">--</div>
+                <div class="card-note" id="fechaValidacion">Sin validación registrada</div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="hero-side">
+            <div class="hero-panel hero-panel-primary">
+              <div class="sheet-code-label">Código comercial</div>
+              <div class="sheet-code" id="sheetCode">--</div>
+              <div class="sheet-internal">Documento comercial de uso privado</div>
+              <div class="status-stack">
+                <span class="status-pill tone-neutral" id="sheetStatus">Sin estado</span>
+                <p class="status-note" id="sheetStatusNote">Estado operativo actual.</p>
+              </div>
+            </div>
+
+            <div class="hero-panel qr-panel">
+              <div class="sheet-code-label">Acceso rápido</div>
+              <div class="qr-frame">
+                <img id="qrImage" alt="Código QR de la reserva" />
+              </div>
+              <p class="qr-caption" id="qrCaption">
+                Escanea para abrir esta ficha dentro del entorno autenticado.
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="sheet-grid top-grid">
+          <div class="sheet-card">
+            <div class="card-label">Agente responsable</div>
+            <div class="card-value" id="agenteNombre">--</div>
+            <div class="card-note" id="agenteCodigo">Asesor comercial asignado</div>
+          </div>
+
+          <div class="sheet-card">
+            <div class="card-label">Cliente</div>
+            <div class="card-value" id="clienteNombre">--</div>
+            <div class="card-note" id="clienteDocumento">Documento no disponible</div>
+          </div>
+
+          <div class="sheet-card">
+            <div class="card-label">Unidad / lote</div>
+            <div class="card-value" id="unidadCodigo">--</div>
+            <div class="card-note" id="unidadResumen">Sin referencia comercial</div>
+          </div>
+
+          <div class="sheet-card">
+            <div class="card-label">Operación</div>
+            <div class="card-value" id="tipoOperacionTop">--</div>
+            <div class="card-note" id="monedaOperacionTop">Moneda no disponible</div>
+          </div>
+        </section>
+
+        <section class="sheet-section">
+          <div class="section-head">
+            <div class="section-kicker">Detalle operativo</div>
+            <h2>Participantes y seguimiento</h2>
+          </div>
+
+          <div class="details-grid">
+            <div class="detail-group">
+              <h3>Cliente</h3>
+              <dl class="detail-list">
+                <div><dt>Nombre</dt><dd id="clienteNombreDetalle">--</dd></div>
+                <div><dt>Documento</dt><dd id="clienteDni">--</dd></div>
+                <div><dt>Teléfono</dt><dd id="clienteTelefono">--</dd></div>
+              </dl>
+            </div>
+
+            <div class="detail-group">
+              <h3>Agente</h3>
+              <dl class="detail-list">
+                <div><dt>Asesor</dt><dd id="agenteNombreDetalle">--</dd></div>
+                <div><dt>Canal</dt><dd id="agenteCodigoDetalle">Atención comercial privada</dd></div>
+                <div><dt>Estado</dt><dd id="estadoDetalle">--</dd></div>
+                <div><dt>Validación</dt><dd id="estadoFechaDetalle">--</dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <section class="sheet-section">
+          <div class="section-head">
+            <div class="section-kicker">Unidad vinculada</div>
+            <h2>Proyecto y lote</h2>
+          </div>
+
+          <div class="details-grid unit-grid">
+            <div class="detail-group">
+              <h3>Referencia del proyecto</h3>
+              <dl class="detail-list">
+                <div><dt>Proyecto</dt><dd id="unidadProyecto">--</dd></div>
+                <div><dt>Fase / etapa</dt><dd id="unidadFase">--</dd></div>
+                <div><dt>Manzana / lote</dt><dd id="unidadManzana">--</dd></div>
+                <div><dt>Vigencia</dt><dd id="unidadVigencia">--</dd></div>
+              </dl>
+            </div>
+
+            <div class="detail-group">
+              <h3>Ficha del lote</h3>
+              <dl class="detail-list">
+                <div><dt>Unidad</dt><dd id="unidadCodigoDetalle">--</dd></div>
+                <div><dt>Área</dt><dd id="unidadArea">--</dd></div>
+                <div><dt>Precio lista</dt><dd id="unidadPrecio">--</dd></div>
+                <div><dt>Moneda</dt><dd id="unidadMoneda">--</dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <section class="sheet-section finance-section">
+          <div class="section-head">
+            <div class="section-kicker">Condiciones económicas</div>
+            <h2>Bloque financiero</h2>
+          </div>
+
+          <div class="finance-layout">
+            <div class="finance-summary">
+              <div class="financial-row">
+                <span>Precio total</span>
+                <strong id="precioFinal">--</strong>
+              </div>
+              <div class="financial-row">
+                <span>Separación / reserva</span>
+                <strong id="montoReserva">--</strong>
+              </div>
+              <div class="financial-row">
+                <span>Cuota inicial</span>
+                <strong id="montoInicial">--</strong>
+              </div>
+              <div class="financial-row">
+                <span>Saldo pendiente</span>
+                <strong id="saldoPendiente">--</strong>
+              </div>
+              <div class="financial-row">
+                <span>Moneda</span>
+                <strong id="monedaOperacion">--</strong>
+              </div>
+              <div class="financial-row">
+                <span>Tipo de operación</span>
+                <strong id="tipoOperacion">--</strong>
+              </div>
+            </div>
+
+            <div class="financial-grid">
+              <div class="financial-card emphasis">
+                <span>Precio final</span>
+                <strong id="precioFinalCard">--</strong>
+                <small>Base comercial principal de la reserva</small>
+              </div>
+
+              <div class="financial-card accent-card">
+                <span>Saldo pendiente</span>
+                <strong id="saldoPendienteCard">--</strong>
+                <small>Pendiente de completar para la operación</small>
+              </div>
+
+              <div class="financial-card">
+                <span>Ajuste comercial</span>
+                <strong id="ajusteComercial">Sin ajuste</strong>
+                <small id="ajusteDetalle">No se registran descuentos ni sobreprecios.</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sheet-section notes-section" id="notesSection">
+          <div class="section-head">
+            <div class="section-kicker">Observaciones</div>
+            <h2>Notas de la reserva</h2>
+          </div>
+          <div class="notes-box" id="notesBox">Sin observaciones registradas.</div>
+        </section>
+
+        <section class="sheet-footer">
+          <div class="footer-mark">
+            <div class="footer-label">Conformidad comercial</div>
+            <p id="footerSummary">Documento informativo generado desde el panel privado del agente.</p>
+          </div>
+
+          <div class="signature-grid">
+            <div class="signature-card">
+              <div class="signature-line"></div>
+              <span>Firma del agente</span>
+            </div>
+            <div class="signature-card">
+              <div class="signature-line"></div>
+              <span>Firma del cliente</span>
+            </div>
+          </div>
+        </section>
+      </article>
+    </main>
+  </div>
+
+  <script src="js/app-core.js"></script>
+  <script src="ver-reserva.page.js"></script>
+</body>
+</html>

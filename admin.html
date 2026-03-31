@@ -13,52 +13,131 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="logo">AYLLU <span>Laguna Huaypo</span></div>
-    <nav>
+    <nav class="sidebar-nav">
       <button class="nav-btn active" data-nav="dashboard">Dashboard</button>
       <button class="nav-btn" data-nav="reservas">Reservas</button>
       <button class="nav-btn" data-nav="ventas">Ventas</button>
+      <button class="nav-btn" data-nav="extensiones">Extensiones</button>
       <button class="nav-btn" data-nav="unidades">Unidades</button>
       <button class="nav-btn" onclick="abrirPlanoAdmin()">Plano</button>
     </nav>
-    <div style="flex:1"></div>
+    <div class="sidebar-spacer"></div>
     <div class="admin-info"><span class="status-dot"></span> Administrador</div>
   </aside>
 
   <!-- MAIN -->
   <main class="main">
-    <div class="header">
+    <div class="header admin-header">
       <div class="title">Panel de Gestión</div>
-      <div class="small">Bienvenido</div>
+      <div class="small" id="adminSubtitle">OperaciÃ³n comercial, control y seguimiento.</div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-outline" id="btnRefreshAdmin">Actualizar datos</button>
     </div>
 
     <!-- DASHBOARD -->
     <section id="dashboard" class="section">
-      <h2>Dashboard General</h2>
-      <div id="dashboardKpis" class="kpis"></div>
+      <div class="section-title-row">
+        <div>
+          <div class="section-kicker">Vista general</div>
+          <h2>Dashboard administrativo</h2>
+        </div>
+        <div class="section-chip" id="dashboardStamp">Sincronizando datos</div>
+      </div>
+      <div id="dashboardKpis" class="kpis admin-kpis"></div>
 
-      <div class="chart-card" style="margin-top:18px;">
-        <canvas id="ventasChart"></canvas>
+      <div class="dashboard-grid">
+        <div class="chart-card">
+          <div class="card-topline">
+            <div>
+              <div class="section-kicker">Tendencia</div>
+              <h3>Ventas y cobros</h3>
+            </div>
+          </div>
+          <canvas id="ventasChart"></canvas>
+        </div>
+
+        <div class="insight-panel" id="dashboardHighlights"></div>
       </div>
     </section>
 
     <!-- RESERVAS -->
     <section id="reservas" class="section hidden">
-      <h2>Reservas Activas</h2>
-      <div id="reservasContainer"></div>
+      <div class="section-title-row">
+        <div>
+          <div class="section-kicker">OperaciÃ³n activa</div>
+          <h2>Reservas</h2>
+        </div>
+        <div class="section-chip" id="reservasSummaryChip">0 resultados</div>
+      </div>
+
+      <div class="toolbar-card filters-toolbar" id="reservasFilters">
+        <input id="reservaSearch" type="search" placeholder="Buscar por cliente, agente, unidad o cÃ³digo" />
+        <select id="reservaEstadoFilter">
+          <option value="">Todos los estados</option>
+        </select>
+        <select id="reservaProyectoFilter">
+          <option value="">Todos los proyectos</option>
+        </select>
+        <select id="reservaAgenteFilter">
+          <option value="">Todos los agentes</option>
+        </select>
+        <select id="reservaSort">
+          <option value="recent">MÃ¡s recientes</option>
+          <option value="oldest">MÃ¡s antiguas</option>
+          <option value="amount_desc">Mayor monto</option>
+          <option value="amount_asc">Menor monto</option>
+          <option value="client_asc">Cliente A-Z</option>
+        </select>
+        <input id="reservaDateFrom" type="date" />
+        <input id="reservaDateTo" type="date" />
+      </div>
+
+      <div class="meta-row" id="reservasMeta"></div>
+      <div id="reservasContainer" class="collection-grid"></div>
+      <div class="pagination-row" id="reservasPagination"></div>
     </section>
 
     <!-- VENTAS -->
-    <section id="ventas" class="section hidden">
+<section id="ventas" class="section hidden">
+  <div class="section-title-row">
+    <div>
+      <div class="section-kicker">Seguimiento financiero</div>
+      <h2>Ventas</h2>
+    </div>
+    <div class="section-chip" id="ventasSummaryChip">0 ventas</div>
+  </div>
       <h2>Gestión de Ventas</h2>
-      <div id="ventasContainer"></div>
+      <div class="toolbar-card filters-toolbar" id="ventasFilters">
+        <input id="ventaSearch" type="search" placeholder="Buscar por cliente, agente o unidad" />
+        <select id="ventaEstadoFilter">
+          <option value="">Todos los estados</option>
+        </select>
+        <select id="ventaSort">
+          <option value="recent">MÃ¡s recientes</option>
+          <option value="amount_desc">Mayor ticket</option>
+          <option value="amount_asc">Menor ticket</option>
+          <option value="balance_desc">Mayor saldo</option>
+          <option value="client_asc">Cliente A-Z</option>
+        </select>
+      </div>
+      <div class="meta-row" id="ventasMeta"></div>
+      <div id="ventasContainer" class="collection-grid"></div>
+      <div class="pagination-row" id="ventasPagination"></div>
     </section>
 
     <!-- UNIDADES (placeholder) -->
     <section id="unidades" class="section hidden">
 
-<h2>Inventario de Unidades</h2>
+<div class="section-title-row">
+  <div>
+    <div class="section-kicker">Inventario</div>
+    <h2>Unidades</h2>
+  </div>
+  <div class="section-chip" id="contadorUnidades">Mostrando 0 unidades</div>
+</div>
 
-<div id="filtrosUnidades" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+<div id="filtrosUnidades" class="toolbar-card filters-toolbar">
 
 <select id="filtroProyecto">
 <option value="">Todos los proyectos</option>
@@ -83,18 +162,24 @@
 id="buscarLote"
 type="text"
 placeholder="Buscar lote (ej: MA-06)"
-style="padding:6px 8px;border-radius:6px;border:none;"
 />
 
 </div>
 
-<div id="unidadesContainer"></div>
+<div id="unidadesContainer" class="units-grid"></div>
 
 </section>
-<section>
+<section id="extensiones" class="section hidden">
+  <div class="section-title-row">
+    <div>
+      <div class="section-kicker">Solicitudes complementarias</div>
+      <h2>Extensiones</h2>
+    </div>
+    <div class="section-chip" id="extensionesSummaryChip">0 solicitudes</div>
+  </div>
   <h2>Solicitudes de extensión</h2>
 
-<div class="tabla-wrapper">
+<div class="tabla-wrapper hidden">
 <table id="tablaExtensiones" class="tabla-admin">
   <thead>
     <tr>
@@ -110,6 +195,29 @@ style="padding:6px 8px;border-radius:6px;border:none;"
 
   <tbody id="extensionesBody"></tbody>
 </table>
+</div>
+<div class="extensions-board" id="extensionsBoard">
+  <div class="extension-column">
+    <div class="extension-column-head">
+      <h3>Pendientes</h3>
+      <span class="count-pill" id="extPendingCount">0</span>
+    </div>
+    <div class="extension-column-body" id="extensionesPendientes"></div>
+  </div>
+  <div class="extension-column">
+    <div class="extension-column-head">
+      <h3>Aprobadas</h3>
+      <span class="count-pill" id="extApprovedCount">0</span>
+    </div>
+    <div class="extension-column-body" id="extensionesAprobadas"></div>
+  </div>
+  <div class="extension-column">
+    <div class="extension-column-head">
+      <h3>Rechazadas</h3>
+      <span class="count-pill" id="extRejectedCount">0</span>
+    </div>
+    <div class="extension-column-body" id="extensionesRechazadas"></div>
+  </div>
 </div>
 </section>
   </main>
@@ -130,8 +238,9 @@ style="padding:6px 8px;border-radius:6px;border:none;"
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <!-- admin.js (pega aquí tu admin.js consolidado o referencia a archivo) -->
+<script src="js/app-core.js"></script>
 <script src="admin.js"></script>
-<script src="unidades-cache.js"></script>
+<script src="admin.page.js"></script>
 <script>
 function abrirPlanoAdmin(){
   window.open("plano-admin.html","_blank");
