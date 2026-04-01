@@ -954,39 +954,6 @@ exports.handler = async (event) => {
 // GET SOLICITUDES EXTENSION
 // ==============================
 if (qs.extensiones === "1") {
-<<<<<<< HEAD
-
-  const url =
-    `https://api.airtable.com/v0/${BASE_ID}/SOLICITUDES_EXTENSION`;
-
-  const response = await fetch(url, { headers });
-
-  if (!response.ok) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Error obteniendo extensiones" })
-    };
-  }
-
-  const data = await response.json();
-
-  const result = data.records.map(r => ({
-    id: r.id,
-    reserva_id: r.fields.reserva_id || "",
-    unidad_codigo: r.fields.unidad_codigo || "",
-    cliente: r.fields.cliente || "",
-    agente: r.fields.agente || "",
-    monto_adicional: r.fields.monto_adicional || 0,
-    comentarios: r.fields.comentarios || "",
-    estado_extension: r.fields.estado_extension || "",
-    voucher: r.fields.voucher || []
-  }));
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify(result)
-  };
-=======
   const auth = requireSession(event);
   if (auth.error) return auth.error;
 
@@ -1043,34 +1010,12 @@ if (qs.extensiones === "1") {
   });
 
   return success(sortByCreatedTimeDesc(result));
->>>>>>> 5cc9890 (deploy)
 }
       // =======================================
 // OBTENER UNIDAD DESDE RESERVA
 // =======================================
 
 if (qs.reserva) {
-<<<<<<< HEAD
-
-  const reservaId = qs.reserva.trim().replace(",", "");
-
-  const url = `https://api.airtable.com/v0/${BASE_ID}/RESERVAS/${reservaId}`;
-
-  const response = await fetch(url, { headers });
-
-  const data = await response.json();
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-  unidad_id: data.fields.unidad_codigo 
-    ? data.fields.unidad_codigo[0] 
-    : null
-})
-  };
-
-}
-=======
   const auth = requireSession(event);
   if (auth.error) return auth.error;
 
@@ -1195,7 +1140,6 @@ if (qs.reserva_detalle) {
     boleta_emitida: !!reserva.fields.boleta_emitida
   });
 }
->>>>>>> 5cc9890 (deploy)
       // ==============================
 // LOGIN AGENTE
 // ==============================
@@ -1705,30 +1649,6 @@ if (qs.plano === "1") {
       ? reservationSnapshots.get(reservaId) || null
       : null;
 
-<<<<<<< HEAD
-  allRecords = allRecords.concat(data.records);
-
-  offset = data.offset;
-
-} while (offset);
-
-const result = allRecords.map(r => ({
-  lote_id: r.fields.unidad_id,
-  estado: (r.fields.estado_unidad || "").toLowerCase(),
-  precio: r.fields.precio_lista || 0,
-  manzana: r.fields.Manzana || "",
-  lote: r.fields.Lote || "",
-  area: r.fields.area_m2 || 0,
-    cliente: r.fields.cliente_nombre,
-  agente: r.fields.agente_nombre,
-  monto_reserva: r.fields.monto_reserva,
-  descuento_solicitado: r.fields.descuento_solicitado,
-  sobreprecio: r.fields.sobreprecio,
-  motivo_descuento: r.fields.motivo_descuento,
-  reserva_id: r.id
-}));
-  return { statusCode: 200, body: JSON.stringify(result) };
-=======
     return {
       unidad_record_id: record.id,
       lote_id: fields.unidad_id || "",
@@ -1769,7 +1689,6 @@ const result = allRecords.map(r => ({
     };
   });
   return success(result);
->>>>>>> 5cc9890 (deploy)
 }
       // ==============================
       // GET VENTAS
@@ -2621,20 +2540,17 @@ if (body.action === "editar_unidad") {
   };
 
 }
-<<<<<<< HEAD
   // 🔓 Aquí sigue tu lógica normal de PATCH
 // ==============================
 // APROBAR EXTENSION
 // ==============================
 
-=======
 
   // ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å“ AquÃƒÆ’Ã‚Â­ sigue tu lÃƒÆ’Ã‚Â³gica normal de PATCH
 // ==============================
 // APROBAR EXTENSION
 // ==============================
 
->>>>>>> 5cc9890 (deploy)
 if (body.action === "aprobar_extension") {
 
   const extensionId = body.extension_id;
@@ -2720,11 +2636,8 @@ if (body.action === "rechazar_extension") {
     body: JSON.stringify({ success: true })
   };
 }
-<<<<<<< HEAD
       // NEGOCIACIÓN
-=======
       // NEGOCIACIÃƒÆ’Ã¢â‚¬Å“N
->>>>>>> 5cc9890 (deploy)
       if (body.action === "negociacion") {
 
         await fetch(
@@ -3320,17 +3233,12 @@ const agenteNombre = decoded.nombre;
                 dni_cliente: dniCliente,
                 telefono_cliente: telefonoCliente,
                 agente: agenteNombre,
-<<<<<<< HEAD
                 monto_reserva: Number(body.monto_reserva || 0),
                 descuento_solicitado: Number(body.descuento_solicitado || 0),
-                sobreprecio: body.sobreprecio,
-                motivo_descuento: body.motivo_descuento,
-=======
                 monto_reserva: montoReserva,
                 descuento_solicitado: descuentoSolicitado,
                 sobreprecio,
                 motivo_descuento: motivoDescuento,
->>>>>>> 5cc9890 (deploy)
                 estado_reserva: "Solicitud",
                 fecha_inicio: hoy
               }
