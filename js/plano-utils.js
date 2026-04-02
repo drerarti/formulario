@@ -167,7 +167,7 @@
     }
 
     const scale = Math.max(
-      0.45,
+      0.02,
       Math.min(width / bounds.width, height / bounds.height) * paddingRatio
     );
     const centerX = bounds.x + bounds.width / 2;

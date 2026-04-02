@@ -500,6 +500,7 @@
     const params = getCurrentParams();
     const currentProject = String(params.get("proyecto") || options.defaultProject || "VG").trim();
     const currentPhase = String(params.get("fase") || options.defaultPhase || "F1").trim();
+    const debugEnabled = params.get("planoDebug") === "1" || localStorage.getItem("plano_debug") === "1";
 
     const refs = {
       body: document.body,
@@ -589,6 +590,10 @@
       svg: null,
       panzoom: null,
       initialView: null,
+      scaleRange: {
+        min: 0.05,
+        max: 8
+      },
       labelNodes: new Map(),
       labelRender: {
         mode: "",
@@ -657,6 +662,18 @@
         clipPathCount,
         isHeavy: bytes >= 900000 || pathCount >= 3500 || clipPathCount >= 1200
       };
+    }
+
+    function debugViewport(event, extra = {}) {
+      if (!debugEnabled) return;
+      console.info("[plano-debug]", {
+        event,
+        project: state.currentProject,
+        phase: state.currentPhase,
+        isMobile: state.isMobile,
+        heavySvg: state.heavySvg,
+        ...extra
+      });
     }
 
     function setLoading(loading, message) {
@@ -1408,8 +1425,48 @@
       return PlanoUtils.calculateFitTransform(refs.wrapper, bounds, paddingRatio);
     }
 
+    function refreshScaleRange(fitView = null) {
+      const resolvedFit = fitView || computeInitialView();
+      const fitScale = PlanoUtils.safeNumber(resolvedFit?.scale, 0);
+      let minScale = state.isMobile ? 0.05 : 0.55;
+
+      if (fitScale > 0) {
+        minScale = state.isMobile
+          ? fitScale * 0.72
+          : Math.min(0.55, fitScale * 0.82);
+      }
+
+      state.scaleRange = {
+        min: Math.max(minScale, 0.005),
+        max: state.isMobile ? 8 : 10
+      };
+
+      debugViewport("scale-range", {
+        fitScale,
+        scaleRange: state.scaleRange
+      });
+
+      return state.scaleRange;
+    }
+
+    function applyScaleRange() {
+      if (!state.panzoom || !state.scaleRange) return;
+      if (state.isMobile && typeof state.panzoom.setScaleRange === "function") {
+        state.panzoom.setScaleRange(state.scaleRange);
+        return;
+      }
+      if (typeof state.panzoom.setOptions === "function") {
+        state.panzoom.setOptions({
+          minScale: state.scaleRange.min,
+          maxScale: state.scaleRange.max
+        });
+      }
+    }
+
     function refreshInitialView(options = {}) {
       state.initialView = computeInitialView();
+      refreshScaleRange(state.initialView);
+      applyScaleRange();
       if (!options.apply || !state.initialView || !state.panzoom) return;
       PlanoUtils.applyView(state.panzoom, state.initialView, {
         animate: options.animate !== false,
@@ -1674,14 +1731,15 @@
       if (state.panzoom && typeof state.panzoom.destroy === "function") {
         state.panzoom.destroy();
       }
+      const scaleRange = state.scaleRange || refreshScaleRange();
       if (state.isMobile) {
-        state.panzoom = createMobileTouchController(svg);
+        state.panzoom = createMobileTouchController(svg, scaleRange);
         bindTouchEnhancements();
         return;
       }
       state.panzoom = window.Panzoom(svg, {
-        maxScale: 10,
-        minScale: 0.55,
+        maxScale: scaleRange.max,
+        minScale: scaleRange.min,
         step: state.performanceMode ? 0.12 : 0.24,
         contain: "outside",
         pinchAndPan: true,
@@ -1699,9 +1757,9 @@
       svg.addEventListener("panzoomchange", state.panzoomChangeHandler);
     }
 
-    function createMobileTouchController(svg) {
-      const minScale = 0.5;
-      const maxScale = 8;
+    function createMobileTouchController(svg, range = {}) {
+      let minScale = PlanoUtils.safeNumber(range.min, 0.05);
+      let maxScale = PlanoUtils.safeNumber(range.max, 8);
       let scale = 1;
       let panX = 0;
       let panY = 0;
@@ -1799,6 +1857,11 @@
           setView({ scale: targetScale, x: targetX, y: targetY });
         },
         setView,
+        setScaleRange(nextRange = {}) {
+          minScale = PlanoUtils.safeNumber(nextRange.min, minScale);
+          maxScale = PlanoUtils.safeNumber(nextRange.max, maxScale);
+          setView({ scale });
+        },
         destroy() {
           if (frameId) {
             window.cancelAnimationFrame(frameId);
@@ -1850,14 +1913,26 @@
       });
     }
 
-    function waitForStableViewport(maxFrames = 10) {
+    function waitForStableViewport(maxFrames = 18, stableFrames = 2) {
       return new Promise((resolve) => {
+        let lastWidth = 0;
+        let lastHeight = 0;
+        let stableCount = 0;
+
         const tick = (remaining) => {
           const rect = refs.wrapper?.getBoundingClientRect?.();
           const bounds = getInitialFitBounds();
-          if ((rect?.width || 0) > 0 && (rect?.height || 0) > 0 && bounds?.width && bounds?.height) {
-            resolve(true);
-            return;
+          const width = Math.round(PlanoUtils.safeNumber(rect?.width));
+          const height = Math.round(PlanoUtils.safeNumber(rect?.height));
+
+          if (width > 0 && height > 0 && bounds?.width && bounds?.height) {
+            stableCount = width === lastWidth && height === lastHeight ? stableCount + 1 : 1;
+            lastWidth = width;
+            lastHeight = height;
+            if (stableCount >= stableFrames) {
+              resolve(true);
+              return;
+            }
           }
           if (remaining <= 0) {
             resolve(false);
@@ -1918,9 +1993,24 @@
         buildLotGeometry();
         enrichCommercialData();
         repaintLots();
+        const viewportReady = await waitForStableViewport();
+        if (!viewportReady) {
+          debugViewport("viewport-timeout", {
+            wrapper: refs.wrapper?.getBoundingClientRect?.(),
+            bounds: state.projectBounds,
+            lotElements: state.lotElements.length
+          });
+        }
+        refreshScaleRange();
         bindPanzoom(state.svg);
-        await waitForStableViewport();
         refreshInitialView({ apply: true, animate: false });
+        debugViewport("initial-fit", {
+          wrapper: refs.wrapper?.getBoundingClientRect?.(),
+          bounds: state.projectBounds,
+          initialView: state.initialView,
+          scaleRange: state.scaleRange,
+          lotElements: state.lotElements.length
+        });
         buildLabels();
 
         updateSummary();
@@ -1950,8 +2040,13 @@
 
     function zoomToTouchPoint(point, multiplier = 1.45) {
       if (!state.panzoom || !refs.wrapper) return;
+      const scaleRange = state.scaleRange || refreshScaleRange();
       const rect = refs.wrapper.getBoundingClientRect();
-      const nextScale = PlanoUtils.clamp(state.panzoom.getScale() * multiplier, state.isMobile ? 0.6 : 0.55, state.isMobile ? 8 : 10);
+      const nextScale = PlanoUtils.clamp(
+        state.panzoom.getScale() * multiplier,
+        scaleRange.min,
+        scaleRange.max
+      );
       state.panzoom.zoomToPoint(nextScale, {
         animate: !state.performanceMode,
         focal: {
@@ -2041,8 +2136,8 @@
 
           const nextScale = PlanoUtils.clamp(
             gesture.startScale * (distance / gesture.startDistance),
-            0.5,
-            8
+            state.scaleRange.min,
+            state.scaleRange.max
           );
           const wrapperRect = refs.wrapper.getBoundingClientRect();
           const focal = {
@@ -2289,9 +2384,12 @@
         const wasMobile = state.isMobile;
         const wasPerformanceMode = state.performanceMode;
         applyStaticState();
+        refreshScaleRange();
         if (state.svg && (wasMobile !== state.isMobile || wasPerformanceMode !== state.performanceMode)) {
           bindPanzoom(state.svg);
           buildLabels();
+        } else {
+          applyScaleRange();
         }
         if (state.selectedLotId && state.panzoom) {
           const selectedPath = getLotElement(state.selectedLotId);
