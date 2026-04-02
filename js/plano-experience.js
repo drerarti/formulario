@@ -1418,27 +1418,92 @@
       return state.projectBounds;
     }
 
+    function buildCenteredView(bounds, scale) {
+      const wrapperRect = refs.wrapper?.getBoundingClientRect?.();
+      if (!wrapperRect?.width || !wrapperRect?.height || !bounds?.width || !bounds?.height || !scale) {
+        return { x: 0, y: 0, scale: scale || 1 };
+      }
+
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+
+      return {
+        x: wrapperRect.width / (2 * scale) - centerX,
+        y: wrapperRect.height / (2 * scale) - centerY,
+        scale
+      };
+    }
+
+    function getMobileInitialViewportConfig(bounds) {
+      const wrapperRect = refs.wrapper?.getBoundingClientRect?.();
+      const wrapperWidth = PlanoUtils.safeNumber(wrapperRect?.width);
+      const wrapperHeight = PlanoUtils.safeNumber(wrapperRect?.height);
+      const wrapperAspect = wrapperWidth && wrapperHeight ? wrapperWidth / wrapperHeight : 1;
+      const contentAspect = bounds?.width && bounds?.height ? bounds.width / bounds.height : 1;
+
+      let paddingRatio = state.performanceMode ? 0.964 : 0.972;
+      if (contentAspect > wrapperAspect * 1.14) {
+        paddingRatio = Math.max(paddingRatio, 0.988);
+      } else if (contentAspect < wrapperAspect * 0.84) {
+        paddingRatio = Math.min(paddingRatio, 0.966);
+      }
+
+      if (state.currentProject === "VG") {
+        paddingRatio = Math.max(paddingRatio, 0.992);
+      } else if (state.currentProject === "PR") {
+        paddingRatio = Math.max(paddingRatio, 0.982);
+      }
+
+      return {
+        paddingRatio: PlanoUtils.clamp(paddingRatio, 0.958, 0.995),
+        floorRatio: state.performanceMode ? 0.965 : 0.972
+      };
+    }
+
     function computeInitialView() {
       const bounds = getInitialFitBounds();
       if (!bounds) return null;
-      const paddingRatio = state.isMobile ? 0.9 : state.currentProject === "VG" ? 0.985 : 0.955;
-      return PlanoUtils.calculateFitTransform(refs.wrapper, bounds, paddingRatio);
+      if (!state.isMobile) {
+        const desktopPadding = state.currentProject === "VG" ? 0.985 : 0.955;
+        return PlanoUtils.calculateFitTransform(refs.wrapper, bounds, desktopPadding);
+      }
+
+      const wrapperRect = refs.wrapper?.getBoundingClientRect?.();
+      const wrapperWidth = PlanoUtils.safeNumber(wrapperRect?.width);
+      const wrapperHeight = PlanoUtils.safeNumber(wrapperRect?.height);
+      const config = getMobileInitialViewportConfig(bounds);
+      const view = PlanoUtils.calculateFitTransform(refs.wrapper, bounds, config.paddingRatio);
+
+      if (!wrapperWidth || !wrapperHeight || !bounds.width || !bounds.height) {
+        return view;
+      }
+
+      const exactFitScale = Math.min(wrapperWidth / bounds.width, wrapperHeight / bounds.height);
+      const targetScale = Math.max(view.scale, exactFitScale * config.floorRatio);
+
+      return targetScale === view.scale
+        ? view
+        : buildCenteredView(bounds, targetScale);
     }
 
     function refreshScaleRange(fitView = null) {
       const resolvedFit = fitView || computeInitialView();
       const fitScale = PlanoUtils.safeNumber(resolvedFit?.scale, 0);
       let minScale = state.isMobile ? 0.05 : 0.55;
+      let maxScale = state.isMobile ? 8.5 : 10;
 
       if (fitScale > 0) {
         minScale = state.isMobile
-          ? fitScale * 0.72
+          ? fitScale * 0.88
           : Math.min(0.55, fitScale * 0.82);
+        if (state.isMobile) {
+          maxScale = state.performanceMode ? 8 : 8.75;
+        }
       }
 
       state.scaleRange = {
         min: Math.max(minScale, 0.005),
-        max: state.isMobile ? 8 : 10
+        max: Math.max(maxScale, Math.max(minScale, 0.005) + 0.75)
       };
 
       debugViewport("scale-range", {
@@ -1796,8 +1861,8 @@
           return { x: nextX, y: nextY };
         }
 
-        const marginX = Math.min(wrapperRect.width * 0.18, 88);
-        const marginY = Math.min(wrapperRect.height * 0.18, 88);
+        const marginX = Math.min(wrapperRect.width * 0.11, 54);
+        const marginY = Math.min(wrapperRect.height * 0.11, 54);
 
         const minX = marginX / nextScale - bounds.x - bounds.width;
         const maxX = (wrapperRect.width - marginX) / nextScale - bounds.x;
@@ -1859,7 +1924,10 @@
         setView,
         setScaleRange(nextRange = {}) {
           minScale = PlanoUtils.safeNumber(nextRange.min, minScale);
-          maxScale = PlanoUtils.safeNumber(nextRange.max, maxScale);
+          maxScale = Math.max(
+            PlanoUtils.safeNumber(nextRange.max, maxScale),
+            minScale + 0.75
+          );
           setView({ scale });
         },
         destroy() {
@@ -2038,7 +2106,7 @@
       state.tooltipLotId = "";
     }
 
-    function zoomToTouchPoint(point, multiplier = 1.45) {
+    function zoomToTouchPoint(point, multiplier = state.isMobile ? 1.62 : 1.45) {
       if (!state.panzoom || !refs.wrapper) return;
       const scaleRange = state.scaleRange || refreshScaleRange();
       const rect = refs.wrapper.getBoundingClientRect();
@@ -2066,12 +2134,11 @@
 
       const gesture = {
         mode: "idle",
-        startScale: 1,
         startPanX: 0,
         startPanY: 0,
-        startDistance: 0,
-        startCenterX: 0,
-        startCenterY: 0
+        lastDistance: 0,
+        lastCenterX: 0,
+        lastCenterY: 0
       };
 
       function getDistance(touchA, touchB) {
@@ -2093,7 +2160,6 @@
         state.touch.startY = touch.clientY;
         state.touch.moved = false;
         const currentPan = state.panzoom.getPan ? state.panzoom.getPan() : { x: 0, y: 0 };
-        gesture.startScale = state.panzoom.getScale();
         gesture.startPanX = currentPan.x;
         gesture.startPanY = currentPan.y;
 
@@ -2102,14 +2168,17 @@
           const second = event.touches[1];
           const center = getCenter(first, second);
           gesture.mode = "pinch";
-          gesture.startDistance = Math.max(getDistance(first, second), 1);
-          gesture.startCenterX = center.x;
-          gesture.startCenterY = center.y;
+          gesture.lastDistance = Math.max(getDistance(first, second), 1);
+          gesture.lastCenterX = center.x;
+          gesture.lastCenterY = center.y;
           state.touch.moved = true;
           state.touch.lastTapAt = 0;
           setGestureLock(560);
         } else {
           gesture.mode = "pan";
+          gesture.lastDistance = 0;
+          gesture.lastCenterX = touch.clientX;
+          gesture.lastCenterY = touch.clientY;
         }
         if (event.cancelable) event.preventDefault();
       };
@@ -2122,38 +2191,52 @@
           const second = event.touches[1];
           const center = getCenter(first, second);
           const distance = Math.max(getDistance(first, second), 1);
+          const scaleRange = state.scaleRange || refreshScaleRange();
 
           if (gesture.mode !== "pinch") {
             const currentPan = state.panzoom.getPan ? state.panzoom.getPan() : { x: 0, y: 0 };
             gesture.mode = "pinch";
-            gesture.startScale = state.panzoom.getScale();
             gesture.startPanX = currentPan.x;
             gesture.startPanY = currentPan.y;
-            gesture.startDistance = distance;
-            gesture.startCenterX = center.x;
-            gesture.startCenterY = center.y;
+            gesture.lastDistance = distance;
+            gesture.lastCenterX = center.x;
+            gesture.lastCenterY = center.y;
           }
 
+          const currentPan = state.panzoom.getPan ? state.panzoom.getPan() : { x: 0, y: 0 };
+          const currentScale = Math.max(state.panzoom.getScale(), 0.001);
+          const rawScaleFactor = distance / Math.max(gesture.lastDistance || distance, 1);
+          const pinchFactor = Math.pow(
+            rawScaleFactor,
+            rawScaleFactor >= 1 ? 0.94 : 0.9
+          );
           const nextScale = PlanoUtils.clamp(
-            gesture.startScale * (distance / gesture.startDistance),
-            state.scaleRange.min,
-            state.scaleRange.max
+            currentScale * pinchFactor,
+            scaleRange.min,
+            scaleRange.max
           );
           const wrapperRect = refs.wrapper.getBoundingClientRect();
-          const focal = {
-            x: gesture.startCenterX - wrapperRect.left,
-            y: gesture.startCenterY - wrapperRect.top
+          const lastFocal = {
+            x: gesture.lastCenterX - wrapperRect.left,
+            y: gesture.lastCenterY - wrapperRect.top
           };
-          const worldX = focal.x / gesture.startScale - gesture.startPanX;
-          const worldY = focal.y / gesture.startScale - gesture.startPanY;
-          const targetX = (center.x - wrapperRect.left) / nextScale - worldX;
-          const targetY = (center.y - wrapperRect.top) / nextScale - worldY;
+          const nextFocal = {
+            x: center.x - wrapperRect.left,
+            y: center.y - wrapperRect.top
+          };
+          const worldX = lastFocal.x / currentScale - currentPan.x;
+          const worldY = lastFocal.y / currentScale - currentPan.y;
+          const targetX = nextFocal.x / nextScale - worldX;
+          const targetY = nextFocal.y / nextScale - worldY;
 
           state.panzoom.setView({
             scale: nextScale,
             x: targetX,
             y: targetY
           });
+          gesture.lastDistance = distance;
+          gesture.lastCenterX = center.x;
+          gesture.lastCenterY = center.y;
           state.touch.moved = true;
           state.touch.lastTapAt = 0;
           setGestureLock(560);
@@ -2184,7 +2267,13 @@
         if ((event.touches?.length || 0) > 0) {
           state.touch.moved = true;
           if (event.touches.length > 1) {
+            const first = event.touches[0];
+            const second = event.touches[1];
+            const center = getCenter(first, second);
             gesture.mode = "pinch";
+            gesture.lastDistance = Math.max(getDistance(first, second), 1);
+            gesture.lastCenterX = center.x;
+            gesture.lastCenterY = center.y;
           } else {
             const remaining = event.touches[0];
             const currentPan = state.panzoom.getPan ? state.panzoom.getPan() : { x: 0, y: 0 };
@@ -2193,6 +2282,9 @@
             state.touch.startY = remaining.clientY;
             gesture.startPanX = currentPan.x;
             gesture.startPanY = currentPan.y;
+            gesture.lastDistance = 0;
+            gesture.lastCenterX = remaining.clientX;
+            gesture.lastCenterY = remaining.clientY;
           }
           setGestureLock(560);
           return;
@@ -2239,6 +2331,9 @@
         gesture.mode = "idle";
         state.touch.lastTapAt = 0;
         state.touch.moved = false;
+        gesture.lastDistance = 0;
+        gesture.lastCenterX = 0;
+        gesture.lastCenterY = 0;
         setGestureLock(420);
       };
 
@@ -2269,7 +2364,8 @@
       if (shouldFocus && state.panzoom) {
         PlanoUtils.focusElements(state.panzoom, refs.wrapper, [path], {
           boost: state.isMobile ? (state.performanceMode ? 1.7 : 1.95) : 1.7,
-          maxScale: state.isMobile ? 7.25 : 7
+          maxScale: state.isMobile ? 7.25 : 7,
+          minScale: state.scaleRange?.min
         });
       }
       renderPanel(lote);
@@ -2397,6 +2493,7 @@
             PlanoUtils.focusElements(state.panzoom, refs.wrapper, [selectedPath], {
               boost: state.isMobile ? (state.performanceMode ? 1.7 : 1.95) : 1.7,
               maxScale: state.isMobile ? 7.25 : 7,
+              minScale: state.scaleRange?.min,
               animate: false
             });
           } else {

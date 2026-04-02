@@ -225,10 +225,11 @@
     const paddingRatio = safeNumber(options.paddingRatio, 0.82);
     const view = calculateFitTransform(wrapper, bounds, paddingRatio);
     const boost = clamp(safeNumber(options.boost, 1.2), 1, 6);
+    const minScale = safeNumber(options.minScale, 0.55);
     const wrapperRect = wrapper.getBoundingClientRect();
     const centerX = bounds.x + bounds.width / 2;
     const centerY = bounds.y + bounds.height / 2;
-    view.scale = clamp(view.scale * boost, 0.55, safeNumber(options.maxScale, 8));
+    view.scale = clamp(view.scale * boost, minScale, safeNumber(options.maxScale, 8));
     view.x = wrapperRect.width / (2 * view.scale) - centerX;
     view.y = wrapperRect.height / (2 * view.scale) - centerY;
     applyView(panzoom, view, { animate: options.animate !== false, duration: options.duration || 480 });
