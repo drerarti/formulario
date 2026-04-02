@@ -189,7 +189,7 @@ function activarEventos() {
     const lote = mapaLotes[target.id];
     if (!lote) return;
 if (target.classList.contains("bloqueado")) return;
-    document.querySelectorAll("path").forEach(p => p.classList.remove("selected"));
+    document.querySelectorAll(".selected").forEach((path) => path.classList.remove("selected"));
     target.classList.add("selected");
     limpiarManzana();
 resaltarManzana(target.id);

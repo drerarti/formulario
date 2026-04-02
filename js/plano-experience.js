@@ -3,6 +3,9 @@
   const svgCache = new Map();
   const DEFAULT_360_CONFIG = { "alp-f2": 1 };
   const VISIBILITY_KEY = "plano_visibility_mode";
+  const PANNELLUM_JS = "https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js";
+  const PANNELLUM_CSS = "https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css";
+  let pannellumLoader = null;
 
   function el(tagName, className, text) {
     const node = document.createElement(tagName);
@@ -71,6 +74,49 @@
       }));
     }
     return svgCache.get(name);
+  }
+
+  function ensureStylesheet(id, href) {
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  function ensureScript(id, src) {
+    const existing = document.getElementById(id);
+    if (existing) {
+      if (window.pannellum) return Promise.resolve(window.pannellum);
+      return new Promise((resolve, reject) => {
+        existing.addEventListener("load", () => resolve(window.pannellum), { once: true });
+        existing.addEventListener("error", reject, { once: true });
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.id = id;
+      script.src = src;
+      script.async = true;
+      script.onload = () => resolve(window.pannellum);
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+  }
+
+  function ensurePannellum() {
+    if (window.pannellum) return Promise.resolve(window.pannellum);
+    if (!pannellumLoader) {
+      ensureStylesheet("pannellum-runtime-css", PANNELLUM_CSS);
+      pannellumLoader = ensureScript("pannellum-runtime-js", PANNELLUM_JS)
+        .catch((error) => {
+          console.warn("No se pudo cargar Pannellum en esta sesion.", error);
+          return null;
+        });
+    }
+    return pannellumLoader;
   }
 
   function getCurrentParams() {
@@ -534,7 +580,10 @@
       presentationMode: params.get("presentacion") === "1" || params.get("modo") === "cliente",
       lotes: [],
       lotesMap: new Map(),
+      lotElements: [],
+      lotElementsMap: new Map(),
       lotGeometry: new Map(),
+      projectBounds: null,
       selectedLotId: "",
       filteredStates: new Set(["disponible", "reservado", "vendido", "financiado"]),
       svg: null,
@@ -548,18 +597,20 @@
       },
       wheelHandler: null,
       panzoomChangeHandler: null,
-        tooltipLotId: "",
-        viewer360: null,
-        loadRequestId: 0,
-        touchBindingsCleanup: null,
-        compareIds: [],
-        compareHighlights: new Map(),
-        benchmark: null,
-        touch: {
-          active: false,
-          lastTapAt: 0,
-          lastTapX: 0,
-          lastTapY: 0,
+      highlightedLotElements: [],
+      heavySvg: false,
+      tooltipLotId: "",
+      viewer360: null,
+      loadRequestId: 0,
+      touchBindingsCleanup: null,
+      compareIds: [],
+      compareHighlights: new Map(),
+      benchmark: null,
+      touch: {
+        active: false,
+        lastTapAt: 0,
+        lastTapX: 0,
+        lastTapY: 0,
         moved: false,
         startX: 0,
         startY: 0,
@@ -581,7 +632,7 @@
 
     function syncViewportFlags() {
       state.isMobile = window.matchMedia("(max-width: 840px)").matches;
-      state.performanceMode = state.isAdmin && state.isMobile;
+      state.performanceMode = state.heavySvg || (state.isAdmin && state.isMobile);
     }
 
     syncViewportFlags();
@@ -592,6 +643,20 @@
 
     function has360() {
       return Boolean(views360[key360()]);
+    }
+
+    function analyzeSvgComplexity(svgMarkup) {
+      const source = String(svgMarkup || "");
+      const pathCount = (source.match(/<path\b/g) || []).length;
+      const clipPathCount = (source.match(/<clipPath\b/g) || []).length;
+      const bytes = source.length;
+
+      return {
+        bytes,
+        pathCount,
+        clipPathCount,
+        isHeavy: bytes >= 900000 || pathCount >= 3500 || clipPathCount >= 1200
+      };
     }
 
     function setLoading(loading, message) {
@@ -876,15 +941,17 @@
 
     function buildLotGeometry() {
       state.lotGeometry = new Map();
+      state.projectBounds = null;
       if (!state.svg) return;
-      const projectBounds = PlanoUtils.getContentBounds(state.svg, "path[id]");
+      const projectBounds = PlanoUtils.getContentBounds(state.svg, state.lotElements);
       if (!projectBounds?.width || !projectBounds?.height) return;
+      state.projectBounds = projectBounds;
 
       const toleranceX = Math.max(projectBounds.width * 0.035, 18);
       const toleranceY = Math.max(projectBounds.height * 0.04, 18);
 
       state.lotes.forEach((lote) => {
-        const path = document.getElementById(lote.lote_id);
+        const path = getLotElement(lote.lote_id);
         if (!path?.getBBox) return;
         const bounds = path.getBBox();
         const nearLeft = bounds.x <= projectBounds.x + toleranceX;
@@ -957,8 +1024,11 @@
     }
 
     function clearSelection() {
-      PlanoUtils.clearSelection(state.svg);
-      PlanoUtils.clearHighlightedManzana(state.svg);
+      const selectedPath = state.selectedLotId
+        ? getLotElement(state.selectedLotId)
+        : state.svg?.querySelector?.(".plano-path.selected");
+      selectedPath?.classList.remove("selected");
+      clearHighlightedLots();
     }
 
     function closePanel() {
@@ -1314,7 +1384,7 @@
     function repaintLots() {
       if (!state.svg) return;
       state.lotes.forEach((lote) => {
-        const element = document.getElementById(lote.lote_id);
+        const element = getLotElement(lote.lote_id);
         if (!element) return;
         element.classList.add("plano-path");
         element.style.fill = PlanoUtils.getColorEstado(lote.estado);
@@ -1324,7 +1394,11 @@
 
     function getInitialFitBounds() {
       if (!state.svg) return null;
-      return PlanoUtils.getContentBounds(state.svg, "path[id]");
+      if (state.projectBounds?.width && state.projectBounds?.height) {
+        return state.projectBounds;
+      }
+      state.projectBounds = PlanoUtils.getContentBounds(state.svg, state.lotElements);
+      return state.projectBounds;
     }
 
     function computeInitialView() {
@@ -1424,7 +1498,7 @@
       );
 
       state.lotes.forEach((lote) => {
-        const element = document.getElementById(lote.lote_id);
+        const element = getLotElement(lote.lote_id);
         if (!element) return;
         element.classList.toggle("is-muted", !state.filteredStates.has(lote.estado));
       });
@@ -1485,7 +1559,7 @@
       if (state.selectedLotId) renderPanel(state.lotesMap.get(state.selectedLotId));
     }
 
-    function open360() {
+    async function open360() {
       if (!has360() || !refs.modal360) return;
       refs.modal360.classList.remove("hidden");
       refs.body.classList.add("no-scroll");
@@ -1495,7 +1569,8 @@
       }
 
       const route = `/assets/360/${key360()}/01.jpg`;
-      if (window.pannellum) {
+      const pannellumRuntime = await ensurePannellum();
+      if (pannellumRuntime) {
         state.viewer360 = window.pannellum.viewer("visor360", {
           type: "equirectangular",
           panorama: route,
@@ -1641,7 +1716,7 @@
       }
 
       function getBounds() {
-        return getInitialFitBounds() || PlanoUtils.getContentBounds(svg, "path[id]") || PlanoUtils.getSvgBounds(svg);
+        return getInitialFitBounds() || PlanoUtils.getContentBounds(svg, state.lotElements) || PlanoUtils.getSvgBounds(svg);
       }
 
       function centerView(targetScale) {
@@ -1736,7 +1811,63 @@
     }
 
     function decorateSvg(svg) {
-      svg.querySelectorAll("path").forEach((path) => path.classList.add("plano-path"));
+      svg.classList.add("plano-svg");
+      svg.setAttribute("preserveAspectRatio", svg.getAttribute("preserveAspectRatio") || "xMidYMid meet");
+    }
+
+    function indexLotElements() {
+      state.lotElements = [];
+      state.lotElementsMap = new Map();
+      if (!state.svg) return;
+
+      state.lotes.forEach((lote) => {
+        const element = document.getElementById(lote.lote_id);
+        if (!element?.getBBox) return;
+        state.lotElements.push(element);
+        state.lotElementsMap.set(lote.lote_id, element);
+      });
+    }
+
+    function getLotElement(loteId) {
+      return state.lotElementsMap.get(loteId) || document.getElementById(loteId);
+    }
+
+    function clearHighlightedLots() {
+      state.highlightedLotElements.forEach((element) => {
+        element.classList.remove("manzana-highlight");
+      });
+      state.highlightedLotElements = [];
+    }
+
+    function highlightSelectedManzana(loteId) {
+      clearHighlightedLots();
+      const manzana = PlanoUtils.getManzanaFromLoteId(loteId);
+      if (!manzana) return;
+
+      state.highlightedLotElements = state.lotElements.filter((element) => element.id.includes(`-${manzana}-`));
+      state.highlightedLotElements.forEach((element) => {
+        element.classList.add("manzana-highlight");
+      });
+    }
+
+    function waitForStableViewport(maxFrames = 10) {
+      return new Promise((resolve) => {
+        const tick = (remaining) => {
+          const rect = refs.wrapper?.getBoundingClientRect?.();
+          const bounds = getInitialFitBounds();
+          if ((rect?.width || 0) > 0 && (rect?.height || 0) > 0 && bounds?.width && bounds?.height) {
+            resolve(true);
+            return;
+          }
+          if (remaining <= 0) {
+            resolve(false);
+            return;
+          }
+          requestAnimationFrame(() => tick(remaining - 1));
+        };
+
+        tick(maxFrames);
+      });
     }
 
     function loadMap(data) {
@@ -1773,6 +1904,8 @@
           return;
         }
 
+        state.heavySvg = analyzeSvgComplexity(svgMarkup).isHeavy;
+        applyStaticState();
         refs.container.innerHTML = svgMarkup;
         state.svg = PlanoUtils.getSvgElement();
         if (!state.svg) {
@@ -1781,17 +1914,14 @@
 
         decorateSvg(state.svg);
         loadMap(payload);
+        indexLotElements();
         buildLotGeometry();
         enrichCommercialData();
         repaintLots();
         bindPanzoom(state.svg);
-
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            refreshInitialView({ apply: true, animate: false });
-            buildLabels();
-          });
-        });
+        await waitForStableViewport();
+        refreshInitialView({ apply: true, animate: false });
+        buildLabels();
 
         updateSummary();
         updateValuation();
@@ -2032,14 +2162,14 @@
 
     function setSelectedLot(loteId, shouldFocus = true) {
       const lote = state.lotesMap.get(loteId);
-      const path = document.getElementById(loteId);
+      const path = getLotElement(loteId);
       if (!lote || !path) return;
       if (state.selectedLotId && state.selectedLotId !== loteId) {
         state.visibleSections.quickReserve = false;
       }
       clearSelection();
       path.classList.add("selected");
-      PlanoUtils.highlightManzana(state.svg, loteId);
+      highlightSelectedManzana(loteId);
       state.selectedLotId = loteId;
       if (shouldFocus && state.panzoom) {
         PlanoUtils.focusElements(state.panzoom, refs.wrapper, [path], {
@@ -2164,7 +2294,7 @@
           buildLabels();
         }
         if (state.selectedLotId && state.panzoom) {
-          const selectedPath = document.getElementById(state.selectedLotId);
+          const selectedPath = getLotElement(state.selectedLotId);
           if (selectedPath) {
             PlanoUtils.focusElements(state.panzoom, refs.wrapper, [selectedPath], {
               boost: state.isMobile ? (state.performanceMode ? 1.7 : 1.95) : 1.7,

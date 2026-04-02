@@ -108,7 +108,7 @@
     const manzana = getManzanaFromLoteId(loteId);
     if (!manzana) return;
 
-    svg.querySelectorAll("path").forEach((path) => {
+    resolveSvgElements(svg, `path[id*="-${manzana}-"]`).forEach((path) => {
       if (path.id && path.id.includes(`-${manzana}-`)) {
         path.classList.add("manzana-highlight");
       }
@@ -120,6 +120,14 @@
     svg.querySelectorAll(".manzana-highlight").forEach((path) => {
       path.classList.remove("manzana-highlight");
     });
+  }
+
+  function resolveSvgElements(svg, selectorOrElements = "path[id]") {
+    if (!svg) return [];
+    if (typeof selectorOrElements === "string") {
+      return Array.from(svg.querySelectorAll(selectorOrElements));
+    }
+    return Array.from(selectorOrElements || []).filter(Boolean);
   }
 
   function getSvgBounds(svg) {
@@ -144,7 +152,7 @@
 
   function getContentBounds(svg, selector = "path[id]") {
     if (!svg) return { x: 0, y: 0, width: 0, height: 0 };
-    const elements = Array.from(svg.querySelectorAll(selector));
+    const elements = resolveSvgElements(svg, selector);
     const bounds = getElementsBounds(elements);
     return bounds || getSvgBounds(svg);
   }
@@ -162,9 +170,11 @@
       0.45,
       Math.min(width / bounds.width, height / bounds.height) * paddingRatio
     );
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
 
-    const x = width / 2 - (bounds.x + bounds.width / 2) * scale;
-    const y = height / 2 - (bounds.y + bounds.height / 2) * scale;
+    const x = width / (2 * scale) - centerX;
+    const y = height / (2 * scale) - centerY;
 
     return { x, y, scale };
   }
@@ -215,9 +225,12 @@
     const paddingRatio = safeNumber(options.paddingRatio, 0.82);
     const view = calculateFitTransform(wrapper, bounds, paddingRatio);
     const boost = clamp(safeNumber(options.boost, 1.2), 1, 6);
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
     view.scale = clamp(view.scale * boost, 0.55, safeNumber(options.maxScale, 8));
-    view.x = wrapper.getBoundingClientRect().width / 2 - (bounds.x + bounds.width / 2) * view.scale;
-    view.y = wrapper.getBoundingClientRect().height / 2 - (bounds.y + bounds.height / 2) * view.scale;
+    view.x = wrapperRect.width / (2 * view.scale) - centerX;
+    view.y = wrapperRect.height / (2 * view.scale) - centerY;
     applyView(panzoom, view, { animate: options.animate !== false, duration: options.duration || 480 });
   }
 
@@ -232,7 +245,7 @@
       return;
     }
 
-    const lotes = Array.from(svg.querySelectorAll("path")).filter((path) =>
+    const lotes = resolveSvgElements(svg, `path[id*="-${manzana}-"]`).filter((path) =>
       path.id.includes(`-${manzana}-`)
     );
 
@@ -525,6 +538,7 @@
     formatCurrency,
     getColorEstado,
     getContentBounds,
+    getElementsBounds,
     getLabelMode,
     getLotContextDetail,
     getLotContextLabel,
