@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -29,7 +29,7 @@
   <main class="main">
     <div class="header admin-header">
       <div class="title">Panel de Gestión</div>
-      <div class="small" id="adminSubtitle">OperaciÃ³n comercial, control y seguimiento.</div>
+      <div class="small" id="adminSubtitle">Operación comercial, control y seguimiento.</div>
     </div>
     <div class="header-actions">
       <button type="button" class="btn-outline" id="btnRefreshAdmin">Actualizar datos</button>
@@ -65,14 +65,14 @@
     <section id="reservas" class="section hidden">
       <div class="section-title-row">
         <div>
-          <div class="section-kicker">OperaciÃ³n activa</div>
+          <div class="section-kicker">Operación activa</div>
           <h2>Reservas</h2>
         </div>
         <div class="section-chip" id="reservasSummaryChip">0 resultados</div>
       </div>
 
       <div class="toolbar-card filters-toolbar" id="reservasFilters">
-        <input id="reservaSearch" type="search" placeholder="Buscar por cliente, agente, unidad o cÃ³digo" />
+        <input id="reservaSearch" type="search" placeholder="Buscar por cliente, agente, unidad o código" />
         <select id="reservaEstadoFilter">
           <option value="">Todos los estados</option>
         </select>
@@ -83,8 +83,8 @@
           <option value="">Todos los agentes</option>
         </select>
         <select id="reservaSort">
-          <option value="recent">MÃ¡s recientes</option>
-          <option value="oldest">MÃ¡s antiguas</option>
+          <option value="recent">Más recientes</option>
+          <option value="oldest">Más antiguas</option>
           <option value="amount_desc">Mayor monto</option>
           <option value="amount_asc">Menor monto</option>
           <option value="client_asc">Cliente A-Z</option>
@@ -114,7 +114,7 @@
           <option value="">Todos los estados</option>
         </select>
         <select id="ventaSort">
-          <option value="recent">MÃ¡s recientes</option>
+          <option value="recent">Más recientes</option>
           <option value="amount_desc">Mayor ticket</option>
           <option value="amount_asc">Menor ticket</option>
           <option value="balance_desc">Mayor saldo</option>
@@ -226,7 +226,7 @@ placeholder="Buscar lote (ej: MA-06)"
 <!-- ======= MODAL VENTA (único modal reusado) ======= -->
 <div id="ventaModal" class="modal hidden" aria-hidden="true">
   <div class="modal-content">
-    <button class="close-btn" onclick="cerrarModal()">✕</button>
+    <button class="close-btn" onclick="cerrarModal()">×</button>
     <div id="modalVentaContenido">
       <!-- contenido generado por verVenta(id) -->
     </div>
@@ -237,7 +237,8 @@ placeholder="Buscar lote (ej: MA-06)"
 <!-- Si usas Chart.js: (versión recomendada) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<!-- admin.js (pega aquí tu admin.js consolidado o referencia a archivo) -->
+<!-- admin.js (pega aquÃ­ tu admin.js consolidado o referencia a archivo) -->
+<script>window.__ADMIN_V2_ENABLED = true;</script>
 <script src="js/app-core.js"></script>
 <script src="admin.js"></script>
 <script src="admin.page.js"></script>
@@ -248,3 +249,4 @@ function abrirPlanoAdmin(){
 </script>
 </body>
 </html>
+

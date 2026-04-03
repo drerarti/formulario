@@ -43,14 +43,19 @@ function formatMoney(value, currency = "PEN", fallback = "No disponible") {
 function setText(id, value, fallback = "No disponible") {
   const element = document.getElementById(id);
   if (!element) return;
-  element.textContent = value || fallback;
+  const resolved = value || fallback;
+  element.textContent = typeof AppCore.repairTextEncoding === "function"
+    ? AppCore.repairTextEncoding(resolved)
+    : resolved;
 }
 
 function showError(message) {
   loadingState.classList.add("hidden");
   reservationSheet.classList.add("hidden");
   errorState.classList.remove("hidden");
-  errorMessage.textContent = message;
+  errorMessage.textContent = typeof AppCore.repairTextEncoding === "function"
+    ? AppCore.repairTextEncoding(message)
+    : message;
 }
 
 function showSheet() {
@@ -172,11 +177,15 @@ function setStatus(status) {
 
   if (badge) {
     badge.className = `status-pill tone-${meta.tone}`;
-    badge.textContent = meta.label;
+    badge.textContent = typeof AppCore.repairTextEncoding === "function"
+      ? AppCore.repairTextEncoding(meta.label)
+      : meta.label;
   }
 
   if (note) {
-    note.textContent = meta.description;
+    note.textContent = typeof AppCore.repairTextEncoding === "function"
+      ? AppCore.repairTextEncoding(meta.description)
+      : meta.description;
   }
 
   return meta;

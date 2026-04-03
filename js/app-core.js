@@ -25,6 +25,14 @@
     }
   }
 
+  function isDebugApiEnabled() {
+    try {
+      return window.location.hostname === "localhost" || localStorage.getItem("debug_admin_api") === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
   function safeNumber(value, fallback = 0) {
     const number = Number(value);
     return Number.isFinite(number) ? number : fallback;
@@ -47,69 +55,131 @@
   }
 
   function countEncodingArtifacts(value) {
-    return (String(value || "").match(/[ÃÂâ€]/g) || []).length;
+    return (String(value || "").match(/[\u00C2\u00C3\u0192\u00E2\u20AC\u0153\uFFFD]/g) || []).length;
+  }
+
+  function countReplacementChars(value) {
+    return (String(value || "").match(/\uFFFD/g) || []).length;
+  }
+
+  function applyEncodingReplacements(value) {
+    return String(value ?? "")
+      .replace(/\u00C3\u0192/g, "\u00C3")
+      .replace(/\u00C2/g, "")
+      .replace(/\u00C3\u00A1/g, "\u00E1")
+      .replace(/\u00C3\u00A9/g, "\u00E9")
+      .replace(/\u00C3\u00AD/g, "\u00ED")
+      .replace(/\u00C3\u00B3/g, "\u00F3")
+      .replace(/\u00C3\u00BA/g, "\u00FA")
+      .replace(/\u00C3\u0081/g, "\u00C1")
+      .replace(/\u00C3\u0089/g, "\u00C9")
+      .replace(/\u00C3\u008D/g, "\u00CD")
+      .replace(/\u00C3\u0093/g, "\u00D3")
+      .replace(/\u00C3\u009A/g, "\u00DA")
+      .replace(/\u00C3\u00B1/g, "\u00F1")
+      .replace(/\u00C3\u0091/g, "\u00D1")
+      .replace(/\u00E2\u20AC\u02DC/g, "\u2018")
+      .replace(/\u00E2\u20AC\u2122/g, "\u2019")
+      .replace(/\u00E2\u20AC\u0153/g, "\u201C")
+      .replace(/\u00E2\u20AC\u009D/g, "\u201D")
+      .replace(/\u00E2\u20AC\u00A6/g, "\u2026")
+      .replace(/\u00E2\u20AC\u201C/g, "\u2013")
+      .replace(/\u00E2\u20AC\u201D/g, "\u2014");
+  }
+
+  function decodeLatin1ToUtf8(value) {
+    const text = String(value ?? "");
+    if (!text) return text;
+
+    try {
+      const encoded = Array.from(text, (char) => `%${char.charCodeAt(0).toString(16).padStart(2, "0")}`).join("");
+      return decodeURIComponent(encoded);
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function shouldUseDecodedText(current, candidate) {
+    if (!candidate || candidate === current) {
+      return false;
+    }
+
+    const currentScore = countEncodingArtifacts(current) + (countReplacementChars(current) * 4);
+    const candidateScore = countEncodingArtifacts(candidate) + (countReplacementChars(candidate) * 4);
+    return candidateScore <= currentScore;
   }
 
   function repairTextEncoding(value) {
-    const text = String(value ?? "");
-    if (!text || !/[ÃÂâ€]/.test(text)) {
+    return repairTextEncodingNormalized(value);
+  }
+
+  function repairTextEncodingNormalized(value) {
+    let text = String(value ?? "");
+    if (!text || !/[\u00C2\u00C3\u0192\u00E2\u20AC]/.test(text)) {
       return text;
     }
 
-    try {
-      const bytes = Uint8Array.from(text, (char) => char.charCodeAt(0) & 0xff);
-      const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-      if (decoded && countEncodingArtifacts(decoded) < countEncodingArtifacts(text)) {
-        return decoded;
+    text = applyEncodingReplacements(text);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const decoded = applyEncodingReplacements(decodeLatin1ToUtf8(text));
+      if (!shouldUseDecodedText(text, decoded)) {
+        break;
       }
-    } catch (error) {
-      // Keep the defensive replacements below.
+      text = decoded;
     }
 
-    return text
-      .replace(/Â·/g, "·")
-      .replace(/Â /g, " ")
-      .replace(/Ã¡/g, "á")
-      .replace(/Ã©/g, "é")
-      .replace(/Ã­/g, "í")
-      .replace(/Ã³/g, "ó")
-      .replace(/Ãº/g, "ú")
-      .replace(/Ã/g, "Á")
-      .replace(/Ã‰/g, "É")
-      .replace(/Ã/g, "Í")
-      .replace(/Ã“/g, "Ó")
-      .replace(/Ãš/g, "Ú")
-      .replace(/Ã±/g, "ñ")
-      .replace(/Ã‘/g, "Ñ");
+    return applyEncodingReplacements(text);
+  }
+  function repairPayloadEncoding(value, depth = 0) {
+    if (depth > 12 || value === null || value === undefined) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      return repairTextEncodingNormalized(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry) => repairPayloadEncoding(entry, depth + 1));
+    }
+
+    if (typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [key, repairPayloadEncoding(entry, depth + 1)])
+      );
+    }
+
+    return value;
   }
 
   function getReservationStatusMeta(status) {
     const normalized = String(status || "").trim().toLowerCase();
     const map = {
       solicitud: {
-        label: "Pendiente de confirmación",
+        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
         tone: "pending",
-        description: "Reserva creada y esperando validación comercial"
+        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
       },
       pendiente: {
-        label: "Pendiente de confirmación",
+        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
         tone: "pending",
-        description: "Reserva creada y esperando validación comercial"
+        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
       },
-      "pendiente de confirmación": {
-        label: "Pendiente de confirmación",
+      "pendiente de confirmaciÃƒÆ’Ã‚Â³n": {
+        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
         tone: "pending",
-        description: "Reserva creada y esperando validación comercial"
+        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
       },
       "pendiente de confirmacion": {
-        label: "Pendiente de confirmación",
+        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
         tone: "pending",
-        description: "Reserva creada y esperando validación comercial"
+        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
       },
       confirmada: {
         label: "Confirmada",
         tone: "confirmed",
-        description: "Reserva validada y lista para negociación o conversión"
+        description: "Reserva validada y lista para negociaciÃƒÆ’Ã‚Â³n o conversiÃƒÆ’Ã‚Â³n"
       },
       reservada: {
         label: "Reservada",
@@ -117,34 +187,34 @@
         description: "Reserva tomada y en seguimiento comercial"
       },
       "en negociacion": {
-        label: "En negociación",
+        label: "En negociaciÃƒÆ’Ã‚Â³n",
         tone: "active",
-        description: "Negociación comercial activa dentro de vigencia"
+        description: "NegociaciÃƒÆ’Ã‚Â³n comercial activa dentro de vigencia"
       },
       "negociacion extendida": {
-        label: "Negociación extendida",
+        label: "NegociaciÃƒÆ’Ã‚Â³n extendida",
         tone: "premium",
-        description: "Reserva con ampliación comercial vigente"
+        description: "Reserva con ampliaciÃƒÆ’Ã‚Â³n comercial vigente"
       },
       rechazada: {
         label: "Rechazada",
         tone: "rejected",
-        description: "Operación no aprobada"
+        description: "OperaciÃƒÆ’Ã‚Â³n no aprobada"
       },
       vencida: {
         label: "Vencida",
         tone: "expired",
-        description: "La vigencia comercial expiró"
+        description: "La vigencia comercial expirÃƒÆ’Ã‚Â³"
       },
       "en proceso": {
         label: "En proceso",
         tone: "active",
-        description: "Operación en gestión"
+        description: "OperaciÃƒÆ’Ã‚Â³n en gestiÃƒÆ’Ã‚Â³n"
       },
       proceso: {
         label: "En proceso",
         tone: "active",
-        description: "Operación en gestión"
+        description: "OperaciÃƒÆ’Ã‚Â³n en gestiÃƒÆ’Ã‚Â³n"
       },
       convertida: {
         label: "Convertida",
@@ -159,27 +229,27 @@
       cerrada: {
         label: "Cerrada",
         tone: "premium",
-        description: "Operación completada sin saldo pendiente"
+        description: "OperaciÃƒÆ’Ã‚Â³n completada sin saldo pendiente"
       },
       pagada: {
         label: "Cerrada",
         tone: "premium",
-        description: "Operación completada sin saldo pendiente"
+        description: "OperaciÃƒÆ’Ã‚Â³n completada sin saldo pendiente"
       },
       cancelada: {
         label: "Cancelada",
         tone: "rejected",
-        description: "Operación cancelada"
+        description: "OperaciÃƒÆ’Ã‚Â³n cancelada"
       },
       bloqueada: {
         label: "Bloqueada",
         tone: "neutral",
-        description: "Operación bloqueada para cambios"
+        description: "OperaciÃƒÆ’Ã‚Â³n bloqueada para cambios"
       },
       "con pagos": {
         label: "Con pagos",
         tone: "active",
-        description: "Operación con cobros registrados"
+        description: "OperaciÃƒÆ’Ã‚Â³n con cobros registrados"
       },
       morosa: {
         label: "Morosa",
@@ -194,7 +264,7 @@
       activa: {
         label: "En proceso",
         tone: "active",
-        description: "Operación en gestión"
+        description: "OperaciÃƒÆ’Ã‚Â³n en gestiÃƒÆ’Ã‚Â³n"
       }
     };
 
@@ -332,9 +402,9 @@
     }
 
     try {
-      return JSON.parse(text);
+      return repairPayloadEncoding(JSON.parse(text));
     } catch (error) {
-      return { raw: text };
+      return { raw: repairTextEncodingNormalized(text) };
     }
   }
 
@@ -373,6 +443,10 @@
       requestHeaders.Authorization = `Bearer ${authToken}`;
     }
 
+    if (!requestHeaders["X-Debug-Admin"] && isDebugApiEnabled()) {
+      requestHeaders["X-Debug-Admin"] = "1";
+    }
+
     const response = await fetch(`${path}${buildQuery(query)}`, {
       method,
       headers: requestHeaders,
@@ -400,24 +474,27 @@
     return Number(error?.status) === 422;
   }
 
-  function getErrorMessage(error, fallback = "Ocurrió un error inesperado.") {
+  function getErrorMessage(error, fallback = "Ocurrio un error inesperado.") {
     if (!error) {
-      return fallback;
-    }
-
-    if (isRateLimitError(error)) {
-      return "El sistema está recibiendo demasiadas solicitudes. Intenta nuevamente en unos segundos.";
-    }
-
-    if (isValidationError(error)) {
-      return "Se detectaron datos inconsistentes para esta consulta. Se mostrará la información disponible.";
+      return repairTextEncodingNormalized(fallback);
     }
 
     if (error.data && (error.data.error || error.data.message)) {
-      return error.data.error || error.data.message;
+      const detail = [error.data.error || error.data.message, error.data.details]
+        .filter(Boolean)
+        .join(" ");
+      return repairTextEncodingNormalized(detail || fallback);
     }
 
-    return error.message || fallback;
+    if (isRateLimitError(error)) {
+      return repairTextEncodingNormalized("El sistema esta recibiendo demasiadas solicitudes. Intenta nuevamente en unos segundos.");
+    }
+
+    if (isValidationError(error)) {
+      return repairTextEncodingNormalized("Se detectaron datos inconsistentes para esta consulta. Se mostrara la informacion disponible.");
+    }
+
+    return repairTextEncodingNormalized(error.message || fallback);
   }
 
   function invalidateUnidadesCache() {
@@ -458,7 +535,7 @@
     }
 
     if (text !== undefined) {
-      element.textContent = text;
+      element.textContent = typeof text === "string" ? repairTextEncodingNormalized(text) : text;
     }
 
     if (html !== undefined) {
@@ -509,7 +586,7 @@
         return;
       }
 
-      element.appendChild(document.createTextNode(String(child)));
+      element.appendChild(document.createTextNode(repairTextEncodingNormalized(String(child))));
     });
   }
 
@@ -543,10 +620,11 @@
     invalidateUnidadesCache,
     logout,
     parseJwt,
-    repairTextEncoding,
+    repairTextEncoding: repairTextEncodingNormalized,
     requireSession,
     roleHome,
     safeNumber,
     sanitizeUrl
   };
 })();
+

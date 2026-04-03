@@ -1,7 +1,7 @@
 // ===========================
 // ADMIN.JS - PARTE 1 (1/3)
 // Desde inicio hasta guardarNegociacion()
-// Basado en tu versión funcional (referencia). :contentReference[oaicite:1]{index=1}
+// Basado en tu versiÃ³n funcional (referencia). :contentReference[oaicite:1]{index=1}
 // ===========================
 const { AppCore } = window;
 const session = AppCore.requireSession({
@@ -18,7 +18,7 @@ const h = AppCore.escapeHtml;
 let unidadesCache = [];
  
 
-// 🔴 OPCIONAL PERO RECOMENDADO
+// ðŸ”´ OPCIONAL PERO RECOMENDADO
 
 const ENDPOINT = AppCore.API_ENDPOINT;
 let ventasChartInstance = null;
@@ -52,7 +52,7 @@ function fillSelectOptions(element, placeholderLabel, values, labelBuilder = (va
   });
 }
 
-// Animación suave para KPIs
+// AnimaciÃ³n suave para KPIs
 function animateValue(element, start, end, duration = 800) {
   if (!element) return;
   let startTime = null;
@@ -66,7 +66,7 @@ function animateValue(element, start, end, duration = 800) {
   requestAnimationFrame(animation);
 }
 
-// Contenedores principales (asegúrate que existan en el DOM)
+// Contenedores principales (asegÃºrate que existan en el DOM)
 const reservasContainer = document.getElementById("reservasContainer");
 
 // ===============================
@@ -88,7 +88,7 @@ async function loadReservas() {
       const div = document.createElement("div");
       div.className = "reserva-card";
 
-      // campos defensivos: si no vienen, mostrar vacío o 0
+      // campos defensivos: si no vienen, mostrar vacÃ­o o 0
       const cliente = r.cliente || "";
       let unidad = r.unidad || "";
 const agente = r.agente || "";
@@ -221,13 +221,13 @@ async function rechazar(id, unidadId) {
 window.rechazar = rechazar;
 
 // ===============================
-// MOSTRAR FORMULARIO DE NEGOCIACIÓN
+// MOSTRAR FORMULARIO DE NEGOCIACIÃ“N
 // ===============================
 function mostrarNegociacion(id) {
   const cont = document.getElementById(`neg-${id}`);
   if (!cont) return;
 
-  // Si ya está renderizado, hacer toggle (útil para UX)
+  // Si ya estÃ¡ renderizado, hacer toggle (Ãºtil para UX)
   if (cont.dataset.open === "1") {
     cont.innerHTML = "";
     cont.dataset.open = "0";
@@ -238,7 +238,7 @@ function mostrarNegociacion(id) {
 
   cont.innerHTML = `
     <div class="negociacion-card-pro">
-      <h4>Negociación</h4>
+      <h4>NegociaciÃ³n</h4>
       <div class="neg-grid-pro">
         <div>
           <label>Precio Final</label>
@@ -257,7 +257,7 @@ function mostrarNegociacion(id) {
           <input type="number" id="monto_inicial_${id}">
         </div>
         <div>
-          <label>N° Cuotas</label>
+          <label>NÂ° Cuotas</label>
           <input type="number" id="numero_cuotas_${id}">
         </div>
         <div>
@@ -270,7 +270,7 @@ function mostrarNegociacion(id) {
       <textarea id="obs_${id}" rows="2"></textarea>
 
       <div style="margin-top:12px;">
-        <button class="btn-primary" onclick="guardarNegociacion('${id}')">Guardar Negociación</button>
+        <button class="btn-primary" onclick="guardarNegociacion('${id}')">Guardar NegociaciÃ³n</button>
       </div>
     </div>
   `;
@@ -278,7 +278,7 @@ function mostrarNegociacion(id) {
 window.mostrarNegociacion = mostrarNegociacion;
 
 // ===============================
-// GUARDAR NEGOCIACIÓN
+// GUARDAR NEGOCIACIÃ“N
 // ===============================
 async function guardarNegociacion(id) {
   try {
@@ -304,23 +304,23 @@ async function guardarNegociacion(id) {
     });
 
     const response = await res.json();
-    if (!res.ok || !response.success) return alert(response.error || "Error guardando negociación");
+    if (!res.ok || !response.success) return alert(response.error || "Error guardando negociaciÃ³n");
 
-    // refrescar reservas y cerrar formulario de negociación
+    // refrescar reservas y cerrar formulario de negociaciÃ³n
     const cont = document.getElementById(`neg-${id}`);
     if (cont) { cont.innerHTML = ""; cont.dataset.open = "0"; }
 
     await loadReservas();
   } catch (error) {
     console.error("guardarNegociacion error:", error);
-    alert("Error inesperado guardando negociación");
+    alert("Error inesperado guardando negociaciÃ³n");
   }
 }
 window.guardarNegociacion = guardarNegociacion;
 
 // ===============================
-// Nota: la PARTE 2 incluirá convertirVenta(), loadVentas(), showSection(), verVenta(), cargarCuotas(), etc.
-// La PARTE 3 incluirá dashboard y utilidades finales.
+// Nota: la PARTE 2 incluirÃ¡ convertirVenta(), loadVentas(), showSection(), verVenta(), cargarCuotas(), etc.
+// La PARTE 3 incluirÃ¡ dashboard y utilidades finales.
 // ===============================
 // ===========================
 // ADMIN.JS - PARTE 2 (2/3)
@@ -330,11 +330,11 @@ window.guardarNegociacion = guardarNegociacion;
 
 /**
  * CONVERTIR RESERVA A VENTA
- * - mantiene el botón deshabilitado mientras procesa
+ * - mantiene el botÃ³n deshabilitado mientras procesa
  * - refresca listados y navega a Ventas si todo sale OK
  */
 async function convertirVenta(reservaId, btn) {
-  if (!confirm("¿Confirmar conversión a venta?")) return;
+  if (!confirm("Â¿Confirmar conversiÃ³n a venta?")) return;
 
   try {
     if (btn) {
@@ -361,7 +361,7 @@ async function convertirVenta(reservaId, btn) {
       return;
     }
 
-    // éxito: recargar reservas y mostrar ventas
+    // Ã©xito: recargar reservas y mostrar ventas
     await loadReservas();
     showSection("ventas", document.querySelector('[data-nav="ventas"]') || null);
     alert("Venta creada correctamente.");
@@ -477,7 +477,7 @@ window.loadVentas = loadVentas;
 
 /**
  * NAV / SHOW SECTION
- * - asegura activar pestaña y pedir datos
+ * - asegura activar pestaÃ±a y pedir datos
  * - espera btn con data-nav en HTML cuando exista
  */
 function showSection(sectionId, btn) {
@@ -514,9 +514,32 @@ async function verVenta(id) {
     // porcentaje cobrado defensivo
     const precio = Number(data.precio_base || 0);
     const saldo = Number(data.saldo_restante || 0);
-    const cobrado = Number(data.total_pagado || Math.max(0, precio - saldo));
-    const porcentaje = data.avance_porcentaje || (precio > 0 ? Math.round((cobrado / precio) * 100) : 0);
-    const estadoVentaClass = String(data.estado_venta || "").toLowerCase().replace(/\s+/g, "-");
+    const totalPagado = Number(data.total_pagado || Math.max(0, precio - saldo));
+    const porcentaje = data.avance_porcentaje || (precio > 0 ? Math.round((totalPagado / precio) * 100) : 0);
+    const estadoVenta = String(data.estado_venta || "");
+    const estadoVentaClass = estadoVenta.toLowerCase().replace(/\s+/g, "-");
+    const totalFinanciable = Math.max(0, Number(data.saldo_financiado || (precio - Number(data.monto_reserva || 0) - Number(data.monto_inicial || 0))));
+    const totalProgramado = Math.max(0, Number(data.total_programado_cuotas || 0));
+    const saldoPendienteProgramar = Math.max(0, Number(data.saldo_pendiente_programar || (totalFinanciable - totalProgramado)));
+    const saldoPendientePago = Math.max(0, Number(data.saldo_pendiente_pago || saldo));
+    const cuotasPendientes = Number(data.cuotas_pendientes || 0);
+    const isLockedSale = ["cerrada", "cancelada", "bloqueada"].includes(estadoVenta.toLowerCase());
+    const canAddQuota = saldoPendienteProgramar > 0 && !isLockedSale;
+    const canRegisterPayment = Number(data.total_cuotas || 0) > 0 && saldoPendientePago > 0 && !isLockedSale;
+    const quotaMessage = canAddQuota
+      ? ""
+      : isLockedSale
+          ? `La venta esta ${estadoVenta.toLowerCase()} y no admite nuevas cuotas.`
+          : totalFinanciable <= 0
+            ? "No existe saldo financiable disponible para programar cuotas."
+          : "No queda saldo pendiente por programar en cuotas.";
+    const paymentMessage = canRegisterPayment
+      ? ""
+      : isLockedSale
+        ? `La venta esta ${estadoVenta.toLowerCase()} y no admite nuevos pagos.`
+        : Number(data.total_cuotas || 0) <= 0
+          ? "Primero programa al menos una cuota para registrar pagos."
+          : "No hay saldo pendiente de pago.";
     const ventaId = encodeArg(data.id);
 
     cont.innerHTML = `
@@ -532,12 +555,15 @@ async function verVenta(id) {
           <div><strong>Agente:</strong> ${h(data.agente || "")}</div>
         </div>
 
-        <div class="modal-finanzas-pro">
-          <div><span>Precio Base</span><strong>S/ ${precio.toLocaleString()}</strong></div>
-          <div><span>Reserva</span><strong>S/ ${Number(data.monto_reserva||0).toLocaleString()}</strong></div>
-          <div><span>Monto Inicial</span><strong>S/ ${Number(data.monto_inicial||0).toLocaleString()}</strong></div>
-          <div><span>Total Pagado</span><strong>S/ ${cobrado.toLocaleString()}</strong></div>
-          <div><span>Saldo Restante</span><strong>S/ ${saldo.toLocaleString()}</strong></div>
+        <div class="modal-finanzas-pro venta-summary-grid">
+          <div class="finance-kpi-card"><span>Precio final</span><strong>S/ ${precio.toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Monto inicial</span><strong>S/ ${Number(data.monto_inicial || 0).toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Saldo financiado</span><strong>S/ ${totalFinanciable.toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Total programado</span><strong>S/ ${totalProgramado.toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Pendiente por programar</span><strong>S/ ${saldoPendienteProgramar.toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Total pagado</span><strong>S/ ${totalPagado.toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Saldo pendiente de pago</span><strong>S/ ${saldoPendientePago.toLocaleString()}</strong></div>
+          <div class="finance-kpi-card"><span>Cuotas pendientes</span><strong>${cuotasPendientes}</strong></div>
         </div>
 
         <div class="barra-progreso-pro" aria-hidden="true">
@@ -547,21 +573,31 @@ async function verVenta(id) {
         <div class="modal-section-pro">
           <div><strong>Tipo:</strong> ${h(data.tipo_venta || "")}</div>
           <div><strong>Fecha:</strong> ${h(data.fecha_venta || "")}</div>
-          <div><strong>Próxima cuota:</strong> ${h(data.proxima_cuota || "No programada")}</div>
+          <div><strong>Proxima cuota:</strong> ${h(data.proxima_cuota || "No programada")}</div>
           <div><strong>Cuotas vencidas:</strong> ${h(String(data.cuotas_vencidas || 0))}</div>
           <div><strong>Cuotas morosas:</strong> ${h(String(data.cuotas_morosas || 0))}</div>
         </div>
 
         <hr>
 
-        <h4>Cuotas</h4>
+        <div class="quota-toolbar-pro">
+          <div>
+            <h4>Cuotas</h4>
+            <div class="form-note-pro">Revisa la distribucion programada, pagos aplicados y saldo restante antes de registrar cambios.</div>
+          </div>
+          <div class="quota-toolbar-actions">
+            ${canAddQuota
+              ? `<button class="btn-outline" onclick="mostrarFormularioCuota(decodeURIComponent('${ventaId}'), 'manual')">Agregar cuota</button>
+                 <button class="btn-outline" onclick="mostrarFormularioCuota(decodeURIComponent('${ventaId}'), 'automatico')">Distribucion automatica</button>`
+              : `<div class="form-note-pro">${h(quotaMessage)}</div>`}
+            ${canRegisterPayment
+              ? `<button class="btn-primary" onclick="mostrarPago(decodeURIComponent('${ventaId}'))">Registrar pago</button>`
+              : `<div class="form-note-pro">${h(paymentMessage)}</div>`}
+          </div>
+        </div>
         <div id="listaCuotas"></div>
 
         <div id="formCuota" class="hidden" style="margin-top:12px;"></div>
-
-        <div style="margin-top:18px;">
-          <button class="btn-outline" onclick="mostrarFormularioCuota(decodeURIComponent('${ventaId}'))">Agregar Cuota</button>
-        </div>
 
       </div>
     `;
@@ -570,7 +606,7 @@ async function verVenta(id) {
     if (modal) modal.classList.remove("hidden");
 
     // cargar cuotas
-    await cargarCuotas(id);
+    await window.cargarCuotas(id);
 
     // scroll to top inside modal content for UX
     const modalContent = document.querySelector("#ventaModal .modal-content");
@@ -591,7 +627,7 @@ function cerrarModal() {
   const cont = document.getElementById("modalVentaContenido");
   if (modal) modal.classList.add("hidden");
   if (cont) cont.innerHTML = "";
-  // también ocultar formulario si estaba abierto
+  // tambiÃ©n ocultar formulario si estaba abierto
   const form = document.getElementById("formCuota");
   if (form) { form.classList.add("hidden"); form.innerHTML = ""; }
 }
@@ -641,10 +677,10 @@ async function cargarCuotas(ventaId) {
           <div>Monto: S/ ${monto}</div>
           <div>Fecha: ${h(fecha)}</div>
           <div>Saldo: S/ ${saldoCuota}</div>
-          ${diasAtraso > 0 ? `<div>Días de atraso: ${diasAtraso}</div>` : ""}
+          ${diasAtraso > 0 ? `<div>DÃ­as de atraso: ${diasAtraso}</div>` : ""}
           <div style="margin-top:8px;">
             ${estado === "Pagada"
-              ? `<span class="small">Cuota al día</span>`
+              ? `<span class="small">Cuota al dÃ­a</span>`
               : `<button class="btn-outline" onclick="mostrarPago(decodeURIComponent('${ventaIdEncoded}'), decodeURIComponent('${cuotaIdEncoded}'))">Registrar Pago</button>`}
           </div>
         </div>
@@ -658,6 +694,101 @@ async function cargarCuotas(ventaId) {
   }
 }
 window.cargarCuotas = cargarCuotas;
+
+async function cargarCuotasOptimizado(ventaId) {
+  try {
+    const cuotas = await adminApi({ query: { cuotas_venta: ventaId } });
+    const cont = document.getElementById("listaCuotas");
+    if (!cont) return;
+
+    if (!Array.isArray(cuotas)) {
+      cont.innerHTML = "<em>Error cargando cuotas.</em>";
+      return;
+    }
+
+    cuotas.sort((a, b) => Number(a.numero || a.numero_cuota || 0) - Number(b.numero || b.numero_cuota || 0));
+
+    if (!cuotas.length) {
+      cont.innerHTML = "<em>No hay cuotas registradas.</em>";
+      return;
+    }
+
+    cont.innerHTML = `
+      <div class="quota-list-pro">
+        ${cuotas.map((cuota) => {
+          const numero = Number(cuota.numero || cuota.numero_cuota || 0);
+          const montoProgramado = Math.max(0, Number(cuota.monto_programado ?? cuota.monto ?? 0));
+          const montoPagado = Math.max(0, Number(cuota.monto_pagado || 0));
+          const saldoCuota = Math.max(0, Number(cuota.saldo_pendiente ?? Math.max(0, montoProgramado - montoPagado)));
+          const fecha = cuota.fecha_vencimiento || cuota.fecha || "";
+          const estado = String(cuota.estado_cuota || cuota.estado || "Pendiente");
+          const estadoClass = estado.toLowerCase().replace(/\s+/g, "-");
+          const diasAtraso = Math.max(0, Number(cuota.dias_atraso || 0));
+          const cuotaIdEncoded = encodeArg(cuota.id || "");
+          const ventaIdEncoded = encodeArg(ventaId);
+          const progress = montoProgramado > 0 ? Math.min(100, Math.round((montoPagado / montoProgramado) * 100)) : 0;
+          const helperCopy = estado === "Pagada"
+            ? "Cuota liquidada."
+            : saldoCuota <= 0
+              ? "Sin saldo pendiente."
+              : diasAtraso > 0
+                ? `${diasAtraso} dias de atraso.`
+                : "Cuota vigente.";
+
+          return `
+            <article class="cuota-card-pro">
+              <div class="cuota-header-pro">
+                <div>
+                  <strong>Cuota ${h(String(numero || ""))}</strong>
+                  <div class="small">Vence: ${h(fecha || "Sin fecha")}</div>
+                </div>
+                <span class="estado-${estadoClass}">${h(estado)}</span>
+              </div>
+
+              <div class="cuota-metrics-grid">
+                <div class="cuota-metric">
+                  <span>Programado</span>
+                  <strong>S/ ${montoProgramado.toLocaleString()}</strong>
+                </div>
+                <div class="cuota-metric">
+                  <span>Pagado</span>
+                  <strong>S/ ${montoPagado.toLocaleString()}</strong>
+                </div>
+                <div class="cuota-metric">
+                  <span>Saldo</span>
+                  <strong>S/ ${saldoCuota.toLocaleString()}</strong>
+                </div>
+                <div class="cuota-metric">
+                  <span>Avance</span>
+                  <strong>${progress}%</strong>
+                </div>
+              </div>
+
+              <div class="quota-progress-mini" aria-hidden="true">
+                <div class="quota-progress-mini-bar" style="width:${progress}%;"></div>
+              </div>
+
+              <div class="cuota-footer-pro">
+                <span class="small">${h(helperCopy)}</span>
+                <div class="quota-card-actions">
+                  ${estado === "Pagada"
+                    ? `<span class="small">Sin acciones pendientes</span>`
+                    : `<button class="btn-outline" onclick="mostrarPago(decodeURIComponent('${ventaIdEncoded}'), decodeURIComponent('${cuotaIdEncoded}'))">Registrar pago</button>`}
+                </div>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  } catch (error) {
+    console.error("cargarCuotasOptimizado error:", error);
+    const cont = document.getElementById("listaCuotas");
+    if (cont) cont.innerHTML = "<em>Error inesperado cargando cuotas.</em>";
+  }
+}
+
+window.cargarCuotas = cargarCuotasOptimizado;
 
 /**
  * MOSTRAR FORMULARIO AGREGAR CUOTA
@@ -682,7 +813,7 @@ function mostrarFormularioCuota(ventaId) {
   form.innerHTML = `
     <div class="negociacion-card-pro">
       <div style="display:grid;grid-template-columns:1fr 1fr; gap:8px;">
-        <input id="numCuota" type="number" placeholder="Número cuota" />
+        <input id="numCuota" type="number" placeholder="NÃºmero cuota" />
         <input id="montoCuota" type="number" placeholder="Monto (S/)" />
       </div>
       <div style="margin-top:8px;">
@@ -719,10 +850,10 @@ async function crearCuota(ventaId) {
       return alert(data.error || "Error creando cuota");
     }
 
-    // limpiar form y recargar cuotas
+    // limpiar form y recargar el detalle completo
     const form = document.getElementById("formCuota");
     if (form) { form.innerHTML = ""; form.classList.add("hidden"); form.dataset.open = "0"; }
-    await cargarCuotas(ventaId);
+    await verVenta(ventaId);
 
   } catch (error) {
     console.error("crearCuota error:", error);
@@ -733,7 +864,7 @@ window.crearCuota = crearCuota;
 
 /**
  * MOSTRAR FORMULARIO PAGO
- * - recibe cuotaId opcional (si quieres mostrar a qué cuota se asocia)
+ * - recibe cuotaId opcional (si quieres mostrar a quÃ© cuota se asocia)
  * - coloca el formulario en #formCuota (reusa)
  */
 function mostrarPago(ventaId, cuotaId = "") {
@@ -778,11 +909,11 @@ async function registrarPago(ventaId, cuotaId = "") {
     const metodo = document.getElementById("metodoPago")?.value || "Efectivo";
     const fecha = document.getElementById("fechaPago")?.value;
 
-    if (!monto || Number(monto) <= 0) return alert("Monto inválido");
+    if (!monto || Number(monto) <= 0) return alert("Monto invÃ¡lido");
     if (!fecha) return alert("Selecciona fecha de pago");
 
     const payload = { action: "registrar_pago", venta_id: ventaId, monto, metodo, fecha_pago: fecha };
-    // si se pasó cuotaId opcional, se deja que backend lo asocie por orden; no es obligatorio.
+    // si se pasÃ³ cuotaId opcional, se deja que backend lo asocie por orden; no es obligatorio.
     if (cuotaId) payload.cuota_id = cuotaId;
 
     const data = await adminApi({
@@ -868,7 +999,7 @@ async function loadDashboard() {
       return;
     }
 
-    // ordenar cronológicamente por fecha_venta (si existe)
+    // ordenar cronolÃ³gicamente por fecha_venta (si existe)
     ventas.sort((a,b) => new Date(a.fecha_venta || 0) - new Date(b.fecha_venta || 0));
 
     // KPIs acumulados
@@ -897,7 +1028,7 @@ async function loadDashboard() {
       acumuladoVentas += precio;
       acumuladoCobrado += cobrado;
 
-      // label legible: fecha o índice
+      // label legible: fecha o Ã­ndice
       labels.push(v.fecha_venta || "");
       ventasData.push(Math.round(acumuladoVentas));
       cobradoData.push(Math.round(acumuladoCobrado));
@@ -936,7 +1067,7 @@ async function loadDashboard() {
     animateValue(document.getElementById("kpiTotalCobrado"), 0, totalCobrado);
     animateValue(document.getElementById("kpiTotalPendiente"), 0, totalPendiente);
 
-    // Gráfico: si Chart no está cargado, ignora (evita crash)
+    // GrÃ¡fico: si Chart no estÃ¡ cargado, ignora (evita crash)
     const canvas = document.getElementById("ventasChart");
     if (!canvas) return;
 
@@ -946,9 +1077,9 @@ async function loadDashboard() {
       ventasChartInstanceLocal = null;
     }
 
-    // Si Chart.js no está definido, inserta mensaje y retorna
+    // Si Chart.js no estÃ¡ definido, inserta mensaje y retorna
     if (typeof Chart === "undefined") {
-      canvas.parentElement.innerHTML = "<p>Chart.js no cargado. Añade la librería para ver el gráfico.</p>";
+      canvas.parentElement.innerHTML = "<p>Chart.js no cargado. AÃ±ade la librerÃ­a para ver el grÃ¡fico.</p>";
       return;
     }
 
@@ -1050,7 +1181,7 @@ cargarExtensiones();
   }
 
   // Si hay canvas ventasChart y Chart.js ya cargada, cargar dashboard
-  // (defer para permitir fetch de librerías externas)
+  // (defer para permitir fetch de librerÃ­as externas)
   setTimeout(() => {
     if (document.getElementById("dashboardKpis")) {
       loadDashboard();
@@ -1106,7 +1237,7 @@ lista.sort((a,b)=>{
 
       <div class="unidad-info">Proyecto: ${u.proyecto}</div>
 
-      Área:
+      Ãrea:
       <input type="number" id="area-${u.id}" value="${u.area || 0}">
 
       Precio:
@@ -1323,7 +1454,7 @@ extension_id:id
 const data = await res.json();
 
 if(data.success){
-alert("Extensión aprobada");
+alert("ExtensiÃ³n aprobada");
 cargarExtensiones();
 location.reload();
 }else{
@@ -1350,7 +1481,7 @@ extension_id:id
 const data = await res.json();
 
 if(data.success){
-alert("Extensión rechazada");
+alert("ExtensiÃ³n rechazada");
 cargarExtensiones();
 location.reload();
 }else{
@@ -1358,7 +1489,7 @@ alert("Error rechazando");
 }
 
 }
-// Exponer init y ejecutar cuando DOM esté listo
+// Exponer init y ejecutar cuando DOM estÃ© listo
 window.initAdmin = initAdmin;
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAdmin);

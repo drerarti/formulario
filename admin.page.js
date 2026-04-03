@@ -33,6 +33,7 @@
     chart: null,
     deepLinkHandled: false
   };
+  const saleQuotaContextCache = new Map();
 
   const refs = {
     headerTitle: document.querySelector(".admin-header .title"),
@@ -195,7 +196,7 @@
   }
 
   function showAdminAlert(message) {
-    window.alert(message);
+    window.alert(typeof AppCore.repairTextEncoding === "function" ? AppCore.repairTextEncoding(message) : message);
   }
 
   function sectionNeedsUnits(sectionId = state.currentSection) {
@@ -212,7 +213,7 @@
 
   function setDashboardStamp(message) {
     if (refs.dashboardStamp) {
-      refs.dashboardStamp.textContent = message;
+      refs.dashboardStamp.textContent = typeof AppCore.repairTextEncoding === "function" ? AppCore.repairTextEncoding(message) : message;
     }
   }
 
@@ -271,7 +272,10 @@
     const tasks = [];
     if (settings.units) tasks.push(() => fetchUnits({ force: true, optional: true }));
     if (settings.reservations) tasks.push(() => fetchReservations());
-    if (settings.sales) tasks.push(() => fetchSales());
+    if (settings.sales) {
+      invalidateSaleQuotaContext();
+      tasks.push(() => fetchSales());
+    }
     if (settings.extensions) tasks.push(() => fetchExtensions());
 
     if (tasks.length) {
@@ -344,11 +348,11 @@
       : getDaysUntil(fallbackDate);
     const deadlineType = normalize(item.deadline_type);
     const deadlineLabel = deadlineType === "confirmacion"
-      ? "Confirmación"
+      ? "ConfirmaciÃƒÂ³n"
       : deadlineType === "extension"
-        ? "Extensión"
+        ? "ExtensiÃƒÂ³n"
         : deadlineType === "negociacion"
-          ? "Negociación"
+          ? "NegociaciÃƒÂ³n"
           : "Vigencia";
 
     return {
@@ -477,7 +481,7 @@
 
     AppCore.appendChildren(container, [
       prev,
-      AppCore.createElement("span", { className: "pagination-label", text: `PÃƒÂ¡gina ${page} de ${totalPages}` }),
+      AppCore.createElement("span", { className: "pagination-label", text: `PÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡gina ${page} de ${totalPages}` }),
       next
     ]);
   }
@@ -554,22 +558,472 @@
     });
   }
 
+  function getReservationById(id) {
+    return state.reservations.find((item) => item.id === id) || null;
+  }
+
+  function normalizeSaleTypeValue(value) {
+    const normalized = normalize(value);
+    if (normalized.includes("financ")) return "financiamiento";
+    if (normalized.includes("cont")) return "contado";
+    return "";
+  }
+
+  function isFinancingSaleType(value) {
+    return normalize(value).includes("financ");
+  }
+
+  function getTodayIso() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function isIsoDateInput(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "").trim());
+  }
+
+  function buildInlineField(label, control) {
+    return AppCore.createElement("div", { className: "neg-field-pro" }, [
+      AppCore.createElement("label", { text: label }),
+      control
+    ]);
+  }
+
+  function getSaleInlineForm() {
+    return document.getElementById("formCuota");
+  }
+
+  function closeSaleInlineForm() {
+    const form = getSaleInlineForm();
+    if (!form) return;
+    form.dataset.open = "0";
+    form.classList.add("hidden");
+    AppCore.clearElement(form);
+  }
+
+  function renderSaleInlineForm(config) {
+    const form = getSaleInlineForm();
+    if (!form) return;
+
+    form.dataset.open = "1";
+    form.classList.remove("hidden");
+    AppCore.clearElement(form);
+
+    const bodySections = Array.isArray(config.sections) ? config.sections : [];
+    const actions = Array.isArray(config.actions) ? config.actions : [];
+    const title = config.title || "";
+    const description = config.description || "";
+
+    const card = AppCore.createElement("div", { className: "negociacion-card-pro cuota-form-card" }, [
+      AppCore.createElement("div", { className: "neg-card-head" }, [
+        AppCore.createElement("div", {}, [
+          AppCore.createElement("h4", { text: title }),
+          AppCore.createElement("p", { className: "form-note-pro", text: description })
+        ])
+      ]),
+      ...bodySections,
+      AppCore.createElement("div", { className: "form-actions-pro" }, actions)
+    ]);
+
+    form.appendChild(card);
+  }
+
+  function invalidateSaleQuotaContext(ventaId = "") {
+    if (ventaId) {
+      saleQuotaContextCache.delete(String(ventaId));
+      return;
+    }
+    saleQuotaContextCache.clear();
+  }
+
+  function parseIsoDateParts(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || "").trim());
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+    return date;
+  }
+
+  function formatIsoDateParts(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function addMonthsKeepingDay(baseDate, monthsToAdd) {
+    const target = new Date(baseDate.getTime());
+    const day = target.getDate();
+    target.setDate(1);
+    target.setMonth(target.getMonth() + monthsToAdd);
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, lastDay));
+    return target;
+  }
+
+  function addQuotaFrequency(dateIso, frequency, offset) {
+    const baseDate = parseIsoDateParts(dateIso);
+    if (!baseDate) return "";
+    if (frequency === "quincenal") {
+      const nextDate = new Date(baseDate.getTime());
+      nextDate.setDate(nextDate.getDate() + (offset * 15));
+      return formatIsoDateParts(nextDate);
+    }
+    return formatIsoDateParts(addMonthsKeepingDay(baseDate, offset));
+  }
+
+  function getSuggestedQuotaStartDate(quotas = []) {
+    const latestDate = quotas
+      .map((quota) => quota.fecha_vencimiento || quota.fecha || "")
+      .filter(Boolean)
+      .sort()
+      .pop();
+    return latestDate || getTodayIso();
+  }
+
+  async function loadSaleQuotaContext(ventaId, { force = false } = {}) {
+    const key = String(ventaId || "");
+    if (!key) {
+      throw new Error("Venta invalida.");
+    }
+
+    if (!force && saleQuotaContextCache.has(key)) {
+      return saleQuotaContextCache.get(key);
+    }
+
+    const [detail, quotasRaw] = await Promise.all([
+      adminRequest({ query: { venta_id: key } }),
+      adminRequest({ query: { cuotas_venta: key } })
+    ]);
+
+    const quotas = Array.isArray(quotasRaw) ? quotasRaw.slice() : [];
+    quotas.sort((left, right) => AppCore.safeNumber(left.numero_cuota || left.numero) - AppCore.safeNumber(right.numero_cuota || right.numero));
+
+    const quotaNumbers = quotas
+      .map((quota) => AppCore.safeNumber(quota.numero_cuota || quota.numero))
+      .filter((value) => Number.isInteger(value) && value > 0);
+    const highestNumber = quotaNumbers.length ? Math.max(...quotaNumbers) : 0;
+
+    const context = {
+      ventaId: key,
+      detail,
+      quotas,
+      totalFinanciado: AppCore.safeNumber(detail?.saldo_financiado),
+      totalProgramado: AppCore.safeNumber(detail?.total_programado_cuotas),
+      saldoPendienteProgramar: AppCore.safeNumber(detail?.saldo_pendiente_programar),
+      totalPagado: AppCore.safeNumber(detail?.total_pagado),
+      saldoPendientePago: AppCore.safeNumber(detail?.saldo_pendiente_pago ?? detail?.saldo_restante),
+      nextQuotaNumber: AppCore.safeNumber(detail?.siguiente_numero_cuota) > 0
+        ? AppCore.safeNumber(detail?.siguiente_numero_cuota)
+        : highestNumber + 1,
+      suggestedFirstDate: getSuggestedQuotaStartDate(quotas),
+      highestQuotaNumber: highestNumber,
+      quotaNumbers: new Set(quotaNumbers)
+    };
+
+    saleQuotaContextCache.set(key, context);
+    return context;
+  }
+
+  function buildQuotaSummaryStrip(context) {
+    return AppCore.createElement("div", { className: "neg-summary-pro quota-summary-strip" }, [
+      AppCore.createElement("div", { className: "neg-summary-pill" }, [
+        AppCore.createElement("span", { text: "Saldo financiado" }),
+        AppCore.createElement("strong", { text: formatMoney(context.totalFinanciado) })
+      ]),
+      AppCore.createElement("div", { className: "neg-summary-pill" }, [
+        AppCore.createElement("span", { text: "Total programado" }),
+        AppCore.createElement("strong", { text: formatMoney(context.totalProgramado) })
+      ]),
+      AppCore.createElement("div", { className: "neg-summary-pill" }, [
+        AppCore.createElement("span", { text: "Pendiente por programar" }),
+        AppCore.createElement("strong", { text: formatMoney(context.saldoPendienteProgramar) })
+      ])
+    ]);
+  }
+
+  function buildQuotaModeSwitch(ventaId, activeMode) {
+    const wrapper = AppCore.createElement("div", { className: "quota-mode-switch" });
+    [
+      { id: "manual", label: "Manual" },
+      { id: "automatico", label: "Distribucion automatica" }
+    ].forEach((mode) => {
+      const button = AppCore.createElement("button", {
+        className: activeMode === mode.id ? "btn-primary" : "btn-outline",
+        text: mode.label,
+        attrs: { type: "button" },
+        events: { click: () => window.mostrarFormularioCuota && window.mostrarFormularioCuota(ventaId, mode.id) }
+      });
+      wrapper.appendChild(button);
+    });
+    return wrapper;
+  }
+
+  function buildQuotaDrafts(context, count, firstDate, frequency) {
+    if (!Number.isInteger(count) || count <= 0) {
+      throw new Error("Cantidad de cuotas invalida.");
+    }
+
+    if (!isIsoDateInput(firstDate) || !parseIsoDateParts(firstDate)) {
+      throw new Error("Falta la fecha de primera cuota.");
+    }
+
+    const remaining = AppCore.safeNumber(context.saldoPendienteProgramar);
+    if (remaining <= 0) {
+      throw new Error("No existe saldo pendiente por programar.");
+    }
+
+    const totalCents = Math.round(remaining * 100);
+    const baseCents = Math.floor(totalCents / count);
+    const drafts = [];
+
+    for (let index = 0; index < count; index += 1) {
+      const amountCents = index === count - 1
+        ? totalCents - (baseCents * (count - 1))
+        : baseCents;
+      drafts.push({
+        numero_cuota: context.nextQuotaNumber + index,
+        monto_programado: amountCents / 100,
+        fecha_vencimiento: addQuotaFrequency(firstDate, frequency, index)
+      });
+    }
+
+    return drafts;
+  }
+
+  function renderAutoQuotaPreview(context) {
+    const preview = document.getElementById("autoQuotaPreview");
+    if (!preview) return;
+
+    const count = AppCore.safeNumber(document.getElementById("autoQuotaCount")?.value);
+    const firstDate = document.getElementById("autoQuotaFirstDate")?.value || "";
+    const frequency = document.getElementById("autoQuotaFrequency")?.value || "mensual";
+
+    AppCore.clearElement(preview);
+    preview.className = "quota-preview-shell";
+
+    try {
+      const drafts = buildQuotaDrafts(context, count, firstDate, frequency);
+      const previewList = AppCore.createElement("div", { className: "quota-preview-list" }, drafts.slice(0, 6).map((draft) =>
+        AppCore.createElement("div", { className: "quota-preview-row" }, [
+          AppCore.createElement("strong", { text: `Cuota ${draft.numero_cuota}` }),
+          AppCore.createElement("span", { text: `${formatMoney(draft.monto_programado)} - ${formatDate(draft.fecha_vencimiento, "medium")}` })
+        ])
+      ));
+
+      const footer = drafts.length > 6
+        ? AppCore.createElement("div", { className: "form-note-pro", text: `Se previsualizan 6 de ${drafts.length} cuotas.` })
+        : null;
+
+      AppCore.appendChildren(preview, [
+        AppCore.createElement("div", { className: "form-note-pro" }, [
+          AppCore.createElement("strong", { text: `${drafts.length} cuotas` }),
+          ` por ${formatMoney(context.saldoPendienteProgramar)}. La ultima cuota absorbera cualquier diferencia de redondeo.`
+        ]),
+        previewList,
+        footer
+      ].filter(Boolean));
+    } catch (error) {
+      preview.textContent = error.message || "Completa los datos para ver la previsualizacion.";
+      preview.className = "quota-preview-shell inline-alert tone-warning";
+    }
+  }
+
+  function closeNegotiationShell(id) {
+    const shell = document.getElementById(`neg-${id}`);
+    if (!shell) return;
+    shell.dataset.open = "0";
+    AppCore.clearElement(shell);
+  }
+
+  function syncNegotiationFormState(id) {
+    const typeSelect = document.getElementById(`tipo_venta_${id}`);
+    const cuotasInput = document.getElementById(`numero_cuotas_${id}`);
+    const fechaInput = document.getElementById(`fecha_inicio_${id}`);
+    const helper = document.getElementById(`neg_help_${id}`);
+    const isFinancing = isFinancingSaleType(typeSelect?.value || "");
+
+    if (cuotasInput) {
+      cuotasInput.disabled = !isFinancing;
+      cuotasInput.required = isFinancing;
+      if (!isFinancing) cuotasInput.value = "0";
+    }
+
+    if (fechaInput) {
+      fechaInput.disabled = !isFinancing;
+      if (!isFinancing) {
+        fechaInput.value = "";
+      } else if (!fechaInput.value) {
+        fechaInput.value = getTodayIso();
+      }
+    }
+
+    if (helper) {
+      helper.textContent = isFinancing
+        ? "Para financiamiento debes indicar cuotas y, de ser posible, una fecha de inicio de pagos."
+        : "En contado solo se guardan precio final, monto inicial y observaciones.";
+    }
+  }
+
+  function showNegotiationForm(id) {
+    const item = getReservationById(id);
+    const shell = document.getElementById(`neg-${id}`);
+    if (!item || !shell) return;
+
+    if (shell.dataset.open === "1") {
+      closeNegotiationShell(id);
+      return;
+    }
+
+    const priceValue = AppCore.safeNumber(item.precio_final) > 0
+      ? AppCore.safeNumber(item.precio_final)
+      : AppCore.safeNumber(item.priceReference);
+    const typeValue = normalizeSaleTypeValue(item.tipo_venta);
+    const initialValue = AppCore.safeNumber(item.monto_inicial);
+    const cuotasValue = AppCore.safeNumber(item.numero_cuotas);
+    const saldoEstimado = Math.max(0, priceValue - AppCore.safeNumber(item.monto_reserva) - initialValue);
+
+    AppCore.clearElement(shell);
+    shell.dataset.open = "1";
+
+    const typeSelect = AppCore.createElement("select", { attrs: { id: `tipo_venta_${id}` } });
+    [
+      { value: "", label: "Seleccionar" },
+      { value: "contado", label: "Contado" },
+      { value: "financiamiento", label: "Financiamiento" }
+    ].forEach((option) => {
+      typeSelect.appendChild(AppCore.createElement("option", {
+        text: option.label,
+        attrs: {
+          value: option.value,
+          selected: option.value === typeValue ? "selected" : null
+        }
+      }));
+    });
+    typeSelect.addEventListener("change", () => syncNegotiationFormState(id));
+
+    const summaryCards = AppCore.createElement("div", { className: "neg-summary-pro" }, [
+      AppCore.createElement("div", { className: "neg-summary-pill" }, [
+        AppCore.createElement("span", { text: "Reserva" }),
+        AppCore.createElement("strong", { text: formatMoney(item.monto_reserva) })
+      ]),
+      AppCore.createElement("div", { className: "neg-summary-pill" }, [
+        AppCore.createElement("span", { text: "Precio de referencia" }),
+        AppCore.createElement("strong", { text: formatMoney(priceValue) })
+      ]),
+      AppCore.createElement("div", { className: "neg-summary-pill" }, [
+        AppCore.createElement("span", { text: "Saldo estimado" }),
+        AppCore.createElement("strong", { text: formatMoney(saldoEstimado) })
+      ])
+    ]);
+
+    const card = AppCore.createElement("div", { className: "negociacion-card-pro" }, [
+      AppCore.createElement("div", { className: "neg-card-head" }, [
+        AppCore.createElement("div", {}, [
+          AppCore.createElement("h4", { text: "Negociacion comercial" }),
+          AppCore.createElement("p", {
+            className: "form-note-pro",
+            text: "El formulario se precarga con el precio vigente para evitar envios incompletos al backend."
+          })
+        ]),
+        createStatusPill(item.statusMeta.label, item.statusMeta.tone)
+      ]),
+      summaryCards,
+      AppCore.createElement("div", { className: "neg-grid-pro" }, [
+        buildInlineField("Precio final", AppCore.createElement("input", {
+          attrs: {
+            id: `precio_final_${id}`,
+            type: "number",
+            min: "0",
+            step: "0.01",
+            value: priceValue > 0 ? String(priceValue) : ""
+          }
+        })),
+        buildInlineField("Tipo de venta", typeSelect),
+        buildInlineField("Monto inicial", AppCore.createElement("input", {
+          attrs: {
+            id: `monto_inicial_${id}`,
+            type: "number",
+            min: "0",
+            step: "0.01",
+            value: initialValue > 0 ? String(initialValue) : "0"
+          }
+        })),
+        buildInlineField("Numero de cuotas", AppCore.createElement("input", {
+          attrs: {
+            id: `numero_cuotas_${id}`,
+            type: "number",
+            min: "0",
+            step: "1",
+            value: cuotasValue > 0 ? String(cuotasValue) : "0"
+          }
+        })),
+        buildInlineField("Inicio de pagos", AppCore.createElement("input", {
+          attrs: {
+            id: `fecha_inicio_${id}`,
+            type: "date",
+            value: item.fecha_inicio_pagos || (typeValue === "financiamiento" ? getTodayIso() : "")
+          }
+        })),
+        buildInlineField("Observaciones", AppCore.createElement("textarea", {
+          attrs: {
+            id: `obs_${id}`,
+            rows: "3",
+            placeholder: "Notas internas de la negociacion"
+          },
+          text: item.observaciones || ""
+        }))
+      ]),
+      AppCore.createElement("div", {
+        className: "form-note-pro",
+        attrs: { id: `neg_help_${id}` }
+      }),
+      AppCore.createElement("div", { className: "form-actions-pro" }, [
+        AppCore.createElement("button", {
+          className: "btn-primary",
+          text: "Guardar negociacion",
+          attrs: { type: "button" },
+          events: { click: () => window.guardarNegociacion && window.guardarNegociacion(id) }
+        }),
+        AppCore.createElement("button", {
+          className: "btn-outline",
+          text: "Cancelar",
+          attrs: { type: "button" },
+          events: { click: () => closeNegotiationShell(id) }
+        })
+      ])
+    ]);
+
+    shell.appendChild(card);
+    syncNegotiationFormState(id);
+  }
+
   function createReservationCard(item) {
     const deadlineText = item.statusMeta.deadlineDate
       ? `${item.statusMeta.deadlineLabel}: ${formatDate(item.statusMeta.deadlineDate)}`
       : "Sin plazo activo";
     const extensionSummary = item.extension_usada
-      ? "Extensión ya utilizada"
+      ? "ExtensiÃƒÂ³n ya utilizada"
       : item.extension_pendiente
-        ? "Extensión pendiente"
-        : "Sin extensión";
+        ? "ExtensiÃƒÂ³n pendiente"
+        : "Sin extensiÃƒÂ³n";
 
     const card = AppCore.createElement("article", { className: "reservation-card-admin" }, [
       AppCore.createElement("div", { className: "collection-card-head" }, [
         AppCore.createElement("div", { className: "collection-card-title-wrap" }, [
           AppCore.createElement("div", { className: "collection-card-code", text: item.commercialCode }),
           AppCore.createElement("h3", { className: "collection-card-title", text: item.cliente || "Cliente no disponible" }),
-          AppCore.createElement("p", { className: "collection-card-sub", text: [item.unitCode, item.projectLine, item.lotLine].filter(Boolean).join(" · ") || "Sin referencia de unidad" })
+          AppCore.createElement("p", { className: "collection-card-sub", text: [item.unitCode, item.projectLine, item.lotLine].filter(Boolean).join(" Ã‚Â· ") || "Sin referencia de unidad" })
         ]),
         createStatusPill(item.statusMeta.label, item.statusMeta.tone)
       ]),
@@ -579,26 +1033,26 @@
         createMetaPill("Precio ref.", formatMoney(item.priceReference)),
         createMetaPill("Fecha", formatDate(item.referenceDate)),
         createMetaPill(item.statusMeta.deadlineLabel, item.statusMeta.deadlineDate ? formatDate(item.statusMeta.deadlineDate) : "Sin plazo", item.statusMeta.isExpiringSoon ? "pending" : item.statusMeta.isExpired ? "rejected" : "neutral"),
-        createMetaPill("Extensión", extensionSummary, item.extension_usada ? "premium" : item.extension_pendiente ? "pending" : "neutral")
+        createMetaPill("ExtensiÃƒÂ³n", extensionSummary, item.extension_usada ? "premium" : item.extension_pendiente ? "pending" : "neutral")
       ])
     ]);
 
     if (item.observaciones || item.statusMeta.isExpiringSoon || item.statusMeta.isExpired || item.extension_pendiente || item.extension_usada) {
       const alertText = item.statusMeta.isExpired
-        ? `${item.statusMeta.deadlineLabel} vencida hace ${Math.max(1, AppCore.safeNumber(item.dias_vencidos))} día(s).`
+        ? `${item.statusMeta.deadlineLabel} vencida hace ${Math.max(1, AppCore.safeNumber(item.dias_vencidos))} dÃƒÂ­a(s).`
         : item.statusMeta.isExpiringSoon
           ? item.statusMeta.daysUntilExpiry === 0
             ? `${item.statusMeta.deadlineLabel} vence hoy.`
-            : `${item.statusMeta.deadlineLabel} vence en ${item.statusMeta.daysUntilExpiry} día(s).`
+            : `${item.statusMeta.deadlineLabel} vence en ${item.statusMeta.daysUntilExpiry} dÃƒÂ­a(s).`
           : item.extension_pendiente
-            ? `Hay una solicitud de extensión pendiente${item.deposito_extension_cumplido ? " con depósito validado" : " sin depósito suficiente"}.`
+            ? `Hay una solicitud de extensiÃƒÂ³n pendiente${item.deposito_extension_cumplido ? " con depÃƒÂ³sito validado" : " sin depÃƒÂ³sito suficiente"}.`
             : item.extension_usada
-              ? "La reserva ya consumió su única extensión comercial."
+              ? "La reserva ya consumiÃƒÂ³ su ÃƒÂºnica extensiÃƒÂ³n comercial."
               : item.observaciones;
       card.appendChild(AppCore.createElement("div", {
         className: `inline-alert tone-${item.statusMeta.isExpired ? "rejected" : item.statusMeta.isExpiringSoon || item.extension_pendiente ? "pending" : item.extension_usada ? "premium" : "neutral"}`
       }, [
-        AppCore.createElement("strong", { text: item.statusMeta.isExpired ? "Vencida" : item.statusMeta.isExpiringSoon ? "Por vencer" : item.extension_pendiente ? "Extensión" : item.extension_usada ? "Control de plazo" : "Observación" }),
+        AppCore.createElement("strong", { text: item.statusMeta.isExpired ? "Vencida" : item.statusMeta.isExpiringSoon ? "Por vencer" : item.extension_pendiente ? "ExtensiÃƒÂ³n" : item.extension_usada ? "Control de plazo" : "ObservaciÃƒÂ³n" }),
         AppCore.createElement("span", { text: alertText || deadlineText })
       ]));
     }
@@ -626,7 +1080,7 @@
       }
     }
 
-    if (item.puede_convertir && item.tipo_venta && AppCore.safeNumber(item.precio_final) > 0) {
+    if (item.puede_convertir && AppCore.safeNumber(item.priceReference) > 0) {
       const convertButton = AppCore.createElement("button", { className: "btn-primary", text: "Convertir a venta", attrs: { type: "button" } });
       convertButton.addEventListener("click", () => window.convertirVenta && window.convertirVenta(item.id, convertButton));
       actions.appendChild(convertButton);
@@ -642,7 +1096,7 @@
         AppCore.createElement("div", { className: "collection-card-title-wrap" }, [
           AppCore.createElement("div", { className: "collection-card-code", text: item.unitCode }),
           AppCore.createElement("h3", { className: "collection-card-title", text: item.cliente || "Cliente no disponible" }),
-          AppCore.createElement("p", { className: "collection-card-sub", text: [item.agente, item.projectLine].filter(Boolean).join(" Â· ") || "Sin referencia adicional" })
+          AppCore.createElement("p", { className: "collection-card-sub", text: [item.agente, item.projectLine].filter(Boolean).join(" Ãƒâ€šÃ‚Â· ") || "Sin referencia adicional" })
         ]),
         createStatusPill(item.statusMeta.label, item.statusMeta.tone)
       ]),
@@ -685,7 +1139,7 @@
       AppCore.createElement("div", { className: "extension-ticket-head" }, [
         AppCore.createElement("div", {}, [
           AppCore.createElement("strong", { text: item.cliente || "Cliente no disponible" }),
-          AppCore.createElement("div", { className: "extension-ticket-sub", text: [item.unidad_codigo, item.agente].filter(Boolean).join(" · ") || "Sin referencia" })
+          AppCore.createElement("div", { className: "extension-ticket-sub", text: [item.unidad_codigo, item.agente].filter(Boolean).join(" Ã‚Â· ") || "Sin referencia" })
         ]),
         createStatusPill(statusMeta.label, statusMeta.tone)
       ]),
@@ -705,11 +1159,11 @@
       card.appendChild(AppCore.createElement("div", {
         className: `inline-alert tone-${item.extension_usada ? "premium" : "pending"}`
       }, [
-        AppCore.createElement("strong", { text: item.extension_usada ? "Extensión usada" : "Depósito pendiente" }),
+        AppCore.createElement("strong", { text: item.extension_usada ? "ExtensiÃƒÂ³n usada" : "DepÃƒÂ³sito pendiente" }),
         AppCore.createElement("span", {
           text: item.extension_usada
-            ? "La reserva ya utilizó su única extensión comercial."
-            : `Se requiere confirmar el depósito mínimo de ${formatMoney(item.deposito_requerido || 2500)} para aprobar.`
+            ? "La reserva ya utilizÃƒÂ³ su ÃƒÂºnica extensiÃƒÂ³n comercial."
+            : `Se requiere confirmar el depÃƒÂ³sito mÃƒÂ­nimo de ${formatMoney(item.deposito_requerido || 2500)} para aprobar.`
         })
       ]));
     }
@@ -733,10 +1187,10 @@
   function createUnitCard(item) {
     const card = AppCore.createElement("article", { className: `unidad-card estado-${normalize(item.estado)}` }, [
       AppCore.createElement("h3", { text: item.codigo || `${item.manzana}-${item.lote}` }),
-      AppCore.createElement("div", { className: "unidad-info", text: [item.proyecto, item.fase ? `Fase ${item.fase}` : "", item.manzana ? `Mz. ${item.manzana}` : "", item.lote ? `Lt. ${item.lote}` : ""].filter(Boolean).join(" Â· ") })
+      AppCore.createElement("div", { className: "unidad-info", text: [item.proyecto, item.fase ? `Fase ${item.fase}` : "", item.manzana ? `Mz. ${item.manzana}` : "", item.lote ? `Lt. ${item.lote}` : ""].filter(Boolean).join(" Ãƒâ€šÃ‚Â· ") })
     ]);
 
-    card.appendChild(AppCore.createElement("label", { className: "unit-field-label", text: "ÃƒÂrea" }));
+    card.appendChild(AppCore.createElement("label", { className: "unit-field-label", text: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea" }));
     card.appendChild(AppCore.createElement("input", { attrs: { id: `area-${item.id}`, type: "number", value: AppCore.safeNumber(item.area) } }));
     card.appendChild(AppCore.createElement("label", { className: "unit-field-label", text: "Precio" }));
     card.appendChild(AppCore.createElement("input", { attrs: { id: `precio-${item.id}`, type: "number", value: AppCore.safeNumber(item.precio) } }));
@@ -808,8 +1262,8 @@
     const pendingExtensions = state.extensions.filter((item) => normalize(item.estado_extension) === "solicitud").length;
 
     clearAndAppend(refs.dashboardKpis, [
-      { title: "Reservas activas", value: activeReservations, note: `${pendingReservations} pendientes de confirmación`, tone: "active" },
-      { title: "Reservas por vencer", value: expiringReservations, note: "Vigencia dentro de 3 dÃƒÂ­as", tone: expiringReservations > 0 ? "pending" : "neutral" },
+      { title: "Reservas activas", value: activeReservations, note: `${pendingReservations} pendientes de confirmaciÃƒÂ³n`, tone: "active" },
+      { title: "Reservas por vencer", value: expiringReservations, note: "Vigencia dentro de 3 dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as", tone: expiringReservations > 0 ? "pending" : "neutral" },
       { title: "Ventas activas", value: activeSales, note: `${closedSales} cerradas`, tone: "confirmed" },
       { title: "Monto vendido", value: formatMoney(totalSold), note: `${state.sales.length} operaciones`, tone: "premium" },
       { title: "Saldo pendiente", value: formatMoney(totalPending), note: "Por cobrar", tone: totalPending > 0 ? "pending" : "confirmed" },
@@ -823,19 +1277,19 @@
 
     clearAndAppend(refs.dashboardHighlights, [
       AppCore.createElement("div", { className: "insight-card" }, [
-        AppCore.createElement("div", { className: "insight-title", text: "Foco del dÃƒÂ­a" }),
-        AppCore.createElement("strong", { text: expiringReservations > 0 ? "Reservas por vencer" : "OperaciÃƒÂ³n estable" }),
-        AppCore.createElement("p", { text: expiringReservations > 0 ? `${expiringReservations} reservas requieren seguimiento inmediato.` : "No hay alertas crÃƒÂ­ticas de vigencia." })
+        AppCore.createElement("div", { className: "insight-title", text: "Foco del dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a" }),
+        AppCore.createElement("strong", { text: expiringReservations > 0 ? "Reservas por vencer" : "OperaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n estable" }),
+        AppCore.createElement("p", { text: expiringReservations > 0 ? `${expiringReservations} reservas requieren seguimiento inmediato.` : "No hay alertas crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­ticas de vigencia." })
       ]),
       AppCore.createElement("div", { className: "insight-card" }, [
         AppCore.createElement("div", { className: "insight-title", text: "Cobro proyectado" }),
         AppCore.createElement("strong", { text: formatMoney(totalPending) }),
-        AppCore.createElement("p", { text: "Saldo acumulado de ventas todavÃƒÂ­a activas." })
+        AppCore.createElement("p", { text: "Saldo acumulado de ventas todavÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a activas." })
       ]),
       AppCore.createElement("div", { className: "insight-card" }, [
         AppCore.createElement("div", { className: "insight-title", text: "Pendientes operativos" }),
         AppCore.createElement("strong", { text: String(pendingReservations + pendingExtensions) }),
-        AppCore.createElement("p", { text: "Reservas y extensiones pendientes de gestiÃƒÂ³n." })
+        AppCore.createElement("p", { text: "Reservas y extensiones pendientes de gestiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n." })
       ])
     ]);
 
@@ -893,8 +1347,8 @@
     if (refs.extApprovedCount) refs.extApprovedCount.textContent = String(approved.length);
     if (refs.extRejectedCount) refs.extRejectedCount.textContent = String(rejected.length);
     pending.length ? clearAndAppend(refs.extPendientes, pending.map((item) => createExtensionCard(item, true))) : renderEmpty(refs.extPendientes, "Sin pendientes", "No hay solicitudes esperando respuesta.");
-    approved.length ? clearAndAppend(refs.extAprobadas, approved.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extAprobadas, "Sin aprobadas", "AÃƒÂºn no hay solicitudes aprobadas.");
-    rejected.length ? clearAndAppend(refs.extRechazadas, rejected.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extRechazadas, "Sin rechazadas", "AÃƒÂºn no hay solicitudes rechazadas.");
+    approved.length ? clearAndAppend(refs.extAprobadas, approved.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extAprobadas, "Sin aprobadas", "AÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn no hay solicitudes aprobadas.");
+    rejected.length ? clearAndAppend(refs.extRechazadas, rejected.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extRechazadas, "Sin rechazadas", "AÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn no hay solicitudes rechazadas.");
   }
 
   function renderUnits(items = getFilteredUnits()) {
@@ -1034,7 +1488,7 @@
       renderUnits();
     } catch (error) {
       console.error("admin.page refreshAll", error);
-      renderEmpty(refs.dashboardHighlights, "Error cargando datos", AppCore.getErrorMessage(error, "No se pudo actualizar la informaciÃƒÂ³n."));
+      renderEmpty(refs.dashboardHighlights, "Error cargando datos", AppCore.getErrorMessage(error, "No se pudo actualizar la informaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n."));
     } finally {
       state.loading = false;
       setButtonLoading(refs.refreshButton, false);
@@ -1046,12 +1500,12 @@
     document.querySelectorAll(".section").forEach((section) => section.classList.toggle("hidden", section.id !== sectionId));
     document.querySelectorAll(".nav-btn[data-nav]").forEach((navButton) => navButton.classList.toggle("active", navButton === button || navButton.dataset.nav === sectionId));
     if (refs.subtitle) refs.subtitle.textContent = ({
-      dashboard: "OperaciÃƒÂ³n comercial, control y seguimiento.",
-      reservas: "Reservas activas, negociaciÃƒÂ³n y conversiÃƒÂ³n.",
+      dashboard: "OperaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n comercial, control y seguimiento.",
+      reservas: "Reservas activas, negociaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n y conversiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n.",
       ventas: "Seguimiento de cobros, cuotas y saldo.",
-      extensiones: "RevisiÃƒÂ³n y respuesta de solicitudes complementarias.",
+      extensiones: "RevisiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n y respuesta de solicitudes complementarias.",
       unidades: "Inventario editable y disponibilidad."
-    })[sectionId] || "OperaciÃƒÂ³n comercial, control y seguimiento.";
+    })[sectionId] || "OperaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n comercial, control y seguimiento.";
     if (sectionId === "dashboard") renderDashboard();
     if (sectionId === "reservas") renderReservations();
     if (sectionId === "ventas") renderSales();
@@ -1068,7 +1522,7 @@
       await adminRequest({ method: "PATCH", body: { action: approved ? "aprobar_extension" : "rechazar_extension", extension_id: id } });
       await syncData({ extensions: true, reservations: true, filters: true });
     } catch (error) {
-      alert(AppCore.getErrorMessage(error, "No se pudo actualizar la extensión."));
+      alert(AppCore.getErrorMessage(error, "No se pudo actualizar la extensiÃƒÂ³n."));
     }
   }
 
@@ -1100,24 +1554,48 @@
   }
 
   async function handleSaveNegotiation(id) {
+    const tipoVenta = document.getElementById(`tipo_venta_${id}`)?.value || "";
+    const precioFinal = AppCore.safeNumber(document.getElementById(`precio_final_${id}`)?.value);
+    const montoInicial = AppCore.safeNumber(document.getElementById(`monto_inicial_${id}`)?.value);
+    const numeroCuotas = AppCore.safeNumber(document.getElementById(`numero_cuotas_${id}`)?.value);
+    const fechaInicioPagos = document.getElementById(`fecha_inicio_${id}`)?.value || "";
+    const observaciones = document.getElementById(`obs_${id}`)?.value || "";
+    const isFinancing = isFinancingSaleType(tipoVenta);
+
+    if (!tipoVenta) {
+      throw new Error("Selecciona el tipo de venta antes de guardar la negociacion.");
+    }
+
+    if (precioFinal <= 0) {
+      throw new Error("Ingresa un precio final valido para la negociacion.");
+    }
+
+    if (isFinancing && numeroCuotas <= 0) {
+      throw new Error("Para una venta financiada debes indicar al menos una cuota.");
+    }
+
+    if (isFinancing && !fechaInicioPagos) {
+      throw new Error("Selecciona la fecha de inicio de pagos.");
+    }
+
+    if (fechaInicioPagos && !isIsoDateInput(fechaInicioPagos)) {
+      throw new Error("La fecha de inicio de pagos debe estar en formato YYYY-MM-DD.");
+    }
+
     const payload = {
       action: "negociacion",
       reserva_id: id,
-      precio_final: document.getElementById(`precio_final_${id}`)?.value || "",
-      tipo_venta: document.getElementById(`tipo_venta_${id}`)?.value || "",
-      monto_inicial: document.getElementById(`monto_inicial_${id}`)?.value || 0,
-      numero_cuotas: document.getElementById(`numero_cuotas_${id}`)?.value || 0,
-      fecha_inicio_pagos: document.getElementById(`fecha_inicio_${id}`)?.value || "",
-      observaciones: document.getElementById(`obs_${id}`)?.value || ""
+      precio_final: precioFinal,
+      tipo_venta: tipoVenta,
+      monto_inicial: montoInicial,
+      numero_cuotas: isFinancing ? numeroCuotas : 0,
+      fecha_inicio_pagos: isFinancing ? fechaInicioPagos : "",
+      observaciones_negociacion: observaciones
     };
 
     await runAction(payload, "No se pudo guardar la negociacion.");
 
-    const shell = document.getElementById(`neg-${id}`);
-    if (shell) {
-      shell.dataset.open = "0";
-      AppCore.clearElement(shell);
-    }
+    closeNegotiationShell(id);
 
     await syncData({ reservations: true, filters: true });
   }
@@ -1149,13 +1627,464 @@
     showAdminAlert("Unidad actualizada.");
   }
 
-  async function handlePaymentRefresh(callback) {
-    await callback();
+  async function reopenSaleDetail(ventaId) {
+    if (typeof legacyActions.verVenta === "function") {
+      await legacyActions.verVenta(ventaId);
+    }
+  }
+
+  async function refreshSaleQuotaModule(ventaId) {
+    closeSaleInlineForm();
+    invalidateSaleQuotaContext(ventaId);
     await syncData({ sales: true, filters: true });
+    await reopenSaleDetail(ventaId);
+  }
+
+  async function submitQuotaPayload(payload) {
+    const response = await adminRequest({
+      method: "POST",
+      body: payload
+    });
+
+    if (response && response.success === false) {
+      throw new Error(response.error || "No se pudo crear la cuota.");
+    }
+
+    return response;
+  }
+
+  function updateManualQuotaHint(context) {
+    const hint = document.getElementById("manualQuotaHint");
+    if (!hint) return;
+
+    const numero = AppCore.safeNumber(document.getElementById("numCuota")?.value);
+    const monto = AppCore.safeNumber(document.getElementById("montoCuota")?.value);
+    const messages = [];
+
+    if (Number.isInteger(numero) && numero > 0 && context.quotaNumbers.has(numero)) {
+      messages.push("La cuota ya existe.");
+    }
+
+    if (monto > 0) {
+      if (monto > context.saldoPendienteProgramar) {
+        messages.push("La suma de cuotas excede el saldo financiado pendiente.");
+      } else {
+        messages.push(`Despues de guardar quedaran ${formatMoney(context.saldoPendienteProgramar - monto)} por programar.`);
+      }
+    } else {
+      messages.push(`Saldo pendiente por programar: ${formatMoney(context.saldoPendienteProgramar)}.`);
+    }
+
+    hint.className = messages.some((message) => message.includes("excede") || message.includes("existe"))
+      ? "inline-alert tone-warning"
+      : "form-note-pro";
+    hint.textContent = messages.join(" ");
+  }
+
+  async function handleCreateQuota(ventaId) {
+    const context = await loadSaleQuotaContext(ventaId, { force: true });
+    const numero = AppCore.safeNumber(document.getElementById("numCuota")?.value);
+    const monto = AppCore.safeNumber(document.getElementById("montoCuota")?.value);
+    const fecha = document.getElementById("fechaCuota")?.value || "";
+
+    if (!Number.isInteger(numero) || numero <= 0) {
+      throw new Error("Falta el numero de cuota.");
+    }
+
+    if (context.quotaNumbers.has(numero)) {
+      throw new Error("La cuota ya existe.");
+    }
+
+    if (monto <= 0) {
+      throw new Error("Monto programado invalido.");
+    }
+
+    if (monto > context.saldoPendienteProgramar) {
+      throw new Error("La suma de cuotas excede el saldo financiado.");
+    }
+
+    if (!fecha) {
+      throw new Error("Falta la fecha de vencimiento.");
+    }
+
+    if (!isIsoDateInput(fecha) || !parseIsoDateParts(fecha)) {
+      throw new Error("La fecha de vencimiento debe estar en formato YYYY-MM-DD.");
+    }
+
+    await submitQuotaPayload({
+      action: "crear_cuota",
+      venta_id: ventaId,
+      numero_cuota: numero,
+      monto_programado: monto,
+      fecha_vencimiento: fecha
+    });
+
+    await refreshSaleQuotaModule(ventaId);
+  }
+
+  async function handleGenerateAutomaticQuotas(ventaId) {
+    const context = await loadSaleQuotaContext(ventaId, { force: true });
+    const count = AppCore.safeNumber(document.getElementById("autoQuotaCount")?.value);
+    const firstDate = document.getElementById("autoQuotaFirstDate")?.value || "";
+    const frequency = document.getElementById("autoQuotaFrequency")?.value || "mensual";
+    const drafts = buildQuotaDrafts(context, count, firstDate, frequency);
+    let created = 0;
+
+    try {
+      for (const draft of drafts) {
+        await submitQuotaPayload({
+          action: "crear_cuota",
+          venta_id: ventaId,
+          numero_cuota: draft.numero_cuota,
+          monto_programado: draft.monto_programado,
+          fecha_vencimiento: draft.fecha_vencimiento
+        });
+        created += 1;
+      }
+    } catch (error) {
+      await refreshSaleQuotaModule(ventaId);
+      if (created > 0) {
+        throw new Error(`Se registraron ${created} cuotas antes del error. ${AppCore.getErrorMessage(error, "No se pudo completar la distribucion automatica.")}`);
+      }
+      throw error;
+    }
+
+    await refreshSaleQuotaModule(ventaId);
+    return drafts.length;
+  }
+
+  async function openQuotaForm(ventaId, mode = "manual") {
+    const currentForm = getSaleInlineForm();
+    if (currentForm?.dataset.open === "1" && currentForm.dataset.mode === mode) {
+      closeSaleInlineForm();
+      return;
+    }
+
+    const context = await loadSaleQuotaContext(ventaId, { force: true });
+    const canProgram = context.saldoPendienteProgramar > 0;
+    const defaultManualDate = context.quotas.length
+      ? addQuotaFrequency(getSuggestedQuotaStartDate(context.quotas), "mensual", 1)
+      : getTodayIso();
+
+    if (mode === "automatico") {
+      const countInput = AppCore.createElement("input", {
+        attrs: {
+          id: "autoQuotaCount",
+          type: "number",
+          min: "1",
+          step: "1",
+          inputmode: "numeric",
+          value: String(Math.max(1, Math.min(6, Math.floor(context.saldoPendienteProgramar || 1))))
+        }
+      });
+      const firstDateInput = AppCore.createElement("input", {
+        attrs: {
+          id: "autoQuotaFirstDate",
+          type: "date",
+          value: defaultManualDate
+        }
+      });
+      const frequencySelect = AppCore.createElement("select", { attrs: { id: "autoQuotaFrequency" } });
+      [
+        { value: "mensual", label: "Mensual" },
+        { value: "quincenal", label: "Quincenal" }
+      ].forEach((option) => {
+        frequencySelect.appendChild(AppCore.createElement("option", {
+          text: option.label,
+          attrs: { value: option.value }
+        }));
+      });
+
+      renderSaleInlineForm({
+        title: "Distribucion automatica de cuotas",
+        description: canProgram
+          ? "Genera cuotas consecutivas desde el siguiente numero disponible. La ultima cuota absorbera diferencias de redondeo."
+          : "La venta ya no tiene saldo pendiente por programar.",
+        sections: [
+          buildQuotaSummaryStrip(context),
+          buildQuotaModeSwitch(ventaId, "automatico"),
+          AppCore.createElement("div", { className: "form-grid-pro cuota-form-grid" }, [
+            buildInlineField("Cantidad de cuotas", countInput),
+            buildInlineField("Primera cuota", firstDateInput),
+            buildInlineField("Frecuencia", frequencySelect)
+          ]),
+          AppCore.createElement("div", { className: "quota-preview-shell", attrs: { id: "autoQuotaPreview" } })
+        ],
+        actions: canProgram
+          ? [
+              AppCore.createElement("button", {
+                className: "btn-primary",
+                text: "Generar cuotas",
+                attrs: { type: "button" },
+                events: { click: () => window.generarCuotasAutomaticas && window.generarCuotasAutomaticas(ventaId) }
+              }),
+              AppCore.createElement("button", {
+                className: "btn-outline",
+                text: "Manual",
+                attrs: { type: "button" },
+                events: { click: () => window.mostrarFormularioCuota && window.mostrarFormularioCuota(ventaId, "manual") }
+              }),
+              AppCore.createElement("button", {
+                className: "btn-outline",
+                text: "Cancelar",
+                attrs: { type: "button" },
+                events: { click: () => closeSaleInlineForm() }
+              })
+            ]
+          : [
+              AppCore.createElement("button", {
+                className: "btn-outline",
+                text: "Cerrar",
+                attrs: { type: "button" },
+                events: { click: () => closeSaleInlineForm() }
+              })
+            ]
+      });
+
+      const form = getSaleInlineForm();
+      if (form) form.dataset.mode = "automatico";
+
+      [countInput, firstDateInput, frequencySelect].forEach((control) => {
+        control.addEventListener("input", () => renderAutoQuotaPreview(context));
+        control.addEventListener("change", () => renderAutoQuotaPreview(context));
+      });
+      renderAutoQuotaPreview(context);
+      return;
+    }
+
+    const numeroInput = AppCore.createElement("input", {
+      attrs: {
+        id: "numCuota",
+        type: "number",
+        min: "1",
+        step: "1",
+        inputmode: "numeric",
+        value: String(context.nextQuotaNumber),
+        placeholder: "Ej. 4"
+      }
+    });
+    const montoInput = AppCore.createElement("input", {
+      attrs: {
+        id: "montoCuota",
+        type: "number",
+        min: "0",
+        step: "0.01",
+        inputmode: "decimal",
+        value: canProgram ? String(context.saldoPendienteProgramar) : "",
+        placeholder: "Monto programado"
+      }
+    });
+    const fechaInput = AppCore.createElement("input", {
+      attrs: {
+        id: "fechaCuota",
+        type: "date",
+        value: defaultManualDate
+      }
+    });
+
+    renderSaleInlineForm({
+      title: "Programacion manual de cuota",
+      description: canProgram
+        ? "Crea una cuota individual validando numero, monto y fecha antes de guardar."
+        : "La venta ya distribuyo todo el saldo financiado en cuotas.",
+      sections: [
+        buildQuotaSummaryStrip(context),
+        buildQuotaModeSwitch(ventaId, "manual"),
+        AppCore.createElement("div", { className: "form-grid-pro cuota-form-grid" }, [
+          buildInlineField("Numero de cuota", numeroInput),
+          buildInlineField("Monto programado", montoInput),
+          buildInlineField("Fecha de vencimiento", fechaInput)
+        ]),
+        AppCore.createElement("div", { className: "form-note-pro", attrs: { id: "manualQuotaHint" } })
+      ],
+      actions: canProgram
+        ? [
+            AppCore.createElement("button", {
+              className: "btn-primary",
+              text: "Guardar cuota",
+              attrs: { type: "button" },
+              events: { click: () => window.crearCuota && window.crearCuota(ventaId) }
+            }),
+            AppCore.createElement("button", {
+              className: "btn-outline",
+              text: "Distribucion automatica",
+              attrs: { type: "button" },
+              events: { click: () => window.mostrarFormularioCuota && window.mostrarFormularioCuota(ventaId, "automatico") }
+            }),
+            AppCore.createElement("button", {
+              className: "btn-outline",
+              text: "Cancelar",
+              attrs: { type: "button" },
+              events: { click: () => closeSaleInlineForm() }
+            })
+          ]
+        : [
+            AppCore.createElement("button", {
+              className: "btn-outline",
+              text: "Cerrar",
+              attrs: { type: "button" },
+              events: { click: () => closeSaleInlineForm() }
+            })
+          ]
+    });
+
+    const form = getSaleInlineForm();
+    if (form) form.dataset.mode = "manual";
+
+    [numeroInput, montoInput].forEach((control) => {
+      control.addEventListener("input", () => updateManualQuotaHint(context));
+      control.addEventListener("change", () => updateManualQuotaHint(context));
+    });
+    updateManualQuotaHint(context);
+  }
+
+  async function openPaymentForm(ventaId, cuotaId = "") {
+    const currentForm = getSaleInlineForm();
+    const mode = cuotaId ? `pago-${cuotaId}` : "pago-general";
+    if (currentForm?.dataset.open === "1" && currentForm.dataset.mode === mode) {
+      closeSaleInlineForm();
+      return;
+    }
+
+    const context = await loadSaleQuotaContext(ventaId, { force: true });
+    const targetQuota = cuotaId
+      ? context.quotas.find((quota) => String(quota.id) === String(cuotaId)) || null
+      : null;
+    const saldoObjetivo = targetQuota
+      ? AppCore.safeNumber(targetQuota.saldo_pendiente)
+      : context.saldoPendientePago;
+    const description = targetQuota
+      ? `Registraras un pago dirigido a la cuota ${targetQuota.numero_cuota || targetQuota.numero}. Saldo pendiente: ${formatMoney(saldoObjetivo)}.`
+      : `Registraras un pago distribuido automaticamente entre cuotas pendientes. Saldo total pendiente: ${formatMoney(context.saldoPendientePago)}.`;
+
+    const montoInput = AppCore.createElement("input", {
+      attrs: {
+        id: "montoPago",
+        type: "number",
+        min: "0",
+        step: "0.01",
+        inputmode: "decimal",
+        value: saldoObjetivo > 0 ? String(saldoObjetivo) : "",
+        placeholder: "Monto a registrar"
+      }
+    });
+    const metodoSelect = AppCore.createElement("select", { attrs: { id: "metodoPago" } });
+    [
+      { value: "Efectivo", label: "Efectivo" },
+      { value: "Transferencia", label: "Transferencia" },
+      { value: "Yape", label: "Yape" },
+      { value: "Plin", label: "Plin" },
+      { value: "Deposito", label: "Dep\u00f3sito" },
+      { value: "Inicial", label: "Inicial" }
+    ].forEach((method) => {
+      metodoSelect.appendChild(AppCore.createElement("option", { text: method.label, attrs: { value: method.value } }));
+    });
+    const fechaInput = AppCore.createElement("input", {
+      attrs: {
+        id: "fechaPago",
+        type: "date",
+        value: getTodayIso()
+      }
+    });
+
+    renderSaleInlineForm({
+      title: targetQuota ? `Registrar pago de cuota ${targetQuota.numero_cuota || targetQuota.numero}` : "Registrar pago",
+      description,
+      sections: [
+        AppCore.createElement("div", { className: "neg-summary-pro quota-summary-strip" }, [
+          AppCore.createElement("div", { className: "neg-summary-pill" }, [
+            AppCore.createElement("span", { text: "Total pagado" }),
+            AppCore.createElement("strong", { text: formatMoney(context.totalPagado) })
+          ]),
+          AppCore.createElement("div", { className: "neg-summary-pill" }, [
+            AppCore.createElement("span", { text: "Saldo pendiente de pago" }),
+            AppCore.createElement("strong", { text: formatMoney(context.saldoPendientePago) })
+          ]),
+          AppCore.createElement("div", { className: "neg-summary-pill" }, [
+            AppCore.createElement("span", { text: targetQuota ? "Saldo de la cuota" : "Cuotas activas" }),
+            AppCore.createElement("strong", { text: targetQuota ? formatMoney(saldoObjetivo) : String(context.quotas.length) })
+          ])
+        ]),
+        AppCore.createElement("div", { className: "form-grid-pro single cuota-form-grid" }, [
+          buildInlineField("Monto", montoInput),
+          buildInlineField("Metodo", metodoSelect),
+          buildInlineField("Fecha de pago", fechaInput)
+        ])
+      ],
+      actions: [
+        AppCore.createElement("button", {
+          className: "btn-primary",
+          text: "Guardar pago",
+          attrs: { type: "button" },
+          events: { click: () => window.registrarPago && window.registrarPago(ventaId, cuotaId) }
+        }),
+        AppCore.createElement("button", {
+          className: "btn-outline",
+          text: "Cancelar",
+          attrs: { type: "button" },
+          events: { click: () => closeSaleInlineForm() }
+        })
+      ]
+    });
+
+    const form = getSaleInlineForm();
+    if (form) form.dataset.mode = mode;
+  }
+
+  async function handleRegisterPayment(ventaId, cuotaId = "") {
+    const context = await loadSaleQuotaContext(ventaId, { force: true });
+    const monto = AppCore.safeNumber(document.getElementById("montoPago")?.value);
+    const metodo = document.getElementById("metodoPago")?.value || "Efectivo";
+    const fechaPago = document.getElementById("fechaPago")?.value || "";
+    const targetQuota = cuotaId
+      ? context.quotas.find((quota) => String(quota.id) === String(cuotaId)) || null
+      : null;
+    const saldoMaximo = targetQuota
+      ? AppCore.safeNumber(targetQuota.saldo_pendiente)
+      : context.saldoPendientePago;
+
+    if (monto <= 0) {
+      throw new Error("Pago invalido.");
+    }
+
+    if (!fechaPago) {
+      throw new Error("Falta la fecha de pago.");
+    }
+
+    if (!isIsoDateInput(fechaPago) || !parseIsoDateParts(fechaPago)) {
+      throw new Error("La fecha de pago debe estar en formato YYYY-MM-DD.");
+    }
+
+    if (saldoMaximo <= 0) {
+      throw new Error(targetQuota ? "La cuota no tiene saldo pendiente." : "La venta no tiene saldo pendiente de pago.");
+    }
+
+    if (monto > saldoMaximo) {
+      throw new Error(targetQuota ? "El monto excede el saldo pendiente de la cuota seleccionada." : "El monto excede el saldo pendiente disponible.");
+    }
+
+    const response = await adminRequest({
+      method: "PATCH",
+      body: {
+        action: "registrar_pago",
+        venta_id: ventaId,
+        cuota_id: cuotaId || undefined,
+        monto,
+        metodo,
+        fecha_pago: fechaPago
+      }
+    });
+
+    if (response && response.success === false) {
+      throw new Error(response.error || "La cuota no pudo actualizarse.");
+    }
+
+    await refreshSaleQuotaModule(ventaId);
   }
 
   window.aprobarExtension = (id) => approveExtension(id, true);
   window.rechazarExtension = (id) => approveExtension(id, false);
+  window.mostrarNegociacion = (id) => showNegotiationForm(id);
   window.validar = async (id) => {
     try {
       await handleValidate(id);
@@ -1192,17 +2121,44 @@
       showAdminAlert(AppCore.getErrorMessage(error, "No se pudo actualizar la unidad."));
     }
   };
-  if (typeof legacyActions.crearCuota === "function") {
-    window.crearCuota = async (...args) => {
-      await legacyActions.crearCuota(...args);
-      await syncData({ sales: true });
-    };
-  }
-  if (typeof legacyActions.registrarPago === "function") {
-    window.registrarPago = async (...args) => {
-      await handlePaymentRefresh(() => legacyActions.registrarPago(...args));
-    };
-  }
+  window.crearCuota = async (ventaId) => {
+    try {
+      await handleCreateQuota(ventaId);
+      showAdminAlert("Cuota registrada correctamente.");
+    } catch (error) {
+      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo crear la cuota."));
+    }
+  };
+  window.generarCuotasAutomaticas = async (ventaId) => {
+    try {
+      const created = await handleGenerateAutomaticQuotas(ventaId);
+      showAdminAlert(`Se generaron ${created} cuotas correctamente.`);
+    } catch (error) {
+      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo completar la distribucion automatica."));
+    }
+  };
+  window.mostrarFormularioCuota = async (ventaId, mode = "manual") => {
+    try {
+      await openQuotaForm(ventaId, mode);
+    } catch (error) {
+      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo abrir el formulario de cuotas."));
+    }
+  };
+  window.mostrarPago = async (ventaId, cuotaId = "") => {
+    try {
+      await openPaymentForm(ventaId, cuotaId);
+    } catch (error) {
+      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo abrir el formulario de pago."));
+    }
+  };
+  window.registrarPago = async (ventaId, cuotaId = "") => {
+    try {
+      await handleRegisterPayment(ventaId, cuotaId);
+      showAdminAlert("Pago registrado correctamente.");
+    } catch (error) {
+      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo registrar el pago."));
+    }
+  };
   window.showSection = (sectionId, button) => activateSection(sectionId, button || document.querySelector(`.nav-btn[data-nav="${sectionId}"]`));
   window.loadReservas = async () => { await fetchReservations(); renderReservations(); renderDashboard(); return state.reservations; };
   window.loadVentas = async () => { await fetchSales(); renderSales(); renderDashboard(); return state.sales; };
