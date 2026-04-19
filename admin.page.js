@@ -479,7 +479,6 @@
     const prev = AppCore.createElement("button", {
       className: "pagination-btn",
       text: "Anterior",
-<<<<<<< HEAD
       attrs: { type: "button", disabled: page <= 1 },
       events: {
         click: (event) => {
@@ -488,15 +487,10 @@
           if (page > 1) onPageChange(page - 1);
         }
       }
-=======
-      attrs: { type: "button", disabled: page <= 1 ? "disabled" : null },
-      events: { click: () => onPageChange(page - 1) }
->>>>>>> 95265aa (deploy)
     });
     const next = AppCore.createElement("button", {
       className: "pagination-btn",
       text: "Siguiente",
-<<<<<<< HEAD
       attrs: { type: "button", disabled: page >= totalPages },
       events: {
         click: (event) => {
@@ -505,10 +499,6 @@
           if (page < totalPages) onPageChange(page + 1);
         }
       }
-=======
-      attrs: { type: "button", disabled: page >= totalPages ? "disabled" : null },
-      events: { click: () => onPageChange(page + 1) }
->>>>>>> 95265aa (deploy)
     });
 
     AppCore.appendChildren(container, [

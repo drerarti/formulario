@@ -190,27 +190,21 @@
         label: "En negociación",
         tone: "active",
         description: "Negociación comercial activa dentro de vigencia"
-<<<<<<< HEAD
       },
       "en negociación": {
         label: "En negociación",
         tone: "active",
         description: "Negociación comercial activa dentro de vigencia"
-=======
->>>>>>> 95265aa (deploy)
       },
       "negociacion extendida": {
         label: "Negociación extendida",
         tone: "premium",
         description: "Reserva con ampliación comercial vigente"
-<<<<<<< HEAD
       },
       "negociación extendida": {
         label: "Negociación extendida",
         tone: "premium",
         description: "Reserva con ampliación comercial vigente"
-=======
->>>>>>> 95265aa (deploy)
       },
       rechazada: {
         label: "Rechazada",

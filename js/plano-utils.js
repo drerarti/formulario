@@ -478,11 +478,7 @@
     const reserveApplied = clamp(safeNumber(options.reserveApplied), 0, total);
     const suggestedInitial = total > 0 ? Math.max(3000, Math.round(total * 0.1)) : 3000;
     const initial = clamp(safeNumber(options.initial, suggestedInitial), 0, total);
-<<<<<<< HEAD
     const installments = clamp(Math.round(safeNumber(options.installments ?? options.months, 48)), 1, 240);
-=======
-    const months = clamp(Math.round(safeNumber(options.months, 48)), 1, 120);
->>>>>>> 95265aa (deploy)
     const financed = Math.max(0, total - initial);
     const monthly = installments > 0 ? financed / installments : 0;
 
