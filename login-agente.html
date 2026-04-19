@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+<<<<<<< HEAD
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Acceso Agente | AYLLU</title>
   <style>
@@ -247,6 +248,214 @@
       .field-input,
       .login-button {
         min-height: 52px;
+=======
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ingreso de agente</title>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg-1:#050816;
+      --bg-2:#0d1428;
+      --glow-1:rgba(198, 168, 94, 0.18);
+      --glow-2:rgba(84, 123, 255, 0.14);
+      --card-bg:rgba(10, 15, 30, 0.88);
+      --card-border:rgba(255, 255, 255, 0.08);
+      --text-main:#f7f4ec;
+      --text-soft:rgba(247, 244, 236, 0.7);
+      --text-muted:rgba(247, 244, 236, 0.5);
+      --field-bg:rgba(255, 255, 255, 0.05);
+      --field-border:rgba(255, 255, 255, 0.11);
+      --accent:#d7ba72;
+      --accent-strong:#b38b3f;
+      --accent-shadow:rgba(215, 186, 114, 0.28);
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      padding:24px;
+      font-family:"Trebuchet MS", "Segoe UI", sans-serif;
+      color:var(--text-main);
+      background:
+        radial-gradient(circle at top left, var(--glow-1), transparent 34%),
+        radial-gradient(circle at bottom right, var(--glow-2), transparent 28%),
+        linear-gradient(145deg, var(--bg-1), var(--bg-2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      position:relative;
+    }
+
+    body::before,
+    body::after{
+      content:"";
+      position:absolute;
+      border-radius:999px;
+      pointer-events:none;
+    }
+
+    body::before{
+      width:420px;
+      height:420px;
+      top:-160px;
+      right:-120px;
+      background:radial-gradient(circle, rgba(255,255,255,0.08), transparent 68%);
+    }
+
+    body::after{
+      width:360px;
+      height:360px;
+      left:-120px;
+      bottom:-150px;
+      background:radial-gradient(circle, rgba(215,186,114,0.1), transparent 70%);
+    }
+
+    .card{
+      width:min(100%, 430px);
+      padding:34px 30px 30px;
+      border-radius:28px;
+      border:1px solid var(--card-border);
+      background:var(--card-bg);
+      box-shadow:
+        0 28px 70px rgba(0,0,0,0.48),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      backdrop-filter:blur(18px);
+      position:relative;
+      z-index:1;
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      padding:1px;
+      background:linear-gradient(160deg, rgba(255,255,255,0.12), transparent 35%, rgba(215,186,114,0.18));
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+      pointer-events:none;
+    }
+
+    .brand{
+      display:inline-flex;
+      align-items:center;
+      padding:7px 12px;
+      border-radius:999px;
+      margin-bottom:18px;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.08);
+      color:var(--accent);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:0.24em;
+      text-transform:uppercase;
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:34px;
+      line-height:1.05;
+      letter-spacing:0.01em;
+    }
+
+    .intro{
+      margin:0 0 24px;
+      color:var(--text-soft);
+      font-size:15px;
+      line-height:1.6;
+    }
+
+    .field-label{
+      display:block;
+      margin-bottom:10px;
+      color:var(--text-main);
+      font-size:13px;
+      font-weight:700;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+    }
+
+    input{
+      width:100%;
+      padding:16px 18px;
+      font-size:16px;
+      color:var(--text-main);
+      border-radius:16px;
+      border:1px solid var(--field-border);
+      background:var(--field-bg);
+      outline:none;
+      transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+    input::placeholder{
+      color:var(--text-muted);
+    }
+
+    input:focus{
+      border-color:rgba(215, 186, 114, 0.65);
+      box-shadow:0 0 0 4px rgba(215, 186, 114, 0.12);
+      transform:translateY(-1px);
+    }
+
+    button{
+      margin-top:18px;
+      width:100%;
+      padding:16px 18px;
+      border:none;
+      border-radius:16px;
+      background:linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color:#1d1508;
+      font-size:16px;
+      font-weight:800;
+      letter-spacing:0.04em;
+      cursor:pointer;
+      box-shadow:0 16px 32px var(--accent-shadow);
+      transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+      box-shadow:0 20px 38px rgba(215, 186, 114, 0.34);
+      filter:saturate(1.06);
+    }
+
+    button:active{
+      transform:scale(0.985);
+    }
+
+    .helper{
+      margin:14px 0 0;
+      color:var(--text-muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    @media (max-width: 520px){
+      body{
+        padding:18px;
+      }
+
+      .card{
+        padding:28px 22px 24px;
+        border-radius:24px;
+      }
+
+      h1{
+        font-size:29px;
+      }
+
+      .intro{
+        font-size:14px;
+>>>>>>> 95265aa (deploy)
       }
     }
   </style>
@@ -258,6 +467,7 @@
       <div class="brand-sub">Sistema comercial inmobiliario</div>
     </div>
 
+<<<<<<< HEAD
     <form class="login-card" onsubmit="event.preventDefault(); if (window.login) window.login();">
       <span class="login-eyebrow">Acceso de agentes</span>
       <h1 class="login-title">Ingresa a tu panel comercial</h1>
@@ -282,6 +492,84 @@
       <p class="login-note">Acceso seguro para seguimiento de reservas, ventas y clientes.</p>
     </form>
   </div>
+=======
+<div class="card">
+<div class="brand">AYLLU</div>
+<h1>Ingreso de agente</h1>
+<p class="intro">Ingresa tu código para continuar al panel comercial correspondiente.</p>
+<label class="field-label" for="codigo">Código de agente</label>
+
+<input
+id="codigo"
+placeholder="Código de agente (ej: ag01)"
+autocomplete="off"
+autocapitalize="off"
+spellcheck="false"
+/>
+
+<button onclick="login()">
+Ingresar
+</button>
+
+<p class="helper">Acceso seguro para agentes y administradores.</p>
+</div>
+
+<script src="js/app-core.js"></script>
+<script>
+async function login() {
+  const codigo = document.getElementById("codigo").value
+  .trim()
+  .toLowerCase();
+
+  if (!codigo) return alert("Ingrese código");
+
+  const res = await fetch(
+    `/.netlify/functions/airtable?validar_agente=1&codigo=${codigo}`
+  );
+
+  const data = await res.json();
+
+  if (!data.valido) {
+    alert("Código inválido");
+    return;
+  }
+
+  localStorage.setItem("auth_token", data.token);
+
+// Decodificar JWT
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+  return JSON.parse(jsonPayload);
+}
+
+const decoded = parseJwt(data.token);
+
+// Redirección según rol
+if (decoded.rol === "admin") {
+  window.location.href = "/admin.html";
+} else {
+  window.location.href = "/dashboard-agente.html";
+}
+}
+document
+.getElementById("codigo")
+.addEventListener("keypress",function(e){
+
+if(e.key==="Enter"){
+login();
+}
+
+});
+</script>
+<script src="login-agente.page.js"></script>
+>>>>>>> 95265aa (deploy)
 
   <script src="js/app-core.js"></script>
   <script src="login-agente.page.js"></script>

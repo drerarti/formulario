@@ -479,6 +479,7 @@
     const prev = AppCore.createElement("button", {
       className: "pagination-btn",
       text: "Anterior",
+<<<<<<< HEAD
       attrs: { type: "button", disabled: page <= 1 },
       events: {
         click: (event) => {
@@ -487,10 +488,15 @@
           if (page > 1) onPageChange(page - 1);
         }
       }
+=======
+      attrs: { type: "button", disabled: page <= 1 ? "disabled" : null },
+      events: { click: () => onPageChange(page - 1) }
+>>>>>>> 95265aa (deploy)
     });
     const next = AppCore.createElement("button", {
       className: "pagination-btn",
       text: "Siguiente",
+<<<<<<< HEAD
       attrs: { type: "button", disabled: page >= totalPages },
       events: {
         click: (event) => {
@@ -499,6 +505,10 @@
           if (page < totalPages) onPageChange(page + 1);
         }
       }
+=======
+      attrs: { type: "button", disabled: page >= totalPages ? "disabled" : null },
+      events: { click: () => onPageChange(page + 1) }
+>>>>>>> 95265aa (deploy)
     });
 
     AppCore.appendChildren(container, [
@@ -654,6 +664,10 @@
       return;
     }
     saleQuotaContextCache.clear();
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
   function parseIsoDateParts(value) {
@@ -1726,9 +1740,39 @@
     }
   }
 
-  async function refreshSaleQuotaModule(ventaId) {
+  async function waitForFreshSaleQuotaContext(ventaId, validator = null, attempts = 6, delayMs = 250) {
+    let lastContext = null;
+    let lastError = null;
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      invalidateSaleQuotaContext(ventaId);
+
+      try {
+        lastContext = await loadSaleQuotaContext(ventaId, { force: true });
+        if (typeof validator !== "function" || validator(lastContext)) {
+          return lastContext;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+
+      if (attempt < attempts - 1) {
+        await wait(delayMs);
+      }
+    }
+
+    if (lastContext) return lastContext;
+    if (lastError) throw lastError;
+    return null;
+  }
+
+  async function refreshSaleQuotaModule(ventaId, options = {}) {
+    const { waitForContext = null } = options;
     closeSaleInlineForm();
     invalidateSaleQuotaContext(ventaId);
+    if (typeof waitForContext === "function") {
+      await waitForFreshSaleQuotaContext(ventaId, waitForContext);
+    }
     await syncData({ sales: true, filters: true });
     await reopenSaleDetail(ventaId);
   }
@@ -1776,6 +1820,7 @@
 
   async function handleCreateQuota(ventaId) {
     const context = await loadSaleQuotaContext(ventaId, { force: true });
+    const expectedQuotaCount = context.quotas.length + 1;
     const numero = AppCore.safeNumber(document.getElementById("numCuota")?.value);
     const monto = AppCore.safeNumber(document.getElementById("montoCuota")?.value);
     const fecha = document.getElementById("fechaCuota")?.value || "";
@@ -1812,7 +1857,11 @@
       fecha_vencimiento: fecha
     });
 
-    await refreshSaleQuotaModule(ventaId);
+    await refreshSaleQuotaModule(ventaId, {
+      waitForContext: (freshContext) =>
+        freshContext.quotas.length >= expectedQuotaCount &&
+        AppCore.safeNumber(freshContext.detail?.total_cuotas) >= expectedQuotaCount
+    });
   }
 
   async function handleGenerateAutomaticQuotas(ventaId) {
@@ -1821,6 +1870,7 @@
     const firstDate = document.getElementById("autoQuotaFirstDate")?.value || "";
     const frequency = document.getElementById("autoQuotaFrequency")?.value || "mensual";
     const drafts = buildQuotaDrafts(context, count, firstDate, frequency);
+    const expectedQuotaCount = context.quotas.length + drafts.length;
     let created = 0;
 
     try {
@@ -1835,14 +1885,24 @@
         created += 1;
       }
     } catch (error) {
-      await refreshSaleQuotaModule(ventaId);
+      await refreshSaleQuotaModule(ventaId, {
+        waitForContext: created > 0
+          ? (freshContext) =>
+              freshContext.quotas.length >= context.quotas.length + created &&
+              AppCore.safeNumber(freshContext.detail?.total_cuotas) >= context.quotas.length + created
+          : null
+      });
       if (created > 0) {
         throw new Error(`Se registraron ${created} cuotas antes del error. ${AppCore.getErrorMessage(error, "No se pudo completar la distribución automática.")}`);
       }
       throw error;
     }
 
-    await refreshSaleQuotaModule(ventaId);
+    await refreshSaleQuotaModule(ventaId, {
+      waitForContext: (freshContext) =>
+        freshContext.quotas.length >= expectedQuotaCount &&
+        AppCore.safeNumber(freshContext.detail?.total_cuotas) >= expectedQuotaCount
+    });
     return drafts.length;
   }
 

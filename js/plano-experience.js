@@ -1087,6 +1087,7 @@
           value: String(state.simulation.initial)
         }
       });
+<<<<<<< HEAD
       const installmentsInput = AppCore.createElement("input", {
         attrs: {
           type: "number",
@@ -1095,9 +1096,66 @@
           step: "1",
           inputmode: "numeric",
           value: String(state.simulation.months || 48)
+=======
+      const monthsInput = AppCore.createElement("input", {
+        attrs: {
+          type: "number",
+          min: "1",
+          max: "120",
+          step: "1",
+          inputmode: "numeric",
+          value: String(simulation.months)
+>>>>>>> 95265aa (deploy)
         }
       });
+      const detailGrid = AppCore.createElement("div", { className: "detail-grid" });
+      const initialDetail = createDetailItem("Inicial", PlanoUtils.formatCurrency(simulation.initial));
+      const monthlyDetail = createDetailItem("Monto por cuota", PlanoUtils.formatCurrency(simulation.monthly));
+      const financedDetail = createDetailItem("A financiar", PlanoUtils.formatCurrency(simulation.financed));
+      const monthsDetail = createDetailItem("Número de cuotas", String(simulation.months));
+      const reserveNote = AppCore.createElement("div", {
+        className: `detail-note${simulation.reserveApplied > 0 ? "" : " hidden"}`,
+        text: simulation.reserveApplied > 0
+          ? `La simulación descuenta una reserva ya registrada de ${PlanoUtils.formatCurrency(simulation.reserveApplied)} al calcular la inicial neta.`
+          : ""
+      });
 
+      detailGrid.append(
+        initialDetail,
+        monthlyDetail,
+        financedDetail,
+        monthsDetail
+      );
+
+      const detailNodes = {
+        initial: initialDetail.querySelector("strong, p"),
+        monthly: monthlyDetail.querySelector("strong, p"),
+        financed: financedDetail.querySelector("strong, p"),
+        months: monthsDetail.querySelector("strong, p")
+      };
+
+      function updateSimulationSummary() {
+        const nextSimulation = PlanoUtils.buildPurchaseSimulation(totalPrice, {
+          initial: state.simulation.initial,
+          months: state.simulation.months,
+          reserveApplied: lote.monto_reserva
+        });
+
+        if (detailNodes.initial) detailNodes.initial.textContent = PlanoUtils.formatCurrency(nextSimulation.initial);
+        if (detailNodes.monthly) detailNodes.monthly.textContent = PlanoUtils.formatCurrency(nextSimulation.monthly);
+        if (detailNodes.financed) detailNodes.financed.textContent = PlanoUtils.formatCurrency(nextSimulation.financed);
+        if (detailNodes.months) detailNodes.months.textContent = String(nextSimulation.months);
+
+        if (nextSimulation.reserveApplied > 0) {
+          reserveNote.textContent = `La simulación descuenta una reserva ya registrada de ${PlanoUtils.formatCurrency(nextSimulation.reserveApplied)} al calcular la inicial neta.`;
+          reserveNote.classList.remove("hidden");
+        } else {
+          reserveNote.textContent = "";
+          reserveNote.classList.add("hidden");
+        }
+      }
+
+<<<<<<< HEAD
       const metricsGrid = AppCore.createElement("div", { className: "detail-grid" });
       const initialItem = createDetailItem("Inicial", PlanoUtils.formatCurrency(0));
       const installmentItem = createDetailItem("Cuota estimada", PlanoUtils.formatCurrency(0));
@@ -1150,6 +1208,24 @@
       initialInput.addEventListener("blur", () => {
         if (!String(initialInput.value || "").trim()) initialInput.value = "0";
         refreshSimulation(true);
+=======
+      initialInput.addEventListener("input", () => {
+        state.simulation.initial = PlanoUtils.safeNumber(initialInput.value, state.simulation.initial);
+        updateSimulationSummary();
+      });
+      monthsInput.addEventListener("input", () => {
+        if (monthsInput.value === "") {
+          updateSimulationSummary();
+          return;
+        }
+        const nextMonths = PlanoUtils.clamp(
+          Math.round(PlanoUtils.safeNumber(monthsInput.value, state.simulation.months)),
+          1,
+          120
+        );
+        state.simulation.months = nextMonths;
+        updateSimulationSummary();
+>>>>>>> 95265aa (deploy)
       });
       installmentsInput.addEventListener("input", () => refreshSimulation(false));
       installmentsInput.addEventListener("blur", () => refreshSimulation(true));
@@ -1160,6 +1236,7 @@
           initialInput
         ]),
         AppCore.createElement("label", { className: "simulation-field" }, [
+<<<<<<< HEAD
           AppCore.createElement("span", { text: "Cuotas" }),
           installmentsInput
         ])
@@ -1167,6 +1244,19 @@
 
       section.append(controls, metricsGrid, reserveNote);
       refreshSimulation(true);
+=======
+          AppCore.createElement("span", { text: "Número de cuotas" }),
+          monthsInput
+        ])
+      );
+
+      section.append(
+        controls,
+        detailGrid
+      );
+
+      section.appendChild(reserveNote);
+>>>>>>> 95265aa (deploy)
       return section;
     }
 

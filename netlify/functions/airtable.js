@@ -529,6 +529,54 @@ function groupCuotasByVenta(cuotasRecords = []) {
   return map;
 }
 
+function sortCuotaRecords(records = []) {
+  return records.slice().sort((left, right) =>
+    asNumber(left?.fields?.numero_cuota, { min: 0 }) - asNumber(right?.fields?.numero_cuota, { min: 0 })
+  );
+}
+
+function getVentaLinkedCuotaIds(fields = {}) {
+  return [
+    ...(Array.isArray(fields.CUOTAS) ? fields.CUOTAS : []),
+    ...(Array.isArray(fields.cuotas) ? fields.cuotas : [])
+  ].filter((value) => typeof value === "string" && value.trim());
+}
+
+async function getVentaCuotaRecords(ventaId, ventaFields = null) {
+  const normalizedVentaId = asTrimmedString(ventaId, 80);
+  if (!normalizedVentaId) return [];
+
+  const resolvedVentaFields = ventaFields || (await airtableRequest(`VENTAS/${normalizedVentaId}`)).fields || {};
+  const linkedCuotaIds = getVentaLinkedCuotaIds(resolvedVentaFields);
+
+  if (linkedCuotaIds.length > 0) {
+    const linkedRecords = await Promise.all(linkedCuotaIds.map(async (cuotaId) => {
+      try {
+        return await airtableRequest(`CUOTAS/${cuotaId}`);
+      } catch (error) {
+        if (Number(error?.status) === 404) return null;
+        throw error;
+      }
+    }));
+
+    return sortCuotaRecords(
+      linkedRecords.filter((record) =>
+        record && Array.isArray(record.fields?.venta) && record.fields.venta.includes(normalizedVentaId)
+      )
+    );
+  }
+
+  const cuotaRecords = await airtableList("CUOTAS", {
+    fields: ["venta", "numero_cuota", "monto_programado", "monto_pagado", "fecha_vencimiento", "estado_cuota"]
+  });
+
+  return sortCuotaRecords(
+    cuotaRecords.filter((record) =>
+      Array.isArray(record.fields?.venta) && record.fields.venta.includes(normalizedVentaId)
+    )
+  );
+}
+
 function groupExtensionsByReserva(extensionRecords = []) {
   const map = new Map();
 
@@ -1109,10 +1157,7 @@ async function resolveAgentLinkIds(agentValue) {
 
 async function syncVentaFinancialState(ventaId, now = new Date()) {
   const ventaRecord = await airtableRequest(`VENTAS/${ventaId}`);
-  const cuotaRecords = await airtableList("CUOTAS", {
-    formula: `FIND("${escapeFormulaValue(ventaId)}", ARRAYJOIN({venta})) > 0`,
-    sort: [{ field: "numero_cuota", direction: "asc" }]
-  });
+  const cuotaRecords = await getVentaCuotaRecords(ventaId, ventaRecord.fields);
 
   const snapshot = getVentaSnapshot(ventaRecord.fields, cuotaRecords, now);
 
@@ -1990,9 +2035,7 @@ if (qs.plano === "1") {
 
         const ventaData = await airtableRequest(`VENTAS/${qs.venta_id}`);
         const f = ventaData.fields;
-        const cuotasVenta = await airtableList("CUOTAS", {
-          formula: `FIND("${escapeFormulaValue(qs.venta_id)}", ARRAYJOIN({venta})) > 0`
-        });
+        const cuotasVenta = await getVentaCuotaRecords(qs.venta_id, f);
         const snapshot = getVentaSnapshot(f, cuotasVenta);
 
         return success({
@@ -2067,10 +2110,7 @@ if (qs.plano === "1") {
         if (auth.error) return auth.error;
 
         const ventaId = qs.cuotas_venta;
-        const cuotas = await airtableList("CUOTAS", {
-          formula: `FIND("${escapeFormulaValue(ventaId)}", ARRAYJOIN({venta})) > 0`,
-          sort: [{ field: "numero_cuota", direction: "asc" }]
-        });
+        const cuotas = await getVentaCuotaRecords(ventaId);
 
         return success(cuotas.map(r => {
           const cuotaState = getCuotaState(r.fields);
@@ -2716,10 +2756,7 @@ const hoyISO = new Date().toISOString().split("T")[0];
       }
 
       const ventaData = await airtableRequest(`VENTAS/${ventaId}`);
-      const cuotaRecords = await airtableList("CUOTAS", {
-        formula: `FIND("${escapeFormulaValue(ventaId)}", ARRAYJOIN({venta})) > 0`,
-        sort: [{ field: "numero_cuota", direction: "asc" }]
-      });
+      const cuotaRecords = await getVentaCuotaRecords(ventaId, ventaData.fields);
       const ventaSnapshot = getVentaSnapshot(ventaData.fields, cuotaRecords);
 
       if (isVentaLockedStatus(ventaSnapshot.estadoVenta)) {
@@ -3405,10 +3442,7 @@ const agenteNombre = decoded.nombre;
           }
 
           const ventaData = await airtableRequest(`VENTAS/${ventaId}`);
-          const cuotasExistentes = await airtableList("CUOTAS", {
-            formula: `FIND("${escapeFormulaValue(ventaId)}", ARRAYJOIN({venta})) > 0`,
-            sort: [{ field: "numero_cuota", direction: "asc" }]
-          });
+          const cuotasExistentes = await getVentaCuotaRecords(ventaId, ventaData.fields);
           const snapshot = getVentaSnapshot(ventaData.fields, cuotasExistentes);
 
           if (isVentaLockedStatus(snapshot.estadoVenta)) {
