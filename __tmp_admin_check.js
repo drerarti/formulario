@@ -227,15 +227,15 @@
   }
 
   function applyStaticCopy() {
-    if (refs.reservaSearch) refs.reservaSearch.placeholder = "Buscar por cliente, agente, unidad o código";
+    if (refs.reservaSearch) refs.reservaSearch.placeholder = "Buscar por cliente, agente, unidad o cÃ³digo";
     if (refs.ventaSearch) refs.ventaSearch.placeholder = "Buscar por cliente, agente o unidad";
     if (refs.buscarLote) refs.buscarLote.placeholder = "Buscar lote (ej: MA-06)";
     setDashboardStamp("Sincronizando datos");
 
     if (refs.reservaSort) {
       const labels = [
-        "Más recientes",
-        "Más antiguas",
+        "MÃ¡s recientes",
+        "MÃ¡s antiguas",
         "Mayor monto",
         "Menor monto",
         "Cliente A-Z"
@@ -247,7 +247,7 @@
 
     if (refs.ventaSort) {
       const labels = [
-        "Más recientes",
+        "MÃ¡s recientes",
         "Mayor ticket",
         "Menor ticket",
         "Mayor saldo",
@@ -348,11 +348,11 @@
       : getDaysUntil(fallbackDate);
     const deadlineType = normalize(item.deadline_type);
     const deadlineLabel = deadlineType === "confirmacion"
-      ? "Confirmación"
+      ? "ConfirmaciÃ³n"
       : deadlineType === "extension"
-        ? "Extensión"
+        ? "ExtensiÃ³n"
         : deadlineType === "negociacion"
-          ? "Negociación"
+          ? "NegociaciÃ³n"
           : "Vigencia";
 
     return {
@@ -503,7 +503,7 @@
 
     AppCore.appendChildren(container, [
       prev,
-      AppCore.createElement("span", { className: "pagination-label", text: `Página ${page} de ${totalPages}` }),
+      AppCore.createElement("span", { className: "pagination-label", text: `PÃ¡gina ${page} de ${totalPages}` }),
       next
     ]);
   }
@@ -777,7 +777,7 @@
     const wrapper = AppCore.createElement("div", { className: "quota-mode-switch" });
     [
       { id: "manual", label: "Manual" },
-        { id: "automatico", label: "Distribución automática" }
+      { id: "automatico", label: "Distribucion automatica" }
     ].forEach((mode) => {
       const button = AppCore.createElement("button", {
         className: activeMode === mode.id ? "btn-primary" : "btn-outline",
@@ -849,13 +849,13 @@
       AppCore.appendChildren(preview, [
         AppCore.createElement("div", { className: "form-note-pro" }, [
           AppCore.createElement("strong", { text: `${drafts.length} cuotas` }),
-          ` por ${formatMoney(context.saldoPendienteProgramar)}. La última cuota absorberá cualquier diferencia de redondeo.`
+          ` por ${formatMoney(context.saldoPendienteProgramar)}. La ultima cuota absorbera cualquier diferencia de redondeo.`
         ]),
         previewList,
         footer
       ].filter(Boolean));
     } catch (error) {
-      preview.textContent = error.message || "Completa los datos para ver la previsualización.";
+      preview.textContent = error.message || "Completa los datos para ver la previsualizacion.";
       preview.className = "quota-preview-shell inline-alert tone-warning";
     }
   }
@@ -951,7 +951,7 @@
     const card = AppCore.createElement("div", { className: "negociacion-card-pro" }, [
       AppCore.createElement("div", { className: "neg-card-head" }, [
         AppCore.createElement("div", {}, [
-        AppCore.createElement("h4", { text: "Negociación comercial" }),
+          AppCore.createElement("h4", { text: "Negociacion comercial" }),
           AppCore.createElement("p", {
             className: "form-note-pro",
             text: "El formulario se precarga con el precio vigente para evitar envios incompletos al backend."
@@ -1000,7 +1000,7 @@
           attrs: {
             id: `obs_${id}`,
             rows: "3",
-          placeholder: "Notas internas de la negociación"
+            placeholder: "Notas internas de la negociacion"
           },
           text: item.observaciones || ""
         }))
@@ -1012,7 +1012,7 @@
       AppCore.createElement("div", { className: "form-actions-pro" }, [
         AppCore.createElement("button", {
           className: "btn-primary",
-          text: "Guardar negociación",
+          text: "Guardar negociacion",
           attrs: { type: "button" },
           events: { click: () => window.guardarNegociacion && window.guardarNegociacion(id) }
         }),
@@ -1029,116 +1029,22 @@
     syncNegotiationFormState(id);
   }
 
-  function isClosedReservationState(item) {
-    const status = normalize(item.estado);
-    return item.statusMeta.isExpired
-      || status.includes("rech")
-      || status.includes("cancel")
-      || status.includes("convert");
-  }
-
-  function canOpenNegotiationForReservation(item) {
-    const status = normalize(item.estado);
-    if (item.puede_validar) return false;
-    if (isClosedReservationState(item)) return false;
-    return Boolean(item.puede_negociar)
-      || status.includes("confirm")
-      || status.includes("reserv")
-      || status.includes("negoci")
-      || Boolean(item.tipo_venta)
-      || Boolean(item.puede_convertir);
-  }
-
-  function canOpenVoucherForReservation(item) {
-    const status = normalize(item.estado);
-    return Boolean(item.boleta_url)
-      || Boolean(item.boleta_emitida)
-      || status.includes("confirm")
-      || status.includes("reserv")
-      || status.includes("negoci");
-  }
-
-  function openReservationVoucher(item) {
-    if (item.boleta_url) {
-      window.open(item.boleta_url, "_blank", "noopener,noreferrer");
-      return;
-    }
-    window.location.href = `/preview-boleta.html?id=${encodeURIComponent(item.id)}`;
-  }
-
-  function buildReservationActions(item) {
-    const actions = AppCore.createElement("div", { className: "collection-actions-row" });
-    actions.appendChild(AppCore.createElement("a", {
-      className: "btn-outline",
-      text: "Ver ficha",
-      attrs: { href: `/ver-reserva-admin.html?id=${encodeURIComponent(item.id)}` }
-    }));
-
-    if (item.puede_validar) {
-      actions.appendChild(AppCore.createElement("button", {
-        className: "btn-primary",
-        text: "Confirmar",
-        attrs: { type: "button" },
-        events: { click: () => window.validar && window.validar(item.id) }
-      }));
-    }
-
-    if (item.puede_rechazar) {
-      actions.appendChild(AppCore.createElement("button", {
-        className: "btn-danger",
-        text: "Rechazar",
-        attrs: { type: "button" },
-        events: { click: () => window.rechazar && window.rechazar(item.id, item.unit?.recordId) }
-      }));
-    }
-
-    if (canOpenNegotiationForReservation(item)) {
-      actions.appendChild(AppCore.createElement("button", {
-        className: "btn-outline",
-        text: "Negociar",
-        attrs: { type: "button" },
-        events: { click: () => window.mostrarNegociacion && window.mostrarNegociacion(item.id) }
-      }));
-    }
-
-    if (canOpenVoucherForReservation(item)) {
-      actions.appendChild(AppCore.createElement("button", {
-        className: item.boleta_emitida ? "btn-outline" : "btn-boleta",
-        text: "Boleta",
-        attrs: { type: "button" },
-        events: { click: () => openReservationVoucher(item) }
-      }));
-    }
-
-    if (item.puede_convertir && AppCore.safeNumber(item.priceReference) > 0) {
-      const convertButton = AppCore.createElement("button", {
-        className: "btn-primary",
-        text: "Convertir a venta",
-        attrs: { type: "button" }
-      });
-      convertButton.addEventListener("click", () => window.convertirVenta && window.convertirVenta(item.id, convertButton));
-      actions.appendChild(convertButton);
-    }
-
-    return actions;
-  }
-
   function createReservationCard(item) {
     const deadlineText = item.statusMeta.deadlineDate
       ? `${item.statusMeta.deadlineLabel}: ${formatDate(item.statusMeta.deadlineDate)}`
       : "Sin plazo activo";
     const extensionSummary = item.extension_usada
-      ? "Extensión ya utilizada"
+      ? "ExtensiÃ³n ya utilizada"
       : item.extension_pendiente
-        ? "Extensión pendiente"
-        : "Sin extensión";
+        ? "ExtensiÃ³n pendiente"
+        : "Sin extensiÃ³n";
 
     const card = AppCore.createElement("article", { className: "reservation-card-admin" }, [
       AppCore.createElement("div", { className: "collection-card-head" }, [
         AppCore.createElement("div", { className: "collection-card-title-wrap" }, [
           AppCore.createElement("div", { className: "collection-card-code", text: item.commercialCode }),
           AppCore.createElement("h3", { className: "collection-card-title", text: item.cliente || "Cliente no disponible" }),
-          AppCore.createElement("p", { className: "collection-card-sub", text: [item.unitCode, item.projectLine, item.lotLine].filter(Boolean).join(" · ") || "Sin referencia de unidad" })
+          AppCore.createElement("p", { className: "collection-card-sub", text: [item.unitCode, item.projectLine, item.lotLine].filter(Boolean).join(" Â· ") || "Sin referencia de unidad" })
         ]),
         createStatusPill(item.statusMeta.label, item.statusMeta.tone)
       ]),
@@ -1148,42 +1054,63 @@
         createMetaPill("Precio ref.", formatMoney(item.priceReference)),
         createMetaPill("Fecha", formatDate(item.referenceDate)),
         createMetaPill(item.statusMeta.deadlineLabel, item.statusMeta.deadlineDate ? formatDate(item.statusMeta.deadlineDate) : "Sin plazo", item.statusMeta.isExpiringSoon ? "pending" : item.statusMeta.isExpired ? "rejected" : "neutral"),
-        createMetaPill("Extensión", extensionSummary, item.extension_usada ? "premium" : item.extension_pendiente ? "pending" : "neutral")
+        createMetaPill("ExtensiÃ³n", extensionSummary, item.extension_usada ? "premium" : item.extension_pendiente ? "pending" : "neutral")
       ])
     ]);
 
     if (item.observaciones || item.statusMeta.isExpiringSoon || item.statusMeta.isExpired || item.extension_pendiente || item.extension_usada) {
       const alertText = item.statusMeta.isExpired
-        ? `${item.statusMeta.deadlineLabel} vencida hace ${Math.max(1, AppCore.safeNumber(item.dias_vencidos))} día(s).`
+        ? `${item.statusMeta.deadlineLabel} vencida hace ${Math.max(1, AppCore.safeNumber(item.dias_vencidos))} dÃ­a(s).`
         : item.statusMeta.isExpiringSoon
           ? item.statusMeta.daysUntilExpiry === 0
             ? `${item.statusMeta.deadlineLabel} vence hoy.`
-            : `${item.statusMeta.deadlineLabel} vence en ${item.statusMeta.daysUntilExpiry} día(s).`
+            : `${item.statusMeta.deadlineLabel} vence en ${item.statusMeta.daysUntilExpiry} dÃ­a(s).`
           : item.extension_pendiente
-            ? `Hay una solicitud de extensión pendiente${item.deposito_extension_cumplido ? " con depósito validado" : " sin depósito suficiente"}.`
+            ? `Hay una solicitud de extensiÃ³n pendiente${item.deposito_extension_cumplido ? " con depÃ³sito validado" : " sin depÃ³sito suficiente"}.`
             : item.extension_usada
-              ? "La reserva ya consumió su única extensión comercial."
+              ? "La reserva ya consumiÃ³ su Ãºnica extensiÃ³n comercial."
               : item.observaciones;
       card.appendChild(AppCore.createElement("div", {
         className: `inline-alert tone-${item.statusMeta.isExpired ? "rejected" : item.statusMeta.isExpiringSoon || item.extension_pendiente ? "pending" : item.extension_usada ? "premium" : "neutral"}`
       }, [
-        AppCore.createElement("strong", { text: item.statusMeta.isExpired ? "Vencida" : item.statusMeta.isExpiringSoon ? "Por vencer" : item.extension_pendiente ? "Extensión" : item.extension_usada ? "Control de plazo" : "Observación" }),
+        AppCore.createElement("strong", { text: item.statusMeta.isExpired ? "Vencida" : item.statusMeta.isExpiringSoon ? "Por vencer" : item.extension_pendiente ? "ExtensiÃ³n" : item.extension_usada ? "Control de plazo" : "ObservaciÃ³n" }),
         AppCore.createElement("span", { text: alertText || deadlineText })
       ]));
     }
 
-    card.appendChild(buildReservationActions(item));
+    const actions = AppCore.createElement("div", { className: "collection-actions-row" });
+    const openNegotiation = AppCore.createElement("button", { className: "btn-outline", text: "NegociaciÃ³n", attrs: { type: "button" }, events: { click: () => window.mostrarNegociacion && window.mostrarNegociacion(item.id) } });
+    actions.appendChild(openNegotiation);
+
+    if (item.statusMeta.allowApprove) {
+      actions.appendChild(AppCore.createElement("button", { className: "btn-primary", text: "Validar", attrs: { type: "button" }, events: { click: () => window.validar && window.validar(item.id) } }));
+    }
+
+    if (item.statusMeta.allowReject) {
+      actions.appendChild(AppCore.createElement("button", { className: "btn-danger", text: "Rechazar", attrs: { type: "button" }, events: { click: () => window.rechazar && window.rechazar(item.id, item.unit?.recordId) } }));
+    }
+
+    if (item.puede_convertir && AppCore.safeNumber(item.priceReference) > 0) {
+      const convertButton = AppCore.createElement("button", { className: "btn-primary", text: "Convertir a venta", attrs: { type: "button" } });
+      convertButton.addEventListener("click", () => window.convertirVenta && window.convertirVenta(item.id, convertButton));
+      actions.appendChild(convertButton);
+    }
+
+    if (item.boleta_url) {
+      actions.appendChild(AppCore.createElement("a", { className: "btn-outline", text: "Boleta", attrs: { href: item.boleta_url, target: "_blank", rel: "noopener noreferrer" } }));
+    }
+
+    card.appendChild(actions);
     card.appendChild(AppCore.createElement("div", { className: "inline-form-shell", attrs: { id: `neg-${item.id}` } }));
     return card;
   }
-
   function createSaleCard(item) {
     const card = AppCore.createElement("article", { className: "sale-card-admin" }, [
       AppCore.createElement("div", { className: "collection-card-head" }, [
         AppCore.createElement("div", { className: "collection-card-title-wrap" }, [
           AppCore.createElement("div", { className: "collection-card-code", text: item.unitCode }),
           AppCore.createElement("h3", { className: "collection-card-title", text: item.cliente || "Cliente no disponible" }),
-          AppCore.createElement("p", { className: "collection-card-sub", text: [item.agente, item.projectLine].filter(Boolean).join(" · ") || "Sin referencia adicional" })
+          AppCore.createElement("p", { className: "collection-card-sub", text: [item.agente, item.projectLine].filter(Boolean).join(" Â· ") || "Sin referencia adicional" })
         ]),
         createStatusPill(item.statusMeta.label, item.statusMeta.tone)
       ]),
@@ -1193,7 +1120,7 @@
         createMetaPill("Saldo", formatMoney(item.saldo_restante), item.saldo_restante > 0 ? "pending" : "confirmed"),
         createMetaPill("Tipo", item.tipo_venta || "No definido"),
         createMetaPill("Fecha", formatDate(item.fecha_venta)),
-        createMetaPill("Próxima cuota", item.proxima_cuota ? formatDate(item.proxima_cuota) : "Sin cronograma", item.cuotas_morosas > 0 ? "rejected" : item.cuotas_vencidas > 0 ? "pending" : "neutral")
+        createMetaPill("PrÃ³xima cuota", item.proxima_cuota ? formatDate(item.proxima_cuota) : "Sin cronograma", item.cuotas_morosas > 0 ? "rejected" : item.cuotas_vencidas > 0 ? "pending" : "neutral")
       ]),
       AppCore.createElement("div", { className: "progress-track" }, [
         AppCore.createElement("div", { className: "progress-fill", attrs: { style: `width:${item.progress}%;` } })
@@ -1211,7 +1138,7 @@
         AppCore.createElement("strong", { text: item.cuotas_morosas > 0 ? "Mora detectada" : "Cuotas vencidas" }),
         AppCore.createElement("span", {
           text: item.cuotas_morosas > 0
-            ? `${item.cuotas_morosas} cuota(s) en mora requieren atención inmediata.`
+            ? `${item.cuotas_morosas} cuota(s) en mora requieren atenciÃ³n inmediata.`
             : `${item.cuotas_vencidas} cuota(s) vencidas requieren seguimiento.`
         })
       ]));
@@ -1219,14 +1146,13 @@
 
     return card;
   }
-
   function createExtensionCard(item, pending) {
     const statusMeta = getExtensionStatusMeta(item.estado_extension);
     const card = AppCore.createElement("article", { className: "extension-ticket" }, [
       AppCore.createElement("div", { className: "extension-ticket-head" }, [
         AppCore.createElement("div", {}, [
           AppCore.createElement("strong", { text: item.cliente || "Cliente no disponible" }),
-          AppCore.createElement("div", { className: "extension-ticket-sub", text: [item.unidad_codigo, item.agente].filter(Boolean).join(" · ") || "Sin referencia" })
+          AppCore.createElement("div", { className: "extension-ticket-sub", text: [item.unidad_codigo, item.agente].filter(Boolean).join(" Â· ") || "Sin referencia" })
         ]),
         createStatusPill(statusMeta.label, statusMeta.tone)
       ]),
@@ -1246,49 +1172,38 @@
       card.appendChild(AppCore.createElement("div", {
         className: `inline-alert tone-${item.extension_usada ? "premium" : "pending"}`
       }, [
-        AppCore.createElement("strong", { text: item.extension_usada ? "Extensión usada" : "Depósito pendiente" }),
+        AppCore.createElement("strong", { text: item.extension_usada ? "ExtensiÃ³n usada" : "DepÃ³sito pendiente" }),
         AppCore.createElement("span", {
           text: item.extension_usada
-            ? "La reserva ya utilizó su única extensión comercial."
-            : `Se requiere confirmar el depósito mínimo de ${formatMoney(item.deposito_requerido || 2500)} para aprobar.`
+            ? "La reserva ya utilizÃ³ su Ãºnica extensiÃ³n comercial."
+            : `Se requiere confirmar el depÃ³sito mÃ­nimo de ${formatMoney(item.deposito_requerido || 2500)} para aprobar.`
         })
       ]));
     }
 
     const actions = AppCore.createElement("div", { className: "collection-actions-row" });
     if (item.voucherUrl) {
-      actions.appendChild(AppCore.createElement("a", {
-        className: "btn-outline",
-        text: "Ver sustento",
-        attrs: { href: item.voucherUrl, target: "_blank", rel: "noopener noreferrer" }
-      }));
+      actions.appendChild(AppCore.createElement("a", { className: "btn-outline", text: "Ver voucher", attrs: { href: item.voucherUrl, target: "_blank", rel: "noopener noreferrer" } }));
     }
     if (pending) {
       actions.appendChild(AppCore.createElement("button", {
         className: "btn-primary",
-        text: "Aprobar",
-        attrs: { type: "button" },
-        events: { click: () => window.aprobarExtension && window.aprobarExtension(item.id) }
+        text: item.puedeAprobar ? "Aprobar" : "No aprobable",
+        attrs: { type: "button", disabled: item.puedeAprobar ? null : "disabled" },
+        events: item.puedeAprobar ? { click: () => window.aprobarExtension && window.aprobarExtension(item.id) } : {}
       }));
-      actions.appendChild(AppCore.createElement("button", {
-        className: "btn-danger",
-        text: "Rechazar",
-        attrs: { type: "button" },
-        events: { click: () => window.rechazarExtension && window.rechazarExtension(item.id) }
-      }));
+      actions.appendChild(AppCore.createElement("button", { className: "btn-danger", text: "Rechazar", attrs: { type: "button" }, events: { click: () => window.rechazarExtension && window.rechazarExtension(item.id) } }));
     }
-    if (actions.childNodes.length) {
-      card.appendChild(actions);
-    }
+    card.appendChild(actions);
     return card;
   }
   function createUnitCard(item) {
     const card = AppCore.createElement("article", { className: `unidad-card estado-${normalize(item.estado)}` }, [
       AppCore.createElement("h3", { text: item.codigo || `${item.manzana}-${item.lote}` }),
-      AppCore.createElement("div", { className: "unidad-info", text: [item.proyecto, item.fase ? `Fase ${item.fase}` : "", item.manzana ? `Mz. ${item.manzana}` : "", item.lote ? `Lt. ${item.lote}` : ""].filter(Boolean).join(" · ") })
+      AppCore.createElement("div", { className: "unidad-info", text: [item.proyecto, item.fase ? `Fase ${item.fase}` : "", item.manzana ? `Mz. ${item.manzana}` : "", item.lote ? `Lt. ${item.lote}` : ""].filter(Boolean).join(" Â· ") })
     ]);
 
-    card.appendChild(AppCore.createElement("label", { className: "unit-field-label", text: "Área" }));
+    card.appendChild(AppCore.createElement("label", { className: "unit-field-label", text: "Ãrea" }));
     card.appendChild(AppCore.createElement("input", { attrs: { id: `area-${item.id}`, type: "number", value: AppCore.safeNumber(item.area) } }));
     card.appendChild(AppCore.createElement("label", { className: "unit-field-label", text: "Precio" }));
     card.appendChild(AppCore.createElement("input", { attrs: { id: `precio-${item.id}`, type: "number", value: AppCore.safeNumber(item.precio) } }));
@@ -1297,53 +1212,6 @@
     card.appendChild(AppCore.createElement("button", { className: "btn-primary", text: "Guardar", attrs: { type: "button" }, events: { click: () => updateUnit(item.id) } }));
     return card;
   }
-  function renderSalesChart() {
-    if (!refs.chartCanvas || typeof window.Chart === "undefined") return;
-    const context = typeof refs.chartCanvas.getContext === "function"
-      ? refs.chartCanvas.getContext("2d")
-      : null;
-    if (!context) return;
-
-    const sales = [...state.sales].sort((a, b) => (safeDate(a.fecha_venta)?.getTime() || 0) - (safeDate(b.fecha_venta)?.getTime() || 0));
-    let sold = 0;
-    let paid = 0;
-    const labels = [];
-    const soldData = [];
-    const paidData = [];
-
-    sales.forEach((sale, index) => {
-      sold += AppCore.safeNumber(sale.precio_base);
-      paid += AppCore.safeNumber(sale.totalPaid);
-      labels.push(sale.fecha_venta ? formatDate(sale.fecha_venta, "short") : `Venta ${index + 1}`);
-      soldData.push(sold);
-      paidData.push(paid);
-    });
-
-    if (state.chart && typeof state.chart.destroy === "function") {
-      state.chart.destroy();
-    }
-
-    state.chart = new window.Chart(context, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          { label: "Monto vendido", data: soldData, borderColor: "#c6a85a", backgroundColor: "rgba(198,168,90,0.12)", fill: true, tension: 0.35, pointRadius: 3 },
-          { label: "Monto cobrado", data: paidData, borderColor: "#34d399", backgroundColor: "rgba(52,211,153,0.1)", fill: true, tension: 0.35, pointRadius: 3 }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: "#cbd5e1" } } },
-        scales: {
-          x: { grid: { color: "rgba(255,255,255,0.03)" }, ticks: { color: "#94a3b8" } },
-          y: { grid: { color: "rgba(255,255,255,0.03)" }, ticks: { color: "#94a3b8", callback: (value) => `S/ ${Number(value).toLocaleString()}` } }
-        }
-      }
-    });
-  }
-
   function renderDashboard() {
     if (!refs.dashboardKpis || !refs.dashboardHighlights) return;
     const totalSold = state.sales.reduce((sum, item) => sum + AppCore.safeNumber(item.precio_base), 0);
@@ -1357,8 +1225,8 @@
     const pendingExtensions = state.extensions.filter((item) => normalize(item.estado_extension) === "solicitud").length;
 
     clearAndAppend(refs.dashboardKpis, [
-      { title: "Reservas activas", value: activeReservations, note: `${pendingReservations} pendientes de confirmación`, tone: "active" },
-      { title: "Reservas por vencer", value: expiringReservations, note: "Vigencia dentro de 3 días", tone: expiringReservations > 0 ? "pending" : "neutral" },
+      { title: "Reservas activas", value: activeReservations, note: `${pendingReservations} pendientes de confirmaciÃ³n`, tone: "active" },
+      { title: "Reservas por vencer", value: expiringReservations, note: "Vigencia dentro de 3 dÃ­as", tone: expiringReservations > 0 ? "pending" : "neutral" },
       { title: "Ventas activas", value: activeSales, note: `${closedSales} cerradas`, tone: "confirmed" },
       { title: "Monto vendido", value: formatMoney(totalSold), note: `${state.sales.length} operaciones`, tone: "premium" },
       { title: "Saldo pendiente", value: formatMoney(totalPending), note: "Por cobrar", tone: totalPending > 0 ? "pending" : "confirmed" },
@@ -1372,28 +1240,24 @@
 
     clearAndAppend(refs.dashboardHighlights, [
       AppCore.createElement("div", { className: "insight-card" }, [
-        AppCore.createElement("div", { className: "insight-title", text: "Foco del día" }),
-        AppCore.createElement("strong", { text: expiringReservations > 0 ? "Reservas por vencer" : "Operación estable" }),
-        AppCore.createElement("p", { text: expiringReservations > 0 ? `${expiringReservations} reservas requieren seguimiento inmediato.` : "No hay alertas críticas de vigencia." })
+        AppCore.createElement("div", { className: "insight-title", text: "Foco del dÃ­a" }),
+        AppCore.createElement("strong", { text: expiringReservations > 0 ? "Reservas por vencer" : "OperaciÃ³n estable" }),
+        AppCore.createElement("p", { text: expiringReservations > 0 ? `${expiringReservations} reservas requieren seguimiento inmediato.` : "No hay alertas crÃ­ticas de vigencia." })
       ]),
       AppCore.createElement("div", { className: "insight-card" }, [
         AppCore.createElement("div", { className: "insight-title", text: "Cobro proyectado" }),
         AppCore.createElement("strong", { text: formatMoney(totalPending) }),
-        AppCore.createElement("p", { text: "Saldo acumulado de ventas todavía activas." })
+        AppCore.createElement("p", { text: "Saldo acumulado de ventas todavÃ­a activas." })
       ]),
       AppCore.createElement("div", { className: "insight-card" }, [
         AppCore.createElement("div", { className: "insight-title", text: "Pendientes operativos" }),
         AppCore.createElement("strong", { text: String(pendingReservations + pendingExtensions) }),
-        AppCore.createElement("p", { text: "Reservas y extensiones pendientes de gestión." })
+        AppCore.createElement("p", { text: "Reservas y extensiones pendientes de gestiÃ³n." })
       ])
     ]);
 
     setDashboardStamp(`Actualizado ${formatDateTime(new Date().toISOString())}`);
-    try {
-      renderSalesChart();
-    } catch (error) {
-      console.error("admin.page renderSalesChart", error);
-    }
+    renderSalesChart();
   }
   function renderReservations() {
     const filtered = getFilteredReservations();
@@ -1441,8 +1305,8 @@
     if (refs.extApprovedCount) refs.extApprovedCount.textContent = String(approved.length);
     if (refs.extRejectedCount) refs.extRejectedCount.textContent = String(rejected.length);
     pending.length ? clearAndAppend(refs.extPendientes, pending.map((item) => createExtensionCard(item, true))) : renderEmpty(refs.extPendientes, "Sin pendientes", "No hay solicitudes esperando respuesta.");
-    approved.length ? clearAndAppend(refs.extAprobadas, approved.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extAprobadas, "Sin aprobadas", "Aún no hay solicitudes aprobadas.");
-    rejected.length ? clearAndAppend(refs.extRechazadas, rejected.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extRechazadas, "Sin rechazadas", "Aún no hay solicitudes rechazadas.");
+    approved.length ? clearAndAppend(refs.extAprobadas, approved.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extAprobadas, "Sin aprobadas", "AÃºn no hay solicitudes aprobadas.");
+    rejected.length ? clearAndAppend(refs.extRechazadas, rejected.map((item) => createExtensionCard(item, false))) : renderEmpty(refs.extRechazadas, "Sin rechazadas", "AÃºn no hay solicitudes rechazadas.");
   }
   function renderUnits(items = getFilteredUnits()) {
     if (state.unitsError && !state.unitsLoaded) {
@@ -1581,7 +1445,7 @@
       renderUnits();
     } catch (error) {
       console.error("admin.page refreshAll", error);
-      renderEmpty(refs.dashboardHighlights, "Error cargando datos", AppCore.getErrorMessage(error, "No se pudo actualizar la información."));
+      renderEmpty(refs.dashboardHighlights, "Error cargando datos", AppCore.getErrorMessage(error, "No se pudo actualizar la informaciÃ³n."));
     } finally {
       state.loading = false;
       setButtonLoading(refs.refreshButton, false);
@@ -1593,12 +1457,12 @@
     document.querySelectorAll(".section").forEach((section) => section.classList.toggle("hidden", section.id !== sectionId));
     document.querySelectorAll(".nav-btn[data-nav]").forEach((navButton) => navButton.classList.toggle("active", navButton === button || navButton.dataset.nav === sectionId));
     if (refs.subtitle) refs.subtitle.textContent = ({
-      dashboard: "Operación comercial, control y seguimiento.",
-      reservas: "Reservas activas, negociación y conversión.",
+      dashboard: "OperaciÃ³n comercial, control y seguimiento.",
+      reservas: "Reservas activas, negociaciÃ³n y conversiÃ³n.",
       ventas: "Seguimiento de cobros, cuotas y saldo.",
-      extensiones: "Revisión y respuesta de solicitudes complementarias.",
+      extensiones: "RevisiÃ³n y respuesta de solicitudes complementarias.",
       unidades: "Inventario editable y disponibilidad."
-    })[sectionId] || "Operación comercial, control y seguimiento.";
+    })[sectionId] || "OperaciÃ³n comercial, control y seguimiento.";
     if (sectionId === "dashboard") renderDashboard();
     if (sectionId === "reservas") renderReservations();
     if (sectionId === "ventas") renderSales();
@@ -1615,8 +1479,8 @@
       await adminRequest({ method: "PATCH", body: { action: approved ? "aprobar_extension" : "rechazar_extension", extension_id: id } });
       await syncData({ extensions: true, reservations: true, filters: true });
     } catch (error) {
-      alert(AppCore.getErrorMessage(error, "No se pudo actualizar la extensión."));
-    }
+      alert(AppCore.getErrorMessage(error, "No se pudo actualizar la extensiÃƒÆ’Ã‚Â³n."));
+      alert(AppCore.getErrorMessage(error, "No se pudo actualizar la extensiÃ³n."));
   }
 
   function bindEvents() {
@@ -1656,11 +1520,11 @@
     const isFinancing = isFinancingSaleType(tipoVenta);
 
     if (!tipoVenta) {
-      throw new Error("Selecciona el tipo de venta antes de guardar la negociación.");
+      throw new Error("Selecciona el tipo de venta antes de guardar la negociacion.");
     }
 
     if (precioFinal <= 0) {
-      throw new Error("Ingresa un precio final válido para la negociación.");
+      throw new Error("Ingresa un precio final valido para la negociacion.");
     }
 
     if (isFinancing && numeroCuotas <= 0) {
@@ -1686,7 +1550,7 @@
       observaciones_negociacion: observaciones
     };
 
-    await runAction(payload, "No se pudo guardar la negociación.");
+    await runAction(payload, "No se pudo guardar la negociacion.");
 
     closeNegotiationShell(id);
 
@@ -1837,7 +1701,7 @@
     } catch (error) {
       await refreshSaleQuotaModule(ventaId);
       if (created > 0) {
-        throw new Error(`Se registraron ${created} cuotas antes del error. ${AppCore.getErrorMessage(error, "No se pudo completar la distribución automática.")}`);
+        throw new Error(`Se registraron ${created} cuotas antes del error. ${AppCore.getErrorMessage(error, "No se pudo completar la distribucion automatica.")}`);
       }
       throw error;
     }
@@ -1889,9 +1753,9 @@
       });
 
       renderSaleInlineForm({
-        title: "Distribución automática de cuotas",
+        title: "Distribucion automatica de cuotas",
         description: canProgram
-          ? "Genera cuotas consecutivas desde el siguiente número disponible. La última cuota absorberá diferencias de redondeo."
+          ? "Genera cuotas consecutivas desde el siguiente numero disponible. La ultima cuota absorbera diferencias de redondeo."
           : "La venta ya no tiene saldo pendiente por programar.",
         sections: [
           buildQuotaSummaryStrip(context),
@@ -2000,7 +1864,7 @@
             }),
             AppCore.createElement("button", {
               className: "btn-outline",
-                text: "Distribución automática",
+              text: "Distribucion automatica",
               attrs: { type: "button" },
               events: { click: () => window.mostrarFormularioCuota && window.mostrarFormularioCuota(ventaId, "automatico") }
             }),
@@ -2048,7 +1912,7 @@
       : context.saldoPendientePago;
     const description = targetQuota
       ? `Registraras un pago dirigido a la cuota ${targetQuota.numero_cuota || targetQuota.numero}. Saldo pendiente: ${formatMoney(saldoObjetivo)}.`
-      : `Registrarás un pago distribuido automáticamente entre cuotas pendientes. Saldo total pendiente: ${formatMoney(context.saldoPendientePago)}.`;
+      : `Registraras un pago distribuido automaticamente entre cuotas pendientes. Saldo total pendiente: ${formatMoney(context.saldoPendientePago)}.`;
 
     const montoInput = AppCore.createElement("input", {
       attrs: {
@@ -2122,165 +1986,5 @@
 
     const form = getSaleInlineForm();
     if (form) form.dataset.mode = mode;
-  }
-
-  async function handleRegisterPayment(ventaId, cuotaId = "") {
-    const context = await loadSaleQuotaContext(ventaId, { force: true });
-    const monto = AppCore.safeNumber(document.getElementById("montoPago")?.value);
-    const metodo = document.getElementById("metodoPago")?.value || "Efectivo";
-    const fechaPago = document.getElementById("fechaPago")?.value || "";
-    const targetQuota = cuotaId
-      ? context.quotas.find((quota) => String(quota.id) === String(cuotaId)) || null
-      : null;
-    const saldoMaximo = targetQuota
-      ? AppCore.safeNumber(targetQuota.saldo_pendiente)
-      : context.saldoPendientePago;
-
-    if (monto <= 0) {
-      throw new Error("Pago invalido.");
-    }
-
-    if (!fechaPago) {
-      throw new Error("Falta la fecha de pago.");
-    }
-
-    if (!isIsoDateInput(fechaPago) || !parseIsoDateParts(fechaPago)) {
-      throw new Error("La fecha de pago debe estar en formato YYYY-MM-DD.");
-    }
-
-    if (saldoMaximo <= 0) {
-      throw new Error(targetQuota ? "La cuota no tiene saldo pendiente." : "La venta no tiene saldo pendiente de pago.");
-    }
-
-    if (monto > saldoMaximo) {
-      throw new Error(targetQuota ? "El monto excede el saldo pendiente de la cuota seleccionada." : "El monto excede el saldo pendiente disponible.");
-    }
-
-    const response = await adminRequest({
-      method: "PATCH",
-      body: {
-        action: "registrar_pago",
-        venta_id: ventaId,
-        cuota_id: cuotaId || undefined,
-        monto,
-        metodo,
-        fecha_pago: fechaPago
-      }
-    });
-
-    if (response && response.success === false) {
-      throw new Error(response.error || "La cuota no pudo actualizarse.");
-    }
-
-    await refreshSaleQuotaModule(ventaId);
-  }
-
-  window.aprobarExtension = (id) => approveExtension(id, true);
-  window.rechazarExtension = (id) => approveExtension(id, false);
-  window.mostrarNegociacion = (id) => showNegotiationForm(id);
-  window.validar = async (id) => {
-    try {
-      await handleValidate(id);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo validar la reserva."));
-    }
-  };
-  window.rechazar = async (id, unidadRecordId) => {
-    try {
-      await handleReject(id, unidadRecordId);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo rechazar la reserva."));
-    }
-  };
-  window.guardarNegociacion = async (id) => {
-    try {
-      await handleSaveNegotiation(id);
-      showAdminAlert("Negociación guardada correctamente.");
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo guardar la negociación."));
-    }
-  };
-  window.convertirVenta = async (id, button) => {
-    try {
-      await handleConvert(id, button);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo convertir la reserva."));
-    }
-  };
-  window.guardarUnidad = async (id) => {
-    try {
-      await handleSaveUnit(id);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo actualizar la unidad."));
-    }
-  };
-  window.crearCuota = async (ventaId) => {
-    try {
-      await handleCreateQuota(ventaId);
-      showAdminAlert("Cuota registrada correctamente.");
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo crear la cuota."));
-    }
-  };
-  window.generarCuotasAutomaticas = async (ventaId) => {
-    try {
-      const created = await handleGenerateAutomaticQuotas(ventaId);
-      showAdminAlert(`Se generaron ${created} cuotas correctamente.`);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo completar la distribución automática."));
-    }
-  };
-  window.mostrarFormularioCuota = async (ventaId, mode = "manual") => {
-    try {
-      await openQuotaForm(ventaId, mode);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo abrir el formulario de cuotas."));
-    }
-  };
-  window.mostrarPago = async (ventaId, cuotaId = "") => {
-    try {
-      await openPaymentForm(ventaId, cuotaId);
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo abrir el formulario de pago."));
-    }
-  };
-  window.registrarPago = async (ventaId, cuotaId = "") => {
-    try {
-      await handleRegisterPayment(ventaId, cuotaId);
-      showAdminAlert("Pago registrado correctamente.");
-    } catch (error) {
-      showAdminAlert(AppCore.getErrorMessage(error, "No se pudo registrar el pago."));
-    }
-  };
-  window.showSection = (sectionId, button) => activateSection(sectionId, button || document.querySelector(`.nav-btn[data-nav="${sectionId}"]`));
-  window.loadReservas = async () => { await fetchReservations(); renderReservations(); renderDashboard(); return state.reservations; };
-  window.loadVentas = async () => { await fetchSales(); renderSales(); renderDashboard(); return state.sales; };
-  window.loadDashboard = async () => { await Promise.all([fetchReservations(), fetchSales(), fetchExtensions()]); renderDashboard(); };
-  window.cargarExtensiones = async () => { await fetchExtensions(); renderExtensions(); renderDashboard(); return state.extensions; };
-  window.loadUnidades = async () => {
-    await fetchUnits({ optional: false });
-    populateFilters();
-    renderUnits();
-    return state.units;
-  };
-  window.renderUnidades = (items) => renderUnits(Array.isArray(items) ? items : getFilteredUnits());
-
-  async function init() {
-    if (init.done) return;
-    init.done = true;
-    if (refs.headerTitle) refs.headerTitle.textContent = "Panel de Administración";
-    if (refs.subtitle) refs.subtitle.textContent = "Operación comercial, control y seguimiento.";
-    document.title = "Ayllu Laguna Huaypo | Administración";
-    applyStaticCopy();
-    bindEvents();
-    await refreshAll();
-    await activateSection(state.currentSection);
-    consumeDeepLink();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
   }
 })();

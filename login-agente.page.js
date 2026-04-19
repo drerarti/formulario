@@ -8,7 +8,7 @@ async function login() {
     .toLowerCase();
 
   if (!codigo) {
-    alert("Ingrese codigo");
+    alert("Ingrese código");
     return;
   }
 
@@ -21,7 +21,7 @@ async function login() {
     });
 
     if (!data.valido || !data.token) {
-      alert("Codigo invalido");
+      alert("Código inválido");
       return;
     }
 
@@ -29,12 +29,12 @@ async function login() {
 
     const decoded = AppCore.decodeToken(data.token);
     if (!decoded) {
-      throw new Error("Token invalido");
+      throw new Error("Token inválido");
     }
 
     window.location.href = AppCore.roleHome(decoded);
   } catch (error) {
-    alert(AppCore.getErrorMessage(error, "No se pudo iniciar sesion."));
+    alert(AppCore.getErrorMessage(error, "No se pudo iniciar sesión."));
   }
 }
 

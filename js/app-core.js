@@ -157,29 +157,29 @@
     const normalized = String(status || "").trim().toLowerCase();
     const map = {
       solicitud: {
-        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
+        label: "Pendiente de confirmación",
         tone: "pending",
-        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
+        description: "Reserva creada y esperando validación comercial"
       },
       pendiente: {
-        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
+        label: "Pendiente de confirmación",
         tone: "pending",
-        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
+        description: "Reserva creada y esperando validación comercial"
       },
-      "pendiente de confirmaciÃƒÆ’Ã‚Â³n": {
-        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
+      "pendiente de confirmación": {
+        label: "Pendiente de confirmación",
         tone: "pending",
-        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
+        description: "Reserva creada y esperando validación comercial"
       },
       "pendiente de confirmacion": {
-        label: "Pendiente de confirmaciÃƒÆ’Ã‚Â³n",
+        label: "Pendiente de confirmación",
         tone: "pending",
-        description: "Reserva creada y esperando validaciÃƒÆ’Ã‚Â³n comercial"
+        description: "Reserva creada y esperando validación comercial"
       },
       confirmada: {
         label: "Confirmada",
         tone: "confirmed",
-        description: "Reserva validada y lista para negociaciÃƒÆ’Ã‚Â³n o conversiÃƒÆ’Ã‚Â³n"
+        description: "Reserva validada y lista para negociación o conversión"
       },
       reservada: {
         label: "Reservada",
@@ -187,34 +187,44 @@
         description: "Reserva tomada y en seguimiento comercial"
       },
       "en negociacion": {
-        label: "En negociaciÃƒÆ’Ã‚Â³n",
+        label: "En negociación",
         tone: "active",
-        description: "NegociaciÃƒÆ’Ã‚Â³n comercial activa dentro de vigencia"
+        description: "Negociación comercial activa dentro de vigencia"
+      },
+      "en negociación": {
+        label: "En negociación",
+        tone: "active",
+        description: "Negociación comercial activa dentro de vigencia"
       },
       "negociacion extendida": {
-        label: "NegociaciÃƒÆ’Ã‚Â³n extendida",
+        label: "Negociación extendida",
         tone: "premium",
-        description: "Reserva con ampliaciÃƒÆ’Ã‚Â³n comercial vigente"
+        description: "Reserva con ampliación comercial vigente"
+      },
+      "negociación extendida": {
+        label: "Negociación extendida",
+        tone: "premium",
+        description: "Reserva con ampliación comercial vigente"
       },
       rechazada: {
         label: "Rechazada",
         tone: "rejected",
-        description: "OperaciÃƒÆ’Ã‚Â³n no aprobada"
+        description: "Operación no aprobada"
       },
       vencida: {
         label: "Vencida",
         tone: "expired",
-        description: "La vigencia comercial expirÃƒÆ’Ã‚Â³"
+        description: "La vigencia comercial expiró"
       },
       "en proceso": {
         label: "En proceso",
         tone: "active",
-        description: "OperaciÃƒÆ’Ã‚Â³n en gestiÃƒÆ’Ã‚Â³n"
+        description: "Operación en gestión"
       },
       proceso: {
         label: "En proceso",
         tone: "active",
-        description: "OperaciÃƒÆ’Ã‚Â³n en gestiÃƒÆ’Ã‚Â³n"
+        description: "Operación en gestión"
       },
       convertida: {
         label: "Convertida",
@@ -229,27 +239,27 @@
       cerrada: {
         label: "Cerrada",
         tone: "premium",
-        description: "OperaciÃƒÆ’Ã‚Â³n completada sin saldo pendiente"
+        description: "Operación completada sin saldo pendiente"
       },
       pagada: {
         label: "Cerrada",
         tone: "premium",
-        description: "OperaciÃƒÆ’Ã‚Â³n completada sin saldo pendiente"
+        description: "Operación completada sin saldo pendiente"
       },
       cancelada: {
         label: "Cancelada",
         tone: "rejected",
-        description: "OperaciÃƒÆ’Ã‚Â³n cancelada"
+        description: "Operación cancelada"
       },
       bloqueada: {
         label: "Bloqueada",
         tone: "neutral",
-        description: "OperaciÃƒÆ’Ã‚Â³n bloqueada para cambios"
+        description: "Operación bloqueada para cambios"
       },
       "con pagos": {
         label: "Con pagos",
         tone: "active",
-        description: "OperaciÃƒÆ’Ã‚Â³n con cobros registrados"
+        description: "Operación con cobros registrados"
       },
       morosa: {
         label: "Morosa",
@@ -264,7 +274,7 @@
       activa: {
         label: "En proceso",
         tone: "active",
-        description: "OperaciÃƒÆ’Ã‚Â³n en gestiÃƒÆ’Ã‚Â³n"
+        description: "Operación en gestión"
       }
     };
 
@@ -545,6 +555,21 @@
     if (attrs) {
       Object.entries(attrs).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
+        if (typeof value === "boolean") {
+          if (key in element) {
+            try {
+              element[key] = value;
+            } catch (error) {
+              void error;
+            }
+          }
+          if (value) {
+            element.setAttribute(key, "");
+          } else {
+            element.removeAttribute(key);
+          }
+          return;
+        }
         element.setAttribute(key, String(value));
       });
     }

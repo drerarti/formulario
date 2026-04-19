@@ -2538,6 +2538,13 @@ const hoyISO = new Date().toISOString().split("T")[0];
         return failure(400, "Reserva invÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡lida");
       }
 
+      debugLog(event, "convertir:payload", {
+        action: body.action,
+        reserva_id: reservaId,
+        target_table: "VENTAS",
+        fields: describePayloadFields(body, ["action", "reserva_id"])
+      });
+
       const reservaData = await airtableRequest(`RESERVAS/${reservaId}`);
       const reservaFields = reservaData.fields || {};
       const extensionRecords = await airtableList("SOLICITUDES_EXTENSION", {
@@ -2572,10 +2579,13 @@ const hoyISO = new Date().toISOString().split("T")[0];
         ""
       );
 
+      const reservaRecordId = reservaData.id || reservaId;
+      const reservaReference = asTrimmedString(reservaFields.reserva_id, 80) || reservaRecordId;
       const ventaDraftFields = {
         cliente: reservaFields.cliente || "",
         unidad: [unidadId],
-        reserva: [reservaId],
+        reserva_record_id: reservaRecordId,
+        reserva_id: reservaReference,
         precio_base: precioBase,
         monto_reserva: asNumber(reservaFields.monto_reserva, { min: 0 }),
         monto_inicial: asNumber(reservaFields.monto_inicial, { min: 0 }),
@@ -2591,16 +2601,42 @@ const hoyISO = new Date().toISOString().split("T")[0];
       const ventaSnapshot = getVentaSnapshot(ventaDraftFields, []);
       ventaDraftFields.estado_venta = mapVentaStatusForStorage(ventaSnapshot.estadoVenta, ventaSnapshot);
 
-      const ventaData = await createRecordWithOptionalAudit(
-        "VENTAS",
-        ventaDraftFields,
-        {
-          creado_por: auth.session.nombre || "",
-          creado_por_rol: auth.session.rol || "",
-          contexto_accion: "conversion_reserva",
-          fecha_registro_sistema: new Date().toISOString()
-        }
-      );
+      debugLog(event, "convertir:venta_create_attempt", {
+        reserva_id: reservaId,
+        target_table: "VENTAS",
+        linked_field_involved: "reserva",
+        linked_field_status: "omitted_due_to_table_mismatch",
+        fields: ventaDraftFields
+      });
+
+      let ventaData;
+      try {
+        ventaData = await createRecordWithOptionalAudit(
+          "VENTAS",
+          ventaDraftFields,
+          {
+            creado_por: auth.session.nombre || "",
+            creado_por_rol: auth.session.rol || "",
+            contexto_accion: "conversion_reserva",
+            fecha_registro_sistema: new Date().toISOString()
+          }
+        );
+      } catch (error) {
+        debugLog(event, "convertir:airtable_rejected", {
+          error: String(error?.message || error),
+          reserva_id: reservaId,
+          target_table: "VENTAS",
+          linked_field_involved: "reserva",
+          linked_field_status: "omitted_due_to_table_mismatch",
+          fields: ventaDraftFields
+        });
+        return buildAirtableValidationFailure(
+          error,
+          "Airtable rechazo la conversion. Revisa la referencia de reserva y la unidad asociada.",
+          "convertir",
+          { action: "convertir", reserva_id: reservaId }
+        );
+      }
 
       if (!ventaData.id) {
         return failure(500, "No se pudo crear la venta");
@@ -2625,6 +2661,12 @@ const hoyISO = new Date().toISOString().split("T")[0];
         }
       });
       invalidateUnitsListCache();
+
+      debugLog(event, "convertir:success", {
+        reserva_id: reservaId,
+        venta_id: ventaData.id,
+        target_table: "VENTAS"
+      });
 
       return success({
         success: true,
@@ -3090,7 +3132,8 @@ fechaFin.setDate(fechaFin.getDate() + dias);
               fields: {
                 cliente: reservaData.fields.cliente,
                 unidad: [unidadId],
-                reserva: [body.reserva_id],
+                reserva_record_id: reservaData.id || body.reserva_id,
+                reserva_id: asTrimmedString(reservaData.fields.reserva_id, 80) || reservaData.id || body.reserva_id,
                 precio_base: reservaData.fields.precio_final,
                 monto_reserva: reservaData.fields.monto_reserva,
                 monto_inicial: reservaData.fields.monto_inicial || 0,

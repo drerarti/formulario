@@ -293,7 +293,7 @@
       className: `detail-card is-internal${visible ? "" : " hidden"}`,
       attrs: { "data-internal": "true" }
     }, [
-      AppCore.createElement("h3", { text: "Operacion interna" })
+      AppCore.createElement("h3", { text: "Operación interna" })
     ]);
     const grid = AppCore.createElement("div", { className: "detail-grid" });
     grid.append(
@@ -704,7 +704,7 @@
       if (refs.headerTitle) refs.headerTitle.textContent = `${state.currentProject} - ${state.currentPhase}`;
       if (refs.headerSubtitle) {
         refs.headerSubtitle.textContent = state.isAdmin
-          ? `Operacion ${state.presentationMode ? "comercial" : "operativa"} de lotes y seguimiento.`
+        ? `Operación ${state.presentationMode ? "comercial" : "operativa"} de lotes y seguimiento.`
           : `${state.presentationMode ? "Vista cliente" : "Disponibilidad y reserva"} para ${state.session.decoded.nombre || "asesor"}.`;
       }
       if (refs.miniInfo) refs.miniInfo.textContent = `${state.currentProject} - ${state.currentPhase}`;
@@ -1072,44 +1072,87 @@
       localStorage.setItem("plano_quick_reserve_draft", JSON.stringify(draft || {}));
     }
 
-    function buildSimulationBlock(lote) {
+        function buildSimulationBlock(lote) {
       const section = AppCore.createElement("section", { className: "detail-card" }, [
         AppCore.createElement("h3", { text: "Simulación comercial" })
       ]);
       const totalPrice = lote.precio_publico || lote.precio || 0;
-      const simulation = PlanoUtils.buildPurchaseSimulation(totalPrice, {
-        initial: state.simulation.initial,
-        months: state.simulation.months,
-        reserveApplied: lote.monto_reserva
-      });
-
       const controls = AppCore.createElement("div", { className: "simulation-controls" });
       const initialInput = AppCore.createElement("input", {
         attrs: {
           type: "number",
           min: "0",
           step: "100",
-          value: String(simulation.initial)
+          inputmode: "decimal",
+          value: String(state.simulation.initial)
         }
       });
-      const monthsSelect = AppCore.createElement("select");
-      [24, 36, 48, 60].forEach((months) => {
-        const option = AppCore.createElement("option", {
-          text: `${months} meses`,
-          attrs: { value: months }
-        });
-        if (months === simulation.months) option.selected = true;
-        monthsSelect.appendChild(option);
+      const installmentsInput = AppCore.createElement("input", {
+        attrs: {
+          type: "number",
+          min: "1",
+          max: "240",
+          step: "1",
+          inputmode: "numeric",
+          value: String(state.simulation.months || 48)
+        }
       });
 
-      initialInput.addEventListener("input", () => {
-        state.simulation.initial = PlanoUtils.safeNumber(initialInput.value, state.simulation.initial);
-        renderPanel(lote);
+      const metricsGrid = AppCore.createElement("div", { className: "detail-grid" });
+      const initialItem = createDetailItem("Inicial", PlanoUtils.formatCurrency(0));
+      const installmentItem = createDetailItem("Cuota estimada", PlanoUtils.formatCurrency(0));
+      const financedItem = createDetailItem("A financiar", PlanoUtils.formatCurrency(0));
+      const countItem = createDetailItem("Cuotas", "0");
+      metricsGrid.append(initialItem, installmentItem, financedItem, countItem);
+
+      const reserveNote = AppCore.createElement("div", { className: "detail-note hidden" });
+      const metricTargets = {
+        initial: initialItem.querySelector("strong, p"),
+        installment: installmentItem.querySelector("strong, p"),
+        financed: financedItem.querySelector("strong, p"),
+        count: countItem.querySelector("strong, p")
+      };
+
+      const resolveSimulation = () => {
+        const rawInitial = String(initialInput.value || "").trim();
+        const rawInstallments = String(installmentsInput.value || "").trim();
+        return PlanoUtils.buildPurchaseSimulation(totalPrice, {
+          initial: rawInitial === "" ? state.simulation.initial : PlanoUtils.safeNumber(rawInitial, state.simulation.initial),
+          months: rawInstallments === "" ? state.simulation.months : PlanoUtils.safeNumber(rawInstallments, state.simulation.months),
+          reserveApplied: lote.monto_reserva
+        });
+      };
+
+      const refreshSimulation = (normalizeInputs = false) => {
+        const simulation = resolveSimulation();
+        state.simulation.initial = simulation.initial;
+        state.simulation.months = simulation.installments;
+        metricTargets.initial.textContent = PlanoUtils.formatCurrency(simulation.initial);
+        metricTargets.installment.textContent = PlanoUtils.formatCurrency(simulation.monthly);
+        metricTargets.financed.textContent = PlanoUtils.formatCurrency(simulation.financed);
+        metricTargets.count.textContent = String(simulation.installments);
+
+        if (normalizeInputs) {
+          initialInput.value = String(simulation.initial);
+          installmentsInput.value = String(simulation.installments);
+        }
+
+        if (simulation.reserveApplied > 0) {
+          reserveNote.textContent = `La simulación descuenta una reserva ya registrada de ${PlanoUtils.formatCurrency(simulation.reserveApplied)} al calcular la inicial neta.`;
+          reserveNote.classList.remove("hidden");
+        } else {
+          reserveNote.textContent = "";
+          reserveNote.classList.add("hidden");
+        }
+      };
+
+      initialInput.addEventListener("input", () => refreshSimulation(false));
+      initialInput.addEventListener("blur", () => {
+        if (!String(initialInput.value || "").trim()) initialInput.value = "0";
+        refreshSimulation(true);
       });
-      monthsSelect.addEventListener("change", () => {
-        state.simulation.months = PlanoUtils.safeNumber(monthsSelect.value, state.simulation.months);
-        renderPanel(lote);
-      });
+      installmentsInput.addEventListener("input", () => refreshSimulation(false));
+      installmentsInput.addEventListener("blur", () => refreshSimulation(true));
 
       controls.append(
         AppCore.createElement("label", { className: "simulation-field" }, [
@@ -1117,28 +1160,13 @@
           initialInput
         ]),
         AppCore.createElement("label", { className: "simulation-field" }, [
-          AppCore.createElement("span", { text: "Plazo" }),
-          monthsSelect
+          AppCore.createElement("span", { text: "Cuotas" }),
+          installmentsInput
         ])
       );
 
-      section.append(
-        controls,
-        AppCore.createElement("div", { className: "detail-grid" }, [
-          createDetailItem("Inicial", PlanoUtils.formatCurrency(simulation.initial)),
-          createDetailItem("Mensual", PlanoUtils.formatCurrency(simulation.monthly)),
-          createDetailItem("A financiar", PlanoUtils.formatCurrency(simulation.financed)),
-          createDetailItem("Meses", String(simulation.months))
-        ])
-      );
-
-      if (simulation.reserveApplied > 0) {
-        section.appendChild(AppCore.createElement("div", {
-          className: "detail-note",
-          text: `La simulación descuenta una reserva ya registrada de ${PlanoUtils.formatCurrency(simulation.reserveApplied)} al calcular la inicial neta.`
-        }));
-      }
-
+      section.append(controls, metricsGrid, reserveNote);
+      refreshSimulation(true);
       return section;
     }
 
